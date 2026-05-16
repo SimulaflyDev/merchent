@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neutral-dark: #0F172A;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: #F8FAFB;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force light mode text defaults */
+:root {
+  color-scheme: light;
+}
