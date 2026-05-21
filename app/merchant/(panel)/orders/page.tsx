@@ -160,7 +160,7 @@ export default function LeadsPage() {
                   Potential Value
                   {sortConfig?.key === 'value' && (sortConfig.direction === 'desc' ? ' ↓' : ' ↑')}
                 </div>
-                <div className="col-span-2 text-center">AI Interactions</div>
+                <div className="col-span-2 text-center">Shopper Interactions</div>
                 <div className="col-span-2 text-right">Status</div>
               </div>
 

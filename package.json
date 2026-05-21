@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@uiw/color-convert": "^2.10.1",
+    "@uiw/react-color-shade-slider": "^2.10.1",
+    "@uiw/react-color-wheel": "^2.10.1",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",

@@ -49,31 +49,36 @@ export default function DashboardPage() {
     .slice(0, 4);
 
   const statusColorMap: Record<string, string> = {
-    'New Lead': 'bg-blue-100 text-blue-700',
-    'Synced': 'bg-amber-100 text-amber-700',
-    'Converted': 'bg-emerald-100 text-emerald-700',
-    'Lost': 'bg-gray-100 text-gray-600',
+    'New Lead': 'text-gray-600',
+    'Synced': 'text-gray-500',
+    'Converted': 'text-[#0E9F88]',
+    'Lost': 'text-gray-400',
+  };
+  const statusDotMap: Record<string, string> = {
+    'New Lead': 'bg-[#111827]',
+    'Synced': 'bg-gray-400',
+    'Converted': 'bg-[#0E9F88]',
+    'Lost': 'bg-gray-300',
   };
 
 
   return (
-    <div className="p-6 md:p-8 w-full space-y-6">
+    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-8">
       
-      {/* AI Quick Insights Banner */}
+      {/* Shopper Quick Insights Banner */}
       {!hideBanner && (
-        <div className="bg-gradient-to-r from-purple-50 to-[#1FAF9A]/5 border border-purple-100/50 rounded-xl p-4 flex items-start gap-4 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-purple-200/40 to-transparent rounded-full blur-3xl pointer-events-none"></div>
-          <div className="w-10 h-10 rounded-lg bg-white shadow-sm border border-purple-100 flex items-center justify-center shrink-0 z-10">
+        <div className="bg-white border border-[#EAECEF] rounded-xl p-4 flex items-start gap-4 relative overflow-hidden">
+          <div className="w-10 h-10 rounded-lg bg-gray-50 border border-[#EAECEF] flex items-center justify-center shrink-0 z-10">
              <span className="text-xl">✨</span>
           </div>
           <div className="flex-1 z-10">
-            <h4 className="text-sm font-bold text-neutral-dark mb-1">AI Conversion Insight</h4>
-            <p className="text-sm text-gray-600 font-medium">
-              <strong className="text-purple-700">Velvet Sofas</strong> are seeing a 45% higher Add-to-Cart rate when users view AI-generated visuals. Consider increasing your daily token budget for the "Furniture" category to capture more high-intent checkouts.
+            <h4 className="text-[13px] font-semibold text-[#111827] mb-1">Shopper Conversion Insight</h4>
+            <p className="text-[12px] text-gray-500 font-normal">
+              <strong className="text-[#111827]">Velvet Sofas</strong> are seeing a 45% higher Add-to-Cart rate when users view AI-generated visuals. Consider increasing your daily token budget for the "Furniture" category to capture more high-intent checkouts.
             </p>
             <div className="mt-3 flex gap-3">
-              <button className="text-xs font-bold bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-md shadow-sm hover:bg-purple-50 transition-colors">Adjust Budget</button>
-              <button className="text-xs font-bold text-gray-500 hover:text-gray-700 px-2 py-1.5" onClick={() => setHideBanner(true)}>Dismiss</button>
+              <button className="text-[11px] font-medium bg-[#111827] text-white px-3 py-1.5 rounded-lg hover:bg-black transition-colors">Adjust Budget</button>
+              <button className="text-[11px] font-medium text-gray-400 hover:text-gray-600 px-2 py-1.5" onClick={() => setHideBanner(true)}>Dismiss</button>
             </div>
           </div>
         </div>
@@ -82,12 +87,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-end mb-2">
         <div>
-          <h1 className="text-2xl font-display font-bold text-neutral-dark mb-1 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-gray-500">Here's your storefront overview for the last 30 days.</p>
+          <h1 className="text-[22px] font-bold text-[#111827] tracking-tight">Dashboard</h1>
+          <p className="text-[12px] text-gray-400 font-normal mt-1">Here's your storefront overview for the last 30 days.</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/merchant/products" className="px-4 py-2 bg-[#1FAF9A] text-white text-sm font-semibold rounded-lg hover:bg-[#189986] transition-colors shadow-sm flex items-center gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
+          <Link href="/merchant/products" className="h-8 px-4 bg-[#111827] text-white text-[11px] font-medium rounded-lg hover:bg-black transition-colors flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Product
           </Link>
         </div>
@@ -96,93 +101,89 @@ export default function DashboardPage() {
       {/* KPI Ribbon (Token-Centric) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Revenue */}
-        <div className="bg-white border border-gray-100 rounded-[16px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between group">
+        <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Revenue</span>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+18.4%</span>
+            <span className="text-[10px] font-medium text-gray-400">Total Revenue</span>
+            <span className="text-[10px] font-medium text-[#0E9F88]">+18.4%</span>
           </div>
           <div>
-            <h3 className="text-3xl font-display font-bold text-neutral-dark tabular-nums tracking-tight">₹31,00,000</h3>
-            <p className="text-xs text-gray-400 mt-1 font-medium">From 214 checkouts</p>
+            <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">₹31,00,000</h3>
+            <p className="text-[11px] text-gray-400 mt-1 font-normal">From 214 checkouts</p>
           </div>
         </div>
 
         {/* Token Spend */}
-        <div className="bg-white border border-gray-100 rounded-[16px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Token Spend</span>
-            <span className="text-[10px] font-bold text-[#1FAF9A] bg-[#1FAF9A]/10 px-2 py-0.5 rounded-full">Optimal</span>
+            <span className="text-[10px] font-medium text-gray-400">Total Token Spend</span>
+            <span className="text-[10px] font-medium text-gray-500">Optimal</span>
           </div>
           <div>
-            <div className="flex items-baseline gap-1">
-              <h3 className="text-3xl font-display font-bold text-neutral-dark tabular-nums tracking-tight">₹1,15,000</h3>
-              <span className="text-sm font-bold text-gray-400"></span>
-            </div>
-            <p className="text-xs text-emerald-600 mt-1 font-bold tracking-wide">26x ROI</p>
+            <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">₹1,15,000</h3>
+            <p className="text-[11px] text-[#0E9F88] mt-1 font-medium">26x ROI</p>
           </div>
         </div>
 
-        {/* AI Add-to-Carts */}
-        <div className="bg-white border border-gray-100 rounded-[16px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between border-l-4 border-l-purple-500">
+        {/* Shopper Add-to-Carts */}
+        <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AI Add-to-Carts</span>
-            <svg className="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <span className="text-[10px] font-medium text-gray-400">Shopper Add-to-Carts</span>
           </div>
           <div>
-            <h3 className="text-3xl font-display font-bold text-neutral-dark tabular-nums tracking-tight">517</h3>
-            <p className="text-xs text-purple-600 mt-1 font-medium">32% conversion rate</p>
+            <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">517</h3>
+            <p className="text-[11px] text-gray-400 mt-1 font-normal">32% conversion rate</p>
           </div>
         </div>
 
         {/* Cost Per Checkout */}
-        <div className="bg-white border border-gray-100 rounded-[16px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg Cost Per Checkout</span>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">-5.2%</span>
+            <span className="text-[10px] font-medium text-gray-400">Avg Cost Per Checkout</span>
+            <span className="text-[10px] font-medium text-[#0E9F88]">-5.2%</span>
           </div>
           <div>
-            <h3 className="text-3xl font-display font-bold text-neutral-dark tabular-nums tracking-tight">₹550</h3>
-            <p className="text-xs text-gray-400 mt-1 font-medium">Platform average: ₹700</p>
+            <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">₹550</h3>
+            <p className="text-[11px] text-gray-400 mt-1 font-normal">Platform average: ₹700</p>
           </div>
         </div>
       </div>
 
       {/* HERO CHART — Spend vs Revenue */}
-      <div className="bg-white rounded-[20px] border border-gray-100 shadow-[0_4px_32px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#EAECEF] overflow-hidden">
         <div className="px-6 pt-6 pb-4 border-b border-gray-50">
           <div className="flex flex-wrap justify-between items-start gap-4 mb-5">
             <div>
-              <h4 className="text-xl font-bold text-neutral-dark tracking-tight">Spend vs Revenue</h4>
-              <p className="text-xs text-gray-500 mt-0.5">Token investment vs checkout revenue over time.</p>
+              <h4 className="text-[15px] font-semibold text-[#111827] tracking-tight">Spend vs Revenue</h4>
+              <p className="text-[11px] text-gray-400 mt-0.5 font-normal">Token investment vs checkout revenue over time.</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5"><span className="w-8 h-0.5 bg-[#1FAF9A] rounded inline-block"></span><span className="text-xs font-bold text-gray-500">Revenue</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-8 border-t-2 border-dashed border-purple-400 inline-block"></span><span className="text-xs font-bold text-gray-500">Token Spend</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-8 h-0.5 bg-[#0E9F88] rounded inline-block"></span><span className="text-[11px] font-medium text-gray-500">Revenue</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-8 border-t-2 border-dashed border-gray-400 inline-block"></span><span className="text-[11px] font-medium text-gray-500">Token Spend</span></div>
               </div>
-              <div className="flex items-center gap-1 bg-[#F8FAFB] border border-gray-100 rounded-lg p-1">
-                <button onClick={() => setPeriod('7D')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-colors ${period === '7D' ? 'bg-white text-neutral-dark shadow-sm' : 'text-gray-500 hover:text-neutral-dark'}`}>7D</button>
-                <button onClick={() => setPeriod('30D')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-colors ${period === '30D' ? 'bg-white text-neutral-dark shadow-sm' : 'text-gray-500 hover:text-neutral-dark'}`}>30D</button>
-                <button onClick={() => setPeriod('1Y')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-colors ${period === '1Y' ? 'bg-white text-neutral-dark shadow-sm' : 'text-gray-500 hover:text-neutral-dark'}`}>1Y</button>
+              <div className="flex items-center gap-1 bg-[#EDEEF0] border border-[#EAECEF] rounded-lg p-1">
+                <button onClick={() => setPeriod('7D')} className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${period === '7D' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-[#111827]'}`}>7D</button>
+                <button onClick={() => setPeriod('30D')} className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${period === '30D' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-[#111827]'}`}>30D</button>
+                <button onClick={() => setPeriod('1Y')} className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${period === '1Y' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-[#111827]'}`}>1Y</button>
               </div>
             </div>
           </div>
           {/* Big summary strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             <div className="pr-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Revenue</p>
-              <p className="text-2xl font-bold text-neutral-dark tabular-nums mt-1">₹31,00,000</p>
-              <p className="text-xs text-emerald-500 font-bold mt-0.5">↑ +18.4% vs last period</p>
+              <p className="text-[10px] font-medium text-gray-400">Total Revenue</p>
+              <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">₹31,00,000</p>
+              <p className="text-[11px] text-[#0E9F88] font-medium mt-0.5">↑ +18.4% vs last period</p>
             </div>
             <div className="px-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Token Spend</p>
-              <p className="text-2xl font-bold text-neutral-dark tabular-nums mt-1">₹1,15,000</p>
-              <p className="text-xs text-purple-500 font-bold mt-0.5">26x Return on Spend</p>
+              <p className="text-[10px] font-medium text-gray-400">Token Spend</p>
+              <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">₹1,15,000</p>
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5">26x Return on Spend</p>
             </div>
             <div className="pl-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Net Profit</p>
-              <p className="text-2xl font-bold text-[#1FAF9A] tabular-nums mt-1">₹29,85,000</p>
-              <p className="text-xs text-gray-400 font-medium mt-0.5">After all costs</p>
+              <p className="text-[10px] font-medium text-gray-400">Net Profit</p>
+              <p className="text-2xl font-bold text-[#0E9F88] tabular-nums mt-1">₹29,85,000</p>
+              <p className="text-[11px] text-gray-400 font-normal mt-0.5">After all costs</p>
             </div>
           </div>
         </div>
@@ -199,20 +200,20 @@ export default function DashboardPage() {
             <svg viewBox="0 0 600 260" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
               <defs>
                 <linearGradient id="revGradHero" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#1FAF9A" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#1FAF9A" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#0E9F88" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#0E9F88" stopOpacity="0" />
                 </linearGradient>
                 <linearGradient id="spendGradHero" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#A855F7" stopOpacity="0.12" />
-                  <stop offset="100%" stopColor="#A855F7" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#9CA3AF" stopOpacity="0.08" />
+                  <stop offset="100%" stopColor="#9CA3AF" stopOpacity="0" />
                 </linearGradient>
               </defs>
               <path d={`${generateSparkline(mockRevenueData, 600, 260)} L 600 260 L 0 260 Z`} fill="url(#revGradHero)" />
-              <path d={generateSparkline(mockRevenueData, 600, 260)} fill="none" stroke="#1FAF9A" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={generateSparkline(mockRevenueData, 600, 260)} fill="none" stroke="#0E9F88" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               <path d={`${generateSparkline(mockSpendData, 600, 260)} L 600 260 L 0 260 Z`} fill="url(#spendGradHero)" />
-              <path d={generateSparkline(mockSpendData, 600, 260)} fill="none" stroke="#A855F7" strokeWidth="2.5" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="545" cy="25" r="5.5" fill="white" stroke="#1FAF9A" strokeWidth="2.5" className="animate-pulse" />
-              <circle cx="545" cy="210" r="4" fill="white" stroke="#A855F7" strokeWidth="2" />
+              <path d={generateSparkline(mockSpendData, 600, 260)} fill="none" stroke="#9CA3AF" strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="545" cy="25" r="5" fill="white" stroke="#0E9F88" strokeWidth="2" />
+              <circle cx="545" cy="210" r="3.5" fill="white" stroke="#9CA3AF" strokeWidth="1.5" />
             </svg>
           </div>
           <div className="absolute left-14 right-6 bottom-3 flex justify-between text-[10px] font-semibold text-gray-400">
@@ -225,27 +226,27 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Top Performing Products — Live from Context */}
-        <div className="lg:col-span-5 bg-white rounded-[16px] border border-gray-100 flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
-          <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100">
+        <div className="lg:col-span-5 bg-white rounded-xl border border-[#EAECEF] flex flex-col overflow-hidden">
+          <div className="flex justify-between items-center px-6 py-5 border-b border-[#F1F3F5]">
             <div>
-              <h4 className="text-sm font-bold text-neutral-dark tracking-tight">Top AI Conversions</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5">Products generating the most leads.</p>
+              <h4 className="text-[13px] font-semibold text-[#111827] tracking-tight">Top Shopper Conversions</h4>
+              <p className="text-[10px] text-gray-400 mt-0.5 font-normal">Products generating the most leads.</p>
             </div>
-            <Link href="/merchant/analytics" className="text-[11px] font-bold text-[#1FAF9A] hover:text-[#189986] transition-colors">Insights &rarr;</Link>
+            <Link href="/merchant/analytics" className="text-[11px] font-medium text-[#0E9F88] hover:underline transition-colors">Insights &rarr;</Link>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {topProducts.map((product, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
+              <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#FAFBFC] transition-colors cursor-pointer group">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-lg ${product.img}`} />
                   <div>
-                    <h5 className="text-sm font-bold text-neutral-dark group-hover:text-[#1FAF9A] transition-colors">{product.name}</h5>
-                    <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{product.category}</p>
+                    <h5 className="text-[12px] font-semibold text-[#111827] group-hover:text-[#0E9F88] transition-colors">{product.name}</h5>
+                    <p className="text-[10px] font-normal text-gray-400">{product.category}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-neutral-dark">₹{product.sellPrice.toLocaleString('en-IN')}</p>
-                  <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 inline-block px-1.5 py-0.5 rounded mt-1">{product.aiConversions} Leads</p>
+                  <p className="text-[12px] font-semibold text-[#111827]">₹{product.sellPrice.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] font-medium text-[#0E9F88] mt-0.5">{product.aiConversions} Leads</p>
                 </div>
               </div>
             ))}
@@ -253,36 +254,37 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Orders — Live from Context */}
-        <div className="lg:col-span-7 bg-white rounded-[16px] border border-gray-100 flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
-          <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100">
+        <div className="lg:col-span-7 bg-white rounded-xl border border-[#EAECEF] flex flex-col overflow-hidden">
+          <div className="flex justify-between items-center px-6 py-5 border-b border-[#F1F3F5]">
             <div>
-              <h4 className="text-sm font-bold text-neutral-dark tracking-tight">Recent Orders</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5">Latest purchase intents from SimulaFly.</p>
+              <h4 className="text-[13px] font-semibold text-[#111827] tracking-tight">Recent Orders</h4>
+              <p className="text-[10px] text-gray-400 mt-0.5 font-normal">Latest purchase intents from SimulaFly.</p>
             </div>
-            <Link href="/merchant/orders" className="text-[11px] font-bold text-[#1FAF9A] hover:text-[#189986] transition-colors">View All &rarr;</Link>
+            <Link href="/merchant/orders" className="text-[11px] font-medium text-[#0E9F88] hover:underline transition-colors">View All &rarr;</Link>
           </div>
           
           <div className="flex-1 overflow-y-auto">
-             <div className="divide-y divide-gray-50">
+             <div className="divide-y divide-[#F1F3F5]">
                {recentLeads.map((lead, idx) => (
-                 <Link key={idx} href="/merchant/orders" className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors group cursor-pointer block">
+                 <Link key={idx} href="/merchant/orders" className="px-6 py-4 flex items-center justify-between hover:bg-[#FAFBFC] transition-colors group cursor-pointer block">
                    <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 bg-[#F8FAFB] border border-gray-100 rounded-lg flex items-center justify-center">
+                     <div className="w-10 h-10 bg-[#F1F2F4] border border-[#EAECEF] rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                      </div>
                      <div>
-                       <p className="text-sm font-bold text-neutral-dark group-hover:text-[#1FAF9A] transition-colors">{lead.id}</p>
+                       <p className="text-[12px] font-semibold text-[#111827] group-hover:text-[#0E9F88] transition-colors">{lead.id}</p>
                        <div className="flex items-center gap-2 mt-0.5">
-                         <span className="text-[11px] font-medium text-gray-500">{lead.date}</span>
+                         <span className="text-[11px] font-normal text-gray-400">{lead.date}</span>
                          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                         <span className="text-[11px] font-medium text-gray-500">{lead.customer.city}</span>
+                         <span className="text-[11px] font-normal text-gray-400">{lead.customer.city}</span>
                        </div>
                      </div>
                    </div>
                    
                    <div className="text-right">
-                     <p className="text-sm font-bold text-neutral-dark tabular-nums">₹{lead.total.toLocaleString('en-IN')}</p>
-                     <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusColorMap[lead.status]}`}>
+                     <p className="text-[12px] font-semibold text-[#111827] tabular-nums">₹{lead.total.toLocaleString('en-IN')}</p>
+                     <span className={`inline-flex items-center gap-1.5 mt-1 text-[10px] font-medium ${statusColorMap[lead.status]}`}>
+                       <span className={`w-1.5 h-1.5 rounded-full ${statusDotMap[lead.status]}`}></span>
                        {lead.status}
                      </span>
                    </div>

@@ -1,28 +1,70 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Spinner from "../components/Spinner";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasOnboardingInProgress, setHasOnboardingInProgress] = useState(false);
+  const [savedStep, setSavedStep] = useState(1);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sf_onboarding_step');
+    if (saved) {
+      const n = parseInt(saved, 10);
+      if (n >= 1 && n < 7) {
+        setHasOnboardingInProgress(true);
+        setSavedStep(n);
+      }
+    }
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setTimeout(() => {
+      // If onboarding was in progress, resume it
+      const saved = localStorage.getItem('sf_onboarding_step');
+      if (saved && parseInt(saved, 10) < 7) {
+        window.location.href = '/merchant/onboarding';
+      } else {
+        window.location.href = '/merchant/dashboard';
+      }
+    }, 1500);
+  };
 
   return (
+    <>
+    {isSubmitting && <Spinner variant="fullscreen" label="Signing you in…" />}
     <div className="min-h-screen bg-white flex">
       {/* Left Column: Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 relative">
         {/* Logo */}
         <div className="absolute top-8 left-8 sm:left-16 md:left-24 xl:left-32">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1FAF9A] to-teal-700 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              S
-            </div>
+            <img src="/simulafly-logo.png" alt="SimulaFly" className="w-8 h-8 rounded-lg shadow-sm object-cover" />
             <span className="font-display font-bold text-xl tracking-tight text-neutral-dark">SimulaFly</span>
             <span className="text-xs font-bold text-[#1FAF9A] bg-[#1FAF9A]/10 px-2 py-0.5 rounded-full ml-1">Merchant</span>
           </div>
         </div>
 
         <div className="max-w-md w-full mx-auto">
+          {/* Onboarding resume banner */}
+          {hasOnboardingInProgress && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div>
+                <p className="text-[12px] font-bold text-amber-800">Your store setup is incomplete</p>
+                <p className="text-[11px] text-amber-700 mt-0.5">You left off at <strong>Step {savedStep} of 7</strong>. Sign in to continue where you stopped.</p>
+              </div>
+            </div>
+          )}
+
           <h1 className="text-3xl font-display font-bold text-neutral-dark mb-2 tracking-tight">Welcome back</h1>
           <p className="text-sm text-gray-500 mb-8">Sign in to your merchant dashboard to manage your catalog and track sales.</p>
 
@@ -42,7 +84,7 @@ export default function SignInPage() {
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); window.location.href='/merchant/dashboard'; }}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Work Email</label>
               <input 
@@ -75,7 +117,7 @@ export default function SignInPage() {
               <label htmlFor="remember" className="text-sm text-gray-600 font-medium cursor-pointer">Remember me for 30 days</label>
             </div>
 
-            <button type="submit" className="w-full bg-[#1FAF9A] text-white font-bold text-sm py-3 rounded-lg hover:bg-[#189986] transition-colors shadow-sm mt-4">
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#1FAF9A] text-white font-bold text-sm py-3 rounded-lg hover:bg-[#189986] transition-colors shadow-sm mt-4 disabled:opacity-50">
               Sign In
             </button>
           </form>
@@ -112,5 +154,6 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

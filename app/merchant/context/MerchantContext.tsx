@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // --- Types ---
 export type LeadStatus = "New Lead" | "Synced" | "Converted" | "Lost";
@@ -25,24 +25,102 @@ export interface Lead {
   products: { name: string; qty: number; price: number; sku: string; img: string }[];
 }
 
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  sku: string;
+  img: string | null;
+  colorCode?: string;
+}
+
+export interface ProductDimensions {
+  width?: string;
+  height?: string;
+  depth?: string;
+  weight?: string;
+  seatHeight?: string;
+  tableHeight?: string;
+  recommendedRoomSize?: string;
+}
+
+export interface ProductMaterials {
+  primary?: string;
+  finish?: string;
+  upholsteryType?: string;
+}
+
+export interface ProductVisibility {
+  status: "Public" | "Hidden" | "Private Draft" | "Scheduled";
+  featured: boolean;
+  priorityTags: string[];
+}
+
+export interface RoomStorytelling {
+  placements: string[];
+  bestUsedIn: string;
+  pairsWellWith: string;
+  mood: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   category: string;
+  subCategory?: string;
   date: string;
   price: number;
   sellPrice: number;
   stock: number;
-  status: "Published" | "Draft List" | "Inactive" | "Out of Stock";
+  status: "Draft" | "Pending Review" | "Ready to Publish" | "Published" | "Out of Stock" | "Archived" | "Draft List" | "Inactive";
   img: string;
-  aiMentions: number; // Added for the AI focus
-  aiConversions: number; // Added for the AI focus
+
+  // New V2 Structured Fields
+  purchaseDestination?: "SimulaFly Checkout" | "External Website" | "Amazon" | "Shopify" | "Manual inquiry";
+  merchantNotes?: string;
   
-  // New Analytics Fields
+  v2Dimensions?: ProductDimensions;
+  v2Materials?: ProductMaterials;
+  colors?: { primary: string; secondary: string };
+  variants?: ProductVariant[];
+  roomStorytelling?: RoomStorytelling;
+  visibility?: ProductVisibility;
+  
+  inventory?: {
+    lowStockWarning: number;
+    preorder: boolean;
+    madeToOrder: boolean;
+  };
+
+  media?: {
+    additionalAngles: string[];
+    lifestyleImages: string[];
+    spatialFileUrl: string | null;
+  };
+
+  // Basic Details
+  searchQuery?: string;
+  brand?: string;
+  rating?: number;
+  asin?: string;
+  url?: string;
+  color?: string;
+  material?: string;
+  dimensions?: string;
+  aboutThisItem?: string;
+  specifications?: { key: string; value: string }[];
+  customerInterest?: { saves: number; views: number; placements: number };
+
+  // Legacy AI metrics (Optional now)
+  aiMentions?: number; 
+  aiConversions?: number; 
+  
+  // Analytics Fields
   impressions: number;
   clicks: number;
-  ctr: number;           // calculated: clicks/impressions * 100
-  aiImageGenerations: number;
+  ctr: number;
+  aiImageGenerations?: number;
   leadsGenerated: number;
   convertedLeads: number;
   tokenSpend: number;    // in INR
@@ -64,6 +142,7 @@ interface MerchantContextProps {
   products: Product[];
   walletBalance: number;
   toast: ToastMessage | null;
+  isLoading: boolean;
   updateLeadStatus: (id: string, newStatus: LeadStatus) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   showToast: (message: string, type?: 'success' | 'info') => void;
@@ -196,6 +275,13 @@ export const MerchantProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [walletBalance, setWalletBalance] = useState<number>(2400.00);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate initial data fetch
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1400);
+    return () => clearTimeout(timer);
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'info' = 'success') => {
     setToast({ message, type });
@@ -213,7 +299,7 @@ export const MerchantProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <MerchantContext.Provider value={{ leads, products, walletBalance, toast, updateLeadStatus, updateProduct, showToast, hideToast }}>
+    <MerchantContext.Provider value={{ leads, products, walletBalance, toast, isLoading, updateLeadStatus, updateProduct, showToast, hideToast }}>
       {children}
     </MerchantContext.Provider>
   );

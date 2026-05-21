@@ -2,26 +2,46 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Spinner from "../components/Spinner";
 
 export default function SignUpPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralValid, setReferralValid] = useState<null | boolean>(null);
+
+  const validateReferral = (code: string) => {
+    setReferralCode(code.toUpperCase());
+    if (code.length === 0) { setReferralValid(null); return; }
+    // Simulate validation: codes starting with SIMFLY- are valid
+    setReferralValid(code.toUpperCase().startsWith("SIMFLY-") && code.length >= 10);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setTimeout(() => {
+      window.location.href = '/merchant/onboarding';
+    }, 1500);
+  };
+
   return (
+    <>
+    {isSubmitting && <Spinner variant="fullscreen" label="Creating your account…" />}
     <div className="min-h-screen bg-white flex">
       {/* Left Column: Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 relative py-12">
         {/* Logo */}
         <div className="absolute top-8 left-8 sm:left-16 md:left-24 xl:left-32">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1FAF9A] to-teal-700 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              S
-            </div>
+            <img src="/simulafly-logo.png" alt="SimulaFly" className="w-8 h-8 rounded-lg shadow-sm object-cover" />
             <span className="font-display font-bold text-xl tracking-tight text-neutral-dark">SimulaFly</span>
             <span className="text-xs font-bold text-[#1FAF9A] bg-[#1FAF9A]/10 px-2 py-0.5 rounded-full ml-1">Merchant</span>
           </div>
         </div>
 
         <div className="max-w-md w-full mx-auto mt-12 lg:mt-0">
-          <h1 className="text-3xl font-display font-bold text-neutral-dark mb-2 tracking-tight">Apply as a Brand</h1>
-          <p className="text-sm text-gray-500 mb-8">Join the platform to allow users to visualize your products in their own space.</p>
+          <h1 className="text-3xl font-display font-bold text-neutral-dark mb-2 tracking-tight">Bring your store online</h1>
+          <p className="text-sm text-gray-500 mb-8">Create your account to start setting up your showroom on SimulaFly.</p>
 
           <button className="w-full bg-white border border-gray-200 text-neutral-dark font-bold text-sm py-3 rounded-lg hover:bg-gray-50 transition-colors shadow-sm mb-6 flex items-center justify-center gap-3">
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -35,11 +55,11 @@ export default function SignUpPage() {
 
           <div className="flex items-center mb-6">
             <div className="flex-1 h-px bg-gray-200"></div>
-            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Or apply with email</span>
+            <span className="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Or sign up with email</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); window.location.href='/merchant/onboarding'; }}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">First Name</label>
@@ -59,16 +79,6 @@ export default function SignUpPage() {
                   className="w-full bg-[#F8FAFB] border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#1FAF9A]/20 focus:border-[#1FAF9A] outline-none text-neutral-dark font-medium transition-colors"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Company Name</label>
-              <input 
-                type="text" 
-                required
-                placeholder="Acme Furniture Co." 
-                className="w-full bg-[#F8FAFB] border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#1FAF9A]/20 focus:border-[#1FAF9A] outline-none text-neutral-dark font-medium transition-colors"
-              />
             </div>
 
             <div>
@@ -92,10 +102,56 @@ export default function SignUpPage() {
               <p className="text-[10px] text-gray-400 mt-1.5">Must be at least 8 characters.</p>
             </div>
 
+            {/* Referral Code */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                Partner Referral Code
+                <span className="text-gray-400 font-normal ml-1">(optional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => validateReferral(e.target.value)}
+                  placeholder="e.g. SIMFLY-ACME-2024"
+                  className={`w-full bg-[#F8FAFB] border rounded-lg px-4 py-3 text-sm outline-none font-mono font-medium tracking-widest transition-colors pr-10 ${
+                    referralValid === true
+                      ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                      : referralValid === false
+                      ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50'
+                      : 'border-gray-200 focus:ring-2 focus:ring-[#1FAF9A]/20 focus:border-[#1FAF9A]'
+                  }`}
+                />
+                {referralValid === true && (
+                  <div className="absolute right-3 top-3.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                )}
+                {referralValid === false && (
+                  <div className="absolute right-3 top-3.5 text-red-400">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  </div>
+                )}
+              </div>
+              {referralValid === true && (
+                <p className="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Valid referral code — you and your partner earn rewards!
+                </p>
+              )}
+              {referralValid === false && (
+                <p className="text-[11px] text-red-500 mt-1.5">Code not recognised. Leave blank to continue without one.</p>
+              )}
+              {referralValid === null && (
+                <p className="text-[10px] text-gray-400 mt-1.5">Invited by another SimulaFly merchant? Enter their referral code to link accounts.</p>
+              )}
+            </div>
+
             <div className="pt-2">
-              <button type="submit" className="w-full bg-[#1FAF9A] text-white font-bold text-sm py-3 rounded-lg hover:bg-[#189986] transition-colors shadow-sm">
-                Create Account
+              <button type="submit" disabled={isSubmitting} className="w-full bg-[#1FAF9A] text-white font-bold text-sm py-3.5 rounded-lg hover:bg-[#189986] transition-colors shadow-sm disabled:opacity-50">
+                Create account
               </button>
+              <p className="text-[11px] text-gray-400 text-center mt-3 font-medium">We'll help you set up your online store in a few steps.</p>
             </div>
             
             <p className="text-xs text-gray-400 text-center mt-4">
@@ -118,24 +174,27 @@ export default function SignUpPage() {
         
         <div className="max-w-lg relative z-10 text-center">
            
-           {/* Mock UI Element floating */}
+           {/* Visual: storefront icon */}
            <div className="relative mx-auto w-64 h-64 bg-white rounded-2xl shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-gray-100 mb-8 p-6 flex flex-col items-center justify-center transform hover:scale-105 transition-transform duration-500">
               <div className="absolute top-4 left-4 w-3 h-3 rounded-full bg-red-400"></div>
               <div className="absolute top-4 left-9 w-3 h-3 rounded-full bg-amber-400"></div>
               <div className="absolute top-4 left-14 w-3 h-3 rounded-full bg-emerald-400"></div>
               
               <div className="w-24 h-24 bg-gray-50 rounded-xl mb-4 border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden relative">
-                 {/* Mock 3D box SVG */}
-                 <svg className="w-12 h-12 text-[#1FAF9A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                 <svg className="w-12 h-12 text-[#1FAF9A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                   <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                   <polyline points="9 22 9 12 15 12 15 22"/>
+                 </svg>
               </div>
-              <h4 className="text-sm font-bold text-neutral-dark mb-1">Upload 3D Models</h4>
-              <p className="text-[10px] text-gray-400 max-w-[150px]">Drag and drop .glb or .usdz files to let users experience your products.</p>
+              <h4 className="text-sm font-bold text-neutral-dark mb-1">Your Online Showroom</h4>
+              <p className="text-[10px] text-gray-400 max-w-[160px]">Customers discover and visualize your products in their own space.</p>
            </div>
 
-           <h2 className="text-2xl font-display font-bold text-neutral-dark mb-4">Empower your catalog</h2>
-           <p className="text-gray-500 font-medium">Join 500+ premium brands using AI Guided Selling to close high-ticket sales faster.</p>
+           <h2 className="text-2xl font-display font-bold text-neutral-dark mb-4">Your physical store, now online</h2>
+           <p className="text-gray-500 font-medium">Join merchants who are reaching new customers through SimulaFly showrooms.</p>
         </div>
       </div>
     </div>
+    </>
   );
 }

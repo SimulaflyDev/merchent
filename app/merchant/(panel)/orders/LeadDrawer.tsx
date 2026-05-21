@@ -145,12 +145,12 @@ export function LeadDrawer({ lead, onClose, onUpdateStatus }: LeadDrawerProps) {
 
           <hr className="border-gray-200" />
 
-          {/* AI CRM Insights */}
+          {/* Shopper CRM Insights */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#1FAF9A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                AI Insights & CRM
+                Shopper Insights & CRM
               </h3>
               <span className="text-xs font-mono bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-md shadow-sm">
                 ID: {isNewLead ? 'HIDDEN' : customerId}
@@ -158,7 +158,7 @@ export function LeadDrawer({ lead, onClose, onUpdateStatus }: LeadDrawerProps) {
             </div>
             
             <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-              Customer interacted with SimulaFly AI visualizations <strong className="text-gray-900">{lead.aiInteractions} times</strong> before converting to a lead.
+              Customer interacted with SimulaFly Commerce visualizations <strong className="text-gray-900">{lead.aiInteractions} times</strong> before converting to a lead.
             </p>
              
             {lead.aiGeneratedImage && (
@@ -166,16 +166,16 @@ export function LeadDrawer({ lead, onClose, onUpdateStatus }: LeadDrawerProps) {
                 {isNewLead ? (
                   <div className="w-full h-48 bg-gray-100 rounded-xl border border-gray-200 border-dashed flex flex-col items-center justify-center text-center p-6">
                     <svg className="w-8 h-8 text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    <p className="text-sm font-medium text-gray-600">AI Visual Context Locked</p>
+                    <p className="text-sm font-medium text-gray-600">Shopper Visual Context Locked</p>
                     <p className="text-xs text-gray-400 mt-1">Accept order to see the exact scene they generated.</p>
                   </div>
                 ) : (
                   <div className="relative w-full h-64 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-                    <img src={lead.aiGeneratedImage} alt="AI Generated visualization by customer" className="object-cover w-full h-full" />
+                    <img src={lead.aiGeneratedImage} alt="Shopper Generated visualization by customer" className="object-cover w-full h-full" />
                     <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl pointer-events-none"></div>
                     <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] text-white font-bold tracking-wider flex items-center gap-1.5 shadow-lg">
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                      SIMULAFLY AI
+                      SimulaFly Commerce
                     </div>
                   </div>
                 )}
