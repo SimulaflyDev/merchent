@@ -10,6 +10,7 @@ import {
   publishProductAction,
 } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
+import ProductEditModal from "./ProductEditModal";
 
 interface Props {
   initialData: PaginatedProducts;
@@ -40,6 +41,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [searchValue, setSearchValue] = useState(initialSearch);
+  const [editingProduct, setEditingProduct] = useState<MerchantProductOut | null>(null);
 
   const applyFilters = (next: { status?: string; search?: string }) => {
     const params = new URLSearchParams(sp.toString());
@@ -172,11 +174,23 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
                 pending={pending}
                 onPublish={handlePublish}
                 onArchive={handleArchive}
+                onEdit={setEditingProduct}
               />
             ))}
           </tbody>
         </table>
       </div>
+
+      {editingProduct && (
+        <ProductEditModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSaved={() => {
+            setEditingProduct(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -186,11 +200,13 @@ function ProductRow({
   pending,
   onPublish,
   onArchive,
+  onEdit,
 }: {
   product: MerchantProductOut;
   pending: boolean;
   onPublish: (id: string) => void;
   onArchive: (id: string) => void;
+  onEdit: (p: MerchantProductOut) => void;
 }) {
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50">
@@ -224,6 +240,13 @@ function ProductRow({
         </span>
       </td>
       <td className="px-4 py-3 text-right space-x-2">
+        <button
+          onClick={() => onEdit(product)}
+          disabled={pending}
+          className="text-gray-600 hover:underline disabled:opacity-50"
+        >
+          Edit
+        </button>
         {product.status === "draft" && (
           <button
             onClick={() => onPublish(product.id)}
