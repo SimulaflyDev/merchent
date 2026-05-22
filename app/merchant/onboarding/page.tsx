@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Spinner from "../components/Spinner";
+import { createMerchant } from "@/lib/api/merchants";
+import { setActiveMerchantAction } from "@/lib/auth/actions";
+import { isApiError } from "@/lib/api/errors";
 
 const STORE_TYPES = [
   "Furniture store",
@@ -49,10 +53,14 @@ const STYLE_TAGS = [
 ];
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [isNavigating, setIsNavigating] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitSaved, setExitSaved] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [storeName, setStoreName] = useState("");
 
   // Restore last saved step on mount
   useEffect(() => {
@@ -118,6 +126,30 @@ export default function OnboardingPage() {
       setStep(4);
     } else {
       setStep(step - 1);
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      const merchant = await createMerchant({
+        legal_name: storeName,
+        display_name: storeName,
+        country: "IN",
+        support_email: undefined,
+        support_phone: undefined,
+      });
+      await setActiveMerchantAction(merchant.id);
+      localStorage.removeItem("sf_onboarding_step");
+      router.push("/merchant/dashboard");
+    } catch (err) {
+      if (isApiError(err)) {
+        setSubmitError(err.detail || "Could not create your store.");
+      } else {
+        setSubmitError("Unexpected error. Try again.");
+      }
+      setIsSubmitting(false);
     }
   };
 
@@ -350,7 +382,14 @@ export default function OnboardingPage() {
                   </div>
                   <div>
                     <label className={labelCls}>Store Name <span className="text-red-400">*</span></label>
-                    <input type="text" required placeholder="e.g. Acme Home" className={inputCls} />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Acme Home"
+                      className={inputCls}
+                      value={storeName}
+                      onChange={(e) => setStoreName(e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className={labelCls}>GST Number <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
@@ -774,14 +813,21 @@ export default function OnboardingPage() {
                   </p>
                 </div>
 
+                {submitError && (
+                  <div className="px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg my-3">
+                    {submitError}
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
                   <button
-                    onClick={() => {
-                      setIsNavigating(true);
-                      setTimeout(() => { window.location.href = '/merchant/dashboard'; }, 1500);
-                    }}
-                    className="px-8 py-3 bg-neutral-dark text-white text-sm font-bold rounded-lg hover:bg-black transition-colors shadow-sm"
+                    onClick={handleFinalSubmit}
+                    disabled={isSubmitting}
+                    className="px-8 py-3 bg-neutral-dark text-white text-sm font-bold rounded-lg hover:bg-black transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                   >
+                    {isSubmitting && (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    )}
                     Go to dashboard
                   </button>
                   <Link
