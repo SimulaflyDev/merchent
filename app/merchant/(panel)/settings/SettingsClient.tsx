@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 
 import {
-  updateMerchant,
-  inviteMember,
-  changeMemberRole,
-  removeMember,
-} from "@/lib/api/merchants";
+  updateMerchantAction,
+  inviteMemberAction,
+  changeMemberRoleAction,
+  removeMemberAction,
+} from "@/lib/auth/merchant-actions";
 import { isApiError } from "@/lib/api/errors";
 import type { MerchantOut, MerchantMemberOut, MemberRole } from "@/lib/types/merchant";
 
@@ -35,7 +35,7 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
     setProfileSaved(false);
     startTransition(async () => {
       try {
-        const updated = await updateMerchant(merchant.id, {
+        const updated = await updateMerchantAction(merchant.id, {
           display_name: displayName,
           legal_name: legalName,
           support_email: supportEmail || undefined,
@@ -59,7 +59,7 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
     setInviteError(null);
     startTransition(async () => {
       try {
-        const m = await inviteMember(merchant.id, { email: inviteEmail, role: inviteRole });
+        const m = await inviteMemberAction(merchant.id, { email: inviteEmail, role: inviteRole });
         setMembers((prev) => [...prev, m]);
         setInviteEmail("");
         setInviteRole("staff");
@@ -80,7 +80,7 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
   const updateRole = (userId: string, role: MemberRole) => {
     startTransition(async () => {
       try {
-        const updated = await changeMemberRole(merchant.id, userId, role);
+        const updated = await changeMemberRoleAction(merchant.id, userId, role);
         setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)));
       } catch (err) {
         alert(isApiError(err) ? err.detail : "Failed to update role");
@@ -92,7 +92,7 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
     if (!confirm("Remove this member?")) return;
     startTransition(async () => {
       try {
-        await removeMember(merchant.id, userId);
+        await removeMemberAction(merchant.id, userId);
         setMembers((prev) => prev.filter((m) => m.user_id !== userId));
       } catch (err) {
         alert(isApiError(err) ? err.detail : "Failed to remove");

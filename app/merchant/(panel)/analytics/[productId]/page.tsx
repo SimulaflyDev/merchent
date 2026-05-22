@@ -77,7 +77,7 @@ export default function ProductAnalyticsPage() {
           const steps = [
             { label: "App Impressions",     value: product.impressions,        color: "#374151", light: "#f9fafb" },
             { label: "Product Clicks",      value: product.clicks,             color: "#1FAF9A", light: "#f0fdf9" },
-            { label: "AI Gen Interactions", value: product.aiImageGenerations, color: "#0d9488", light: "#f0fdfa" },
+            { label: "AI Gen Interactions", value: product.aiImageGenerations ?? 0, color: "#0d9488", light: "#f0fdfa" },
             { label: "Leads Raised",        value: product.leadsGenerated,     color: "#10b981", light: "#f0fdf4" },
             { label: "Confirmed Converted", value: product.convertedLeads,     color: "#8b5cf6", light: "#f5f3ff" },
           ];
@@ -85,8 +85,8 @@ export default function ProductAnalyticsPage() {
           return (
             <div className="space-y-0">
               {steps.map((s, i) => {
-                const prev = steps[i - 1]?.value || s.value;
-                const convRate = prev > 0 ? ((s.value / prev) * 100).toFixed(1) : "100";
+                const prev = steps[i - 1]?.value ?? s.value;
+                const convRate = (prev ?? 0) > 0 ? ((s.value / (prev ?? s.value)) * 100).toFixed(1) : "100";
                 const width = Math.max(10, (s.value / maxVal) * 100);
                 return (
                   <div key={i}>

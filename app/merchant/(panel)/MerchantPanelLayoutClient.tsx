@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MerchantProvider, useMerchant } from "../context/MerchantContext";
 import Spinner from "../components/Spinner";
+import type { MerchantOut } from "@/lib/types/merchant";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -42,9 +43,10 @@ function PageGate({ children }: { children: React.ReactNode }) {
 interface Props {
   children: React.ReactNode;
   activeMerchantId: string;
+  initialMerchant: MerchantOut;
 }
 
-export default function MerchantPanelLayoutClient({ children, activeMerchantId }: Props) {
+export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -212,7 +214,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId }
   };
 
   return (
-    <MerchantProvider activeMerchantId={activeMerchantId}>
+    <MerchantProvider activeMerchantId={activeMerchantId} initialMerchant={initialMerchant}>
       <div className="min-h-screen bg-[#EDEEF0] flex font-sans">
         {/* ─── Sidebar ─── */}
         <aside className={`${collapsed ? 'w-[72px]' : 'w-[264px]'} bg-white border-r border-[#E2E4E8] flex-col hidden md:flex sticky top-0 h-screen shrink-0 transition-all duration-300 ease-in-out`}>

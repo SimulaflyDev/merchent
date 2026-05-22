@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Spinner from "../components/Spinner";
-import { createMerchant } from "@/lib/api/merchants";
-import { setActiveMerchantAction } from "@/lib/auth/actions";
+import { createMerchantAction } from "@/lib/auth/merchant-actions";
 import { isApiError } from "@/lib/api/errors";
 
 const STORE_TYPES = [
@@ -133,14 +132,13 @@ export default function OnboardingPage() {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      const merchant = await createMerchant({
+      await createMerchantAction({
         legal_name: storeName,
         display_name: storeName,
         country: "IN",
         support_email: undefined,
         support_phone: undefined,
       });
-      await setActiveMerchantAction(merchant.id);
       localStorage.removeItem("sf_onboarding_step");
       router.push("/merchant/dashboard");
     } catch (err) {

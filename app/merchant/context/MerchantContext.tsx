@@ -1,10 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
-import { getMerchant } from "@/lib/api/merchants";
 import type { MerchantOut } from "@/lib/types/merchant";
-import { isApiError } from "@/lib/api/errors";
 
 // --- Types ---
 // Phase 1 retains the full Lead/Product type definitions from the original mock
@@ -162,39 +160,19 @@ const MerchantCtx = createContext<MerchantContextProps | undefined>(undefined);
 interface ProviderProps {
   children: ReactNode;
   activeMerchantId: string;
+  initialMerchant: MerchantOut;
 }
 
-export const MerchantProvider = ({ children, activeMerchantId }: ProviderProps) => {
-  const [merchant, setMerchant] = useState<MerchantOut | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+export const MerchantProvider = ({ children, activeMerchantId: _activeMerchantId, initialMerchant }: ProviderProps) => {
+  const [merchant, setMerchant] = useState<MerchantOut | null>(initialMerchant);
+  const isLoading = false;
+  const [loadError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
   // Empty placeholders for later phases — page components still reference them.
   const [leads] = useState<Lead[]>([]);
   const [products] = useState<Product[]>([]);
   const [walletBalance] = useState<number>(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    getMerchant(activeMerchantId)
-      .then((m) => {
-        if (!cancelled) {
-          setMerchant(m);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError(isApiError(err) ? err.detail : "Could not load workspace");
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeMerchantId]);
 
   const showToast = (message: string, type: "success" | "info" = "success") => {
     setToast({ message, type });

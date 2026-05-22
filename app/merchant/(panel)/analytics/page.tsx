@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
   const totalImpressions = products.reduce((acc, p) => acc + p.impressions, 0);
   const totalClicks = products.reduce((acc, p) => acc + p.clicks, 0);
   const avgCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0.0";
-  const totalRAGMentions = products.reduce((acc, p) => acc + p.aiMentions, 0);
+  const totalRAGMentions = products.reduce((acc, p) => acc + (p.aiMentions ?? 0), 0);
   
   // Aggregate all RAG queries across all products
   const allQueries = products.flatMap(p => 
@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
               <span className="text-[11px] text-gray-400 font-normal">Showing full customer journey across all products</span>
             </div>
             {(() => {
-              const totalShopper = products.reduce((acc, p) => acc + p.aiImageGenerations, 0);
+              const totalShopper = products.reduce((acc, p) => acc + (p.aiImageGenerations ?? 0), 0);
               const totalLeads = products.reduce((acc, p) => acc + p.leadsGenerated, 0);
               const totalConverted = products.reduce((acc, p) => acc + p.convertedLeads, 0);
               const steps = [
@@ -398,7 +398,7 @@ export default function AnalyticsPage() {
                 <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
                   <div>
                     <p className="text-[10px] font-medium text-gray-400 mb-1">Buyer Activity</p>
-                    <p className="text-lg font-bold text-[#111827]">{product.aiMentions.toLocaleString()}</p>
+                    <p className="text-lg font-bold text-[#111827]">{(product.aiMentions ?? 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-medium text-gray-400 mb-1">CTR</p>
