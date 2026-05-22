@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
 import ProductEditModal from "./ProductEditModal";
+import ProductPreviewModal from "./ProductPreviewModal";
 
 interface Props {
   initialData: PaginatedProducts;
@@ -42,6 +43,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [searchValue, setSearchValue] = useState(initialSearch);
   const [editingProduct, setEditingProduct] = useState<MerchantProductOut | null>(null);
+  const [previewProduct, setPreviewProduct] = useState<MerchantProductOut | null>(null);
 
   const applyFilters = (next: { status?: string; search?: string }) => {
     const params = new URLSearchParams(sp.toString());
@@ -175,6 +177,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
                 onPublish={handlePublish}
                 onArchive={handleArchive}
                 onEdit={setEditingProduct}
+                onPreview={setPreviewProduct}
               />
             ))}
           </tbody>
@@ -191,6 +194,13 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
           }}
         />
       )}
+
+      {previewProduct && (
+        <ProductPreviewModal
+          product={previewProduct}
+          onClose={() => setPreviewProduct(null)}
+        />
+      )}
     </div>
   );
 }
@@ -201,12 +211,14 @@ function ProductRow({
   onPublish,
   onArchive,
   onEdit,
+  onPreview,
 }: {
   product: MerchantProductOut;
   pending: boolean;
   onPublish: (id: string) => void;
   onArchive: (id: string) => void;
   onEdit: (p: MerchantProductOut) => void;
+  onPreview: (p: MerchantProductOut) => void;
 }) {
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50">
@@ -240,6 +252,13 @@ function ProductRow({
         </span>
       </td>
       <td className="px-4 py-3 text-right space-x-2">
+        <button
+          onClick={() => onPreview(product)}
+          disabled={pending}
+          className="text-gray-600 hover:underline disabled:opacity-50"
+        >
+          Preview
+        </button>
         <button
           onClick={() => onEdit(product)}
           disabled={pending}
