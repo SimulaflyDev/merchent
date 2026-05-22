@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 import type { MerchantOut } from "@/lib/types/merchant";
+import type { WalletOut } from "@/lib/types/wallet";
 
 // --- Types ---
 // Phase 1 retains the full Lead/Product type definitions from the original mock
@@ -143,9 +144,10 @@ export interface ToastMessage {
 
 interface MerchantContextProps {
   merchant: MerchantOut | null;          // Phase 1: real
+  wallet: WalletOut | null;              // Phase 3
   leads: Lead[];                         // Phase 5
   products: Product[];                   // Phase 2
-  walletBalance: number;                 // Phase 3
+  walletBalance: number;                 // Phase 3 (legacy — use wallet.balance instead)
   toast: ToastMessage | null;
   isLoading: boolean;
   loadError: string | null;
@@ -161,10 +163,12 @@ interface ProviderProps {
   children: ReactNode;
   activeMerchantId: string;
   initialMerchant: MerchantOut;
+  initialWallet: WalletOut;
 }
 
-export const MerchantProvider = ({ children, activeMerchantId: _activeMerchantId, initialMerchant }: ProviderProps) => {
+export const MerchantProvider = ({ children, activeMerchantId: _activeMerchantId, initialMerchant, initialWallet }: ProviderProps) => {
   const [merchant, setMerchant] = useState<MerchantOut | null>(initialMerchant);
+  const [wallet, setWallet] = useState<WalletOut | null>(initialWallet);
   const isLoading = false;
   const [loadError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -186,6 +190,7 @@ export const MerchantProvider = ({ children, activeMerchantId: _activeMerchantId
     <MerchantCtx.Provider
       value={{
         merchant,
+        wallet,
         leads,
         products,
         walletBalance,

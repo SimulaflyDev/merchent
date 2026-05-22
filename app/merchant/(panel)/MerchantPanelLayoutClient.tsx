@@ -6,6 +6,8 @@ import { useState } from "react";
 import { MerchantProvider, useMerchant } from "../context/MerchantContext";
 import Spinner from "../components/Spinner";
 import type { MerchantOut } from "@/lib/types/merchant";
+import type { WalletOut } from "@/lib/types/wallet";
+import LowBalanceBanner from "./components/LowBalanceBanner";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -44,9 +46,10 @@ interface Props {
   children: React.ReactNode;
   activeMerchantId: string;
   initialMerchant: MerchantOut;
+  initialWallet: WalletOut;
 }
 
-export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant }: Props) {
+export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant, initialWallet }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -214,7 +217,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
   };
 
   return (
-    <MerchantProvider activeMerchantId={activeMerchantId} initialMerchant={initialMerchant}>
+    <MerchantProvider activeMerchantId={activeMerchantId} initialMerchant={initialMerchant} initialWallet={initialWallet}>
       <div className="min-h-screen bg-[#EDEEF0] flex font-sans">
         {/* ─── Sidebar ─── */}
         <aside className={`${collapsed ? 'w-[72px]' : 'w-[264px]'} bg-white border-r border-[#E2E4E8] flex-col hidden md:flex sticky top-0 h-screen shrink-0 transition-all duration-300 ease-in-out`}>
@@ -374,6 +377,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
           </header>
 
           <main className="flex-1 overflow-y-auto">
+            <LowBalanceBanner />
             <PageGate>{children}</PageGate>
           </main>
         </div>
