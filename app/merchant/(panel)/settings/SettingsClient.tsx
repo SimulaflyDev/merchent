@@ -21,6 +21,7 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
   const [members, setMembers] = useState(initialMembers);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [memberOpError, setMemberOpError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   // --- Profile form state ---
@@ -78,24 +79,26 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
   };
 
   const updateRole = (userId: string, role: MemberRole) => {
+    setMemberOpError(null);
     startTransition(async () => {
       try {
         const updated = await changeMemberRoleAction(merchant.id, userId, role);
         setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)));
       } catch (err) {
-        alert(isApiError(err) ? err.detail : "Failed to update role");
+        setMemberOpError(isApiError(err) ? err.detail : "Failed to update role");
       }
     });
   };
 
   const removeRow = (userId: string) => {
     if (!confirm("Remove this member?")) return;
+    setMemberOpError(null);
     startTransition(async () => {
       try {
         await removeMemberAction(merchant.id, userId);
         setMembers((prev) => prev.filter((m) => m.user_id !== userId));
       } catch (err) {
-        alert(isApiError(err) ? err.detail : "Failed to remove");
+        setMemberOpError(isApiError(err) ? err.detail : "Failed to remove");
       }
     });
   };
@@ -175,6 +178,12 @@ export default function SettingsClient({ initialMerchant, initialMembers }: Prop
             ))}
           </tbody>
         </table>
+
+        {memberOpError && (
+          <div className="mt-3 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            {memberOpError}
+          </div>
+        )}
 
         <form onSubmit={submitInvite} className="mt-6 flex gap-3 items-end">
           <div className="flex-1">

@@ -21,7 +21,8 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     if (accessToken) h.set("Authorization", `Bearer ${accessToken}`);
 
     const merchantId = c.get("active_merchant_id")?.value;
-    if (merchantId && !skipMerchantId && path.startsWith("/merchant")) {
+    // Caller opts out of merchant header with skipMerchantId; not auto-stripped by path shape.
+    if (merchantId && !skipMerchantId) {
       h.set("X-Merchant-Id", merchantId);
     }
   }

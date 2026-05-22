@@ -140,6 +140,7 @@ export default function OnboardingPage() {
         support_phone: undefined,
       });
       localStorage.removeItem("sf_onboarding_step");
+      setIsNavigating(true);   // <-- ADD THIS LINE
       router.push("/merchant/dashboard");
     } catch (err) {
       if (isApiError(err)) {
