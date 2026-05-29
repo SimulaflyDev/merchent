@@ -19,7 +19,7 @@ interface UnlockModalProps {
   buyer: Buyer;
   credits: number;
   onClose: () => void;
-  onUnlock: (buyerId: string, cost: number) => void;
+  onUnlock: (buyerId: string, cost: number) => Promise<void>;
 }
 
 const REVEAL_COST = 30;
@@ -29,17 +29,17 @@ export default function UnlockModal({ buyer, credits, onClose, onUnlock }: Unloc
   const [isSuccess, setIsSuccess] = useState(false);
   const canAfford = credits >= REVEAL_COST;
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (!canAfford) return;
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      await onUnlock(buyer.id, REVEAL_COST);
       setIsProcessing(false);
       setIsSuccess(true);
-      setTimeout(() => {
-        onUnlock(buyer.id, REVEAL_COST);
-        onClose();
-      }, 1500);
-    }, 1200);
+      setTimeout(onClose, 1500);
+    } catch {
+      setIsProcessing(false);
+    }
   };
 
   return (

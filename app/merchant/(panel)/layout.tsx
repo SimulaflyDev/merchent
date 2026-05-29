@@ -1,18 +1,36 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getMerchantSession } from "@/lib/auth/session";
 import { getMerchant } from "@/lib/api/merchants";
 import { getWallet } from "@/lib/api/wallet";
+import { isApiError } from "@/lib/api/errors";
 import MerchantPanelLayoutClient from "./MerchantPanelLayoutClient";
 
 export default async function MerchantPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getMerchantSession();
   if (!session?.activeMerchantId) redirect("/merchant/sign_in");
 
-  const [merchant, wallet] = await Promise.all([
-    getMerchant(session.activeMerchantId),
-    getWallet(),
-  ]);
+  let merchant;
+  let wallet;
+
+  try {
+    const [m, w] = await Promise.all([
+      getMerchant(session.activeMerchantId),
+      getWallet(),
+    ]);
+    merchant = m;
+    wallet = w;
+  } catch (err) {
+    if (isApiError(err) && err.status === 401) {
+      const c = await cookies();
+      c.delete("access_token");
+      c.delete("refresh_token");
+      c.delete("active_merchant_id");
+      redirect("/merchant/sign_in");
+    }
+    throw err;
+  }
 
   return (
     <MerchantPanelLayoutClient
