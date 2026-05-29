@@ -1,222 +1,353 @@
 "use client";
 
-import { useState } from 'react';
-import { Product } from '../../context/MerchantContext';
+import { useState } from "react";
+import type { MerchantProductOut } from "@/lib/types/product";
 
-interface ProductPreviewModalProps {
-  product: Product;
+interface Props {
+  product: MerchantProductOut;
   onClose: () => void;
 }
 
-type PreviewMode = 'customer' | 'room' | 'merchant';
+const HEALTH_CONFIG: Record<string, { label: string; cls: string; bar: string; icon: string }> = {
+  good:     { label: "Healthy",  cls: "text-[#0E9F88] bg-[#F0FDF4] border-[#D1FAF0]", bar: "bg-[#0E9F88]", icon: "✓" },
+  review:   { label: "Needs Review", cls: "text-amber-700 bg-amber-50 border-amber-100", bar: "bg-amber-400", icon: "⚠" },
+  mismatch: { label: "Mismatch", cls: "text-red-600 bg-red-50 border-red-100", bar: "bg-red-400", icon: "✕" },
+  paused:   { label: "Paused",   cls: "text-gray-500 bg-gray-50 border-gray-100", bar: "bg-gray-300", icon: "‖" },
+};
 
-export function ProductPreviewModal({ product, onClose }: ProductPreviewModalProps) {
-  const [mode, setMode] = useState<PreviewMode>('customer');
+const PLATFORM_LABELS: Record<string, string> = {
+  amazon: "Amazon",
+  shopify: "Shopify",
+  brand_site: "Brand Site",
+  whatsapp: "WhatsApp",
+  other: "Other",
+};
 
-  const price = product.variants?.[0]?.price || product.sellPrice || 0;
-  const saves = product.customerInterest?.saves || (((product.name || '').length * 3) % 50) + 12;
-  const views = product.customerInterest?.views || (((product.name || '').length * 47) % 2000) + 340;
-  const isUrl = product.img && !product.img.startsWith('bg-') && product.img !== 'bg-gray-100';
-
-  const MODES: { key: PreviewMode; label: string }[] = [
-    { key: 'customer', label: 'Customer View' },
-    { key: 'room', label: 'Room Placement' },
-    { key: 'merchant', label: 'Merchant Preview' },
-  ];
+export default function ProductPreviewModal({ product, onClose }: Props) {
+  const [tab, setTab] = useState<"preview" | "details" | "ai">("preview");
+  const health = HEALTH_CONFIG[product.health_score] ?? HEALTH_CONFIG.review;
+  const aiScore = product.ai_relevance_score != null ? Math.round(product.ai_relevance_score) : null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-[#0a0f1e]/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
 
-      <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute -top-3 -right-3 z-20 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-200"
-        >
-          <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-
-        {/* Mode Toggle */}
-        <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full p-1 mb-5">
-          {MODES.map(m => (
-            <button
-              key={m.key}
-              onClick={() => setMode(m.key)}
-              className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all duration-150 ${
-                mode === m.key
-                  ? 'bg-white text-[#111827] shadow-sm'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >{m.label}</button>
-          ))}
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F5] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              {(["preview", "details", "ai"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-3.5 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-colors ${
+                    tab === t ? "bg-[#111827] text-white" : "text-gray-500 hover:text-[#111827] hover:bg-gray-100"
+                  }`}
+                >
+                  {t === "ai" ? "AI Health" : t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
 
-        {/* Phone Chrome */}
-        <div className="relative">
-          {/* Outer bezel */}
-          <div className="w-[300px] bg-[#111827] rounded-[44px] p-[10px] shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)]">
-            {/* Inner screen */}
-            <div className="bg-white rounded-[36px] overflow-hidden" style={{ height: '600px' }}>
-              {/* Status bar */}
-              <div className="bg-[#111827] h-9 flex items-center justify-between px-6 shrink-0">
-                <span className="text-white text-[10px] font-bold">9:41</span>
-                <div className="w-16 h-4 bg-[#111827] rounded-full border border-white/20" /> {/* notch */}
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M1 6.5l4-4 4 4-4 4-4-4zm8 0l4-4 4 4-4 4-4-4zm8 0l4-4 4 4-4 4-4-4z" opacity="0"/><path d="M1.414 0L0 1.414l2 2A12.96 12.96 0 0 0 0 12h2a11 11 0 0 1 1.938-6.235l1.453 1.453A8.965 8.965 0 0 0 4 12h2a7 7 0 0 1 1.063-3.672l1.46 1.46A4.968 4.968 0 0 0 8 12h2c0-.61.11-1.19.31-1.726l1.47 1.47A2.983 2.983 0 0 0 12 12a3 3 0 0 0 3-3 2.983 2.983 0 0 0-.244-.81l1.47-1.47C16.89 7.31 17 7.39 17 8"/></svg>
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+
+          {/* ── Preview Tab ── */}
+          {tab === "preview" && (
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Left: image */}
+              <div className="md:w-2/5 shrink-0 bg-[#F8FAFB] flex items-center justify-center p-6">
+                {product.primary_image_url ? (
+                  <img
+                    src={product.primary_image_url}
+                    alt={product.title}
+                    className="max-w-full max-h-72 object-contain rounded-xl shadow-sm"
+                  />
+                ) : (
+                  <div className={`w-full max-w-[240px] aspect-square rounded-2xl bg-gradient-to-br ${gradientFor(product.sku)} flex items-center justify-center`}>
+                    <svg className="w-16 h-16 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: SimulaFly consumer card preview */}
+              <div className="flex-1 p-6">
+                {/* SimulaFly tag */}
+                <div className="inline-flex items-center gap-1.5 mb-4 px-2.5 py-1 bg-[#F0FDF4] border border-[#D1FAF0] rounded-full">
+                  <div className="w-4 h-4 rounded-full bg-[#0E9F88] flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#0E9F88]">SimulaFly Storefront Preview</span>
+                </div>
+
+                <h2 className="text-[20px] font-bold text-[#111827] leading-tight mb-1">{product.title}</h2>
+                {product.brand && <p className="text-[12px] text-gray-400 mb-3">by {product.brand}</p>}
+
+                {product.in_app_price != null && (
+                  <p className="text-[28px] font-bold text-[#111827] mb-1">
+                    ₹{product.in_app_price.toLocaleString("en-IN")}
+                  </p>
+                )}
+                {product.in_app_stock != null && (
+                  <p className={`text-[11px] font-medium mb-4 ${product.in_app_stock > 0 ? "text-[#0E9F88]" : "text-red-500"}`}>
+                    {product.in_app_stock > 0 ? `${product.in_app_stock} in stock` : "Out of stock"}
+                  </p>
+                )}
+
+                {product.description && (
+                  <p className="text-[13px] text-gray-600 leading-relaxed mb-5 line-clamp-4">{product.description}</p>
+                )}
+
+                {/* Category + tags */}
+                <div className="flex flex-wrap gap-1.5 mb-5">
+                  {product.category && (
+                    <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{product.category}</span>
+                  )}
+                  {product.subcategory && (
+                    <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{product.subcategory}</span>
+                  )}
+                  {Object.entries(product.colors).filter(([k]) => k !== "secondary").map(([, v]) => typeof v === "string" && v && (
+                    <span key={v} className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{v}</span>
+                  ))}
+                </div>
+
+                {/* CTAs */}
+                <div className="flex flex-col gap-2">
+                  {product.has_simulafly_listing && (
+                    <div className="flex items-center gap-2 p-3 bg-[#111827] text-white rounded-xl text-[12px] font-semibold">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                      </svg>
+                      Buy on SimulaFly
+                    </div>
+                  )}
+                  {product.external_links.slice(0, 2).map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[12px] font-medium text-[#111827] hover:bg-gray-100 transition-colors"
+                    >
+                      <span>{link.label ?? PLATFORM_LABELS[link.platform] ?? link.platform}</span>
+                      {link.last_seen_price != null && (
+                        <span className="text-gray-400">₹{link.last_seen_price.toLocaleString("en-IN")}</span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Details Tab ── */}
+          {tab === "details" && (
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <InfoBlock label="SKU" value={product.sku} mono />
+                <InfoBlock label="Status" value={product.status.replace(/_/g, " ")} />
+                <InfoBlock label="Category" value={product.category ?? "—"} />
+                <InfoBlock label="Subcategory" value={product.subcategory ?? "—"} />
+                <InfoBlock label="Brand" value={product.brand ?? "—"} />
+                <InfoBlock label="Price" value={product.in_app_price != null ? `₹${product.in_app_price.toLocaleString("en-IN")}` : "—"} />
+                <InfoBlock label="Stock" value={product.in_app_stock != null ? String(product.in_app_stock) : "—"} />
+                <InfoBlock label="SimulaFly Listing" value={product.has_simulafly_listing ? "Yes" : "No"} />
+              </div>
+
+              {product.description && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Description</p>
+                  <p className="text-[13px] text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">{product.description}</p>
+                </div>
+              )}
+
+              {Object.keys(product.dimensions).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dimensions</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Object.entries(product.dimensions).filter(([, v]) => v != null).map(([k, v]) => (
+                      <div key={k} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 capitalize mb-1">{k}</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{String(v)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(product.materials).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Materials</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Object.entries(product.materials).filter(([, v]) => v != null).map(([k, v]) => (
+                      <div key={k} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 capitalize mb-1">{k.replace(/_/g, " ")}</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{String(v)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.external_links.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">External Links</p>
+                  <div className="space-y-2">
+                    {product.external_links.map((l) => (
+                      <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div>
+                          <p className="text-[12px] font-medium text-[#111827]">{l.label ?? PLATFORM_LABELS[l.platform]}</p>
+                          <p className="text-[10px] text-gray-400 font-mono truncate max-w-xs">{l.url}</p>
+                        </div>
+                        {l.last_seen_price != null && (
+                          <span className="text-[12px] font-semibold text-gray-600">
+                            ₹{l.last_seen_price.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── AI Health Tab ── */}
+          {tab === "ai" && (
+            <div className="p-6 space-y-6">
+              {/* Score hero */}
+              <div className={`flex items-start gap-4 p-5 rounded-2xl border ${health.cls}`}>
+                <div className="text-[28px] leading-none">{health.icon}</div>
+                <div className="flex-1">
+                  <p className="text-[14px] font-bold mb-1">AI Status: {health.label}</p>
+                  {product.health_reason && (
+                    <p className="text-[12px] opacity-80 leading-relaxed">{product.health_reason}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Screen Content */}
-              <div className="flex-1 overflow-y-auto bg-white" style={{ height: 'calc(600px - 36px)', scrollbarWidth: 'none' }}>
-
-                {/* ── Customer View ──────────────────────────────────────── */}
-                {mode === 'customer' && (
-                  <>
-                    {/* Hero image */}
-                    <div className="relative aspect-[4/5] bg-[#F3F4F6] overflow-hidden">
-                      {isUrl ? (
-                        <img src={product.img} className="absolute inset-0 w-full h-full object-cover" alt={product.name} />
-                      ) : (
-                        <div className={`absolute inset-0 ${product.img || 'bg-gray-200'}`} />
-                      )}
-                      {/* Room tag */}
-                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[9px] font-black text-black px-2.5 py-1 rounded-md uppercase tracking-widest shadow-sm">
-                        {product.roomStorytelling?.placements?.[0] || 'Room Config'}
-                      </div>
-                      {/* Wishlist */}
-                      <button className="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm">
-                        <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                      </button>
-                    </div>
-
-                    {/* Product info */}
-                    <div className="px-5 py-5">
-                      <div className="flex justify-between items-start mb-1.5">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">SimulaFly Brand</p>
-                        <div className="flex items-center gap-0.5">
-                          <svg className="w-3 h-3 fill-black" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                          <span className="text-[11px] font-bold text-black">4.9</span>
-                        </div>
-                      </div>
-                      <h4 className="text-[18px] font-black text-black leading-tight tracking-tight mb-2">{product.name || 'Product Title'}</h4>
-                      <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-[22px] font-black text-black">₹{price.toLocaleString('en-IN')}</span>
-                        {product.price && price < product.price && (
-                          <span className="text-sm text-gray-400 line-through">₹{product.price.toLocaleString('en-IN')}</span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mb-5">
-                        {product.variants?.[0]?.name && <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-1 rounded-full">{product.variants[0].name}</span>}
-                        {product.roomStorytelling?.mood && <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2.5 py-1 rounded-full">{product.roomStorytelling.mood}</span>}
-                      </div>
-                      <div className="space-y-2.5 pt-4 border-t border-gray-100 mb-5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
-                            <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                          </div>
-                          <span className="text-[11px] font-semibold text-gray-600">Saved by {saves} shoppers</span>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
-                            <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                          </div>
-                          <span className="text-[11px] font-semibold text-gray-600">Viewed in {views} living rooms</span>
-                        </div>
-                      </div>
-                      <button className="w-full bg-black text-white py-3.5 rounded-full font-bold text-[12px] uppercase tracking-widest hover:bg-gray-800 transition-colors">
-                        Add to Cart
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {/* ── Room Placement View ───────────────────────────────── */}
-                {mode === 'room' && (
-                  <div className="p-5">
-                    <p className="text-[10px] font-bold text-[#1FAF9A] uppercase tracking-widest mb-3">Seen Mostly In</p>
-                    <div className="space-y-2 mb-5">
-                      {(product.roomStorytelling?.placements?.length ? product.roomStorytelling.placements : ['Living Room', 'Studio Apartment', 'Japandi Layout']).map((room, i) => (
-                        <div key={i} className="flex items-center justify-between bg-[#F0FDF9] border border-emerald-100 rounded-xl px-4 py-3">
-                          <span className="text-[12px] font-bold text-[#111827]">{room}</span>
-                          <div className="w-16 h-1.5 bg-emerald-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#1FAF9A] rounded-full" style={{ width: `${100 - i * 25}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="aspect-square bg-[#F3F4F6] rounded-2xl overflow-hidden relative mb-4">
-                      {isUrl ? (
-                        <img src={product.img} className="absolute inset-0 w-full h-full object-cover" alt={product.name} />
-                      ) : (
-                        <div className={`absolute inset-0 ${product.img || 'bg-gray-200'}`} />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-white font-black text-[15px] leading-tight">{product.name}</p>
-                        <p className="text-white/70 text-[10px] font-medium mt-1">{product.roomStorytelling?.mood || 'Modern Aesthetic'}</p>
-                      </div>
-                    </div>
-                    <div className="bg-[#F7FFFE] border border-emerald-100 rounded-xl p-4">
-                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-2">Environment Context</p>
-                      <p className="text-[11px] text-[#374151] font-medium leading-relaxed">
-                        {product.roomStorytelling?.bestUsedIn || `This product pairs best with ${product.roomStorytelling?.placements?.[0] || 'living room'} layouts. Shoppers frequently combine it with complementary Japandi pieces.`}
-                      </p>
-                    </div>
+              {/* AI relevance score */}
+              {aiScore != null && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-[12px] font-semibold text-[#111827]">AI Relevance Score</p>
+                    <p className="text-[13px] font-bold text-[#111827]">{aiScore}/100</p>
                   </div>
-                )}
-
-                {/* ── Merchant Preview ──────────────────────────────────── */}
-                {mode === 'merchant' && (
-                  <div className="p-5">
-                    <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-4">Listing Intelligence</p>
-                    <div className="space-y-3">
-                      <div className="bg-[#FAFAFA] border border-gray-100 rounded-xl p-4">
-                        <p className="text-[9px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-1">Publishing Readiness</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#1FAF9A] rounded-full" style={{ width: `${product.aiRelevanceScore || 60}%` }} />
-                          </div>
-                          <span className="text-[12px] font-black text-[#111827]">{product.aiRelevanceScore || 60}%</span>
-                        </div>
-                        <p className="text-[10px] text-[#9CA3AF] mt-2 leading-relaxed">{product.healthReason || 'Complete all listing fields to improve discoverability in room configurations.'}</p>
-                      </div>
-                      <div className="bg-[#FAFAFA] border border-gray-100 rounded-xl p-4">
-                        <p className="text-[9px] font-bold text-[#9CA3AF] uppercase tracking-wide mb-3">Performance Snapshot</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {[
-                            { label: 'Impressions', value: (product.impressions || 0).toLocaleString() },
-                            { label: 'Clicks', value: (product.clicks || 0).toLocaleString() },
-                            { label: 'Shopper Saves', value: String(product.customerInterest?.saves || 12) },
-                            { label: 'Leads', value: String(product.leadsGenerated || 0) },
-                          ].map(s => (
-                            <div key={s.label} className="bg-white border border-gray-100 rounded-lg p-2.5 text-center">
-                              <p className="text-[15px] font-black text-[#111827]">{s.value}</p>
-                              <p className="text-[9px] text-[#9CA3AF] font-medium mt-0.5">{s.label}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${health.bar}`}
+                      style={{ width: `${aiScore}%` }}
+                    />
                   </div>
-                )}
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    {aiScore >= 80 ? "Excellent — highly likely to appear in AI recommendations"
+                     : aiScore >= 60 ? "Good — products above 80 appear more frequently"
+                     : aiScore >= 40 ? "Fair — add more details to improve AI matching"
+                     : "Low — consider adding description, dimensions and materials"}
+                  </p>
+                </div>
+              )}
+
+              {/* What improves score */}
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">What helps AI matching</p>
+                <div className="space-y-2">
+                  {[
+                    { done: !!product.description && product.description.length >= 30, text: "Description ≥ 30 characters" },
+                    { done: !!product.category, text: "Category assigned" },
+                    { done: !!product.brand, text: "Brand name set" },
+                    { done: !!product.primary_image_url, text: "Primary image uploaded" },
+                    { done: Object.keys(product.dimensions).length > 0, text: "Dimensions filled in" },
+                    { done: Object.keys(product.materials).length > 0, text: "Materials specified" },
+                    { done: product.has_simulafly_listing, text: "SimulaFly in-app listing active" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2.5 py-2 px-3 bg-gray-50 rounded-xl">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#0E9F88]" : "bg-gray-200"}`}>
+                        {item.done
+                          ? <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          : <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        }
+                      </div>
+                      <span className={`text-[12px] ${item.done ? "text-gray-600" : "text-gray-400"}`}>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Room storytelling */}
+              {Object.keys(product.room_storytelling).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Room Storytelling</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {product.room_storytelling.best_used_in && (
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 mb-1">Best Used In</p>
+                        <p className="text-[12px] font-medium text-[#111827]">{product.room_storytelling.best_used_in as string}</p>
+                      </div>
+                    )}
+                    {product.room_storytelling.mood && (
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 mb-1">Mood</p>
+                        <p className="text-[12px] font-medium text-[#111827]">{product.room_storytelling.mood as string}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-          {/* Side buttons */}
-          <div className="absolute -right-[3px] top-[120px] w-[3px] h-12 bg-[#1a2234] rounded-r-full" />
-          <div className="absolute -left-[3px] top-[100px] w-[3px] h-8 bg-[#1a2234] rounded-l-full" />
-          <div className="absolute -left-[3px] top-[120px] w-[3px] h-14 bg-[#1a2234] rounded-l-full" />
-          <div className="absolute -left-[3px] top-[148px] w-[3px] h-14 bg-[#1a2234] rounded-l-full" />
+          )}
         </div>
 
-        <p className="text-white/30 text-[10px] font-medium mt-5 uppercase tracking-widest">Click backdrop to close</p>
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-[#F1F3F5] flex justify-between items-center shrink-0 bg-[#FAFBFC]">
+          <p className="text-[10px] text-gray-400">
+            Last updated {new Date(product.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-[12px] font-medium bg-white border border-[#EAECEF] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+function InfoBlock({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-[13px] font-semibold text-[#111827] ${mono ? "font-mono" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
+function gradientFor(sku: string) {
+  const GRADIENTS = [
+    "from-violet-200 to-purple-300",
+    "from-amber-200 to-orange-300",
+    "from-sky-200 to-blue-300",
+    "from-emerald-200 to-teal-300",
+    "from-rose-200 to-pink-300",
+    "from-lime-200 to-green-300",
+  ];
+  let h = 0;
+  for (let i = 0; i < sku.length; i++) h = (h * 31 + sku.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
 }
