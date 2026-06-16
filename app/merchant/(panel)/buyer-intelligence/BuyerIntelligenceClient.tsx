@@ -5,6 +5,7 @@ import Link from "next/link";
 import UnlockModal from "./UnlockModal";
 import { unlockShopperAction } from "@/lib/auth/buyer-intelligence-actions";
 import type { ShopperOut } from "@/lib/api/buyer-intelligence";
+import { callAction } from "@/lib/api/action-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
 
   const handleUnlock = async (buyerId: string, cost: number) => {
     try {
-      const updated = await unlockShopperAction(buyerId);
+      const updated = await callAction(unlockShopperAction(buyerId));
       setBuyers((prev) =>
         prev.map((b) =>
           b.id === buyerId
@@ -284,15 +285,15 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
                               onClick={() => setUnlockTarget(buyer)}
                               className="px-3 py-1.5 bg-gray-900 text-white text-[11px] font-semibold rounded-lg hover:bg-black transition-colors whitespace-nowrap"
                             >
-                              Unlock · ₹30
+                              Unlock · ₹{buyer.intentScore >= 81 ? 30 : 15}
                             </button>
                           ) : (
-                            <a
-                              href={`tel:${buyer.phone}`}
+                            <Link
+                              href={`/merchant/buyer-intelligence/${buyer.id}`}
                               className="px-3 py-1.5 border border-gray-300 text-gray-700 text-[11px] font-semibold rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
                             >
-                              Call →
-                            </a>
+                              View Profile →
+                            </Link>
                           )}
                         </td>
                       </tr>
@@ -330,11 +331,15 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
 
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Unlock Cost</p>
-            <p className="text-2xl font-bold text-gray-900">₹30</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">per buyer contact reveal</p>
+            <p className="text-xl font-bold text-gray-900">₹15 / ₹30</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Tiered pricing by intent</p>
+            <div className="mt-2 text-[10px] text-gray-400 space-y-1">
+              <div>• 10% - 80% score: ₹15</div>
+              <div>• 81% - 99% score: ₹30</div>
+            </div>
             <div className="mt-3 pt-3 border-t border-gray-100">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Your Balance</p>
-              <p className={`text-[15px] font-bold ${credits >= 30 ? "text-[#1FAF9A]" : "text-red-500"}`}>₹{credits}</p>
+              <p className={`text-[15px] font-bold ${credits >= 15 ? "text-[#1FAF9A]" : "text-red-500"}`}>₹{credits}</p>
             </div>
           </div>
         </div>

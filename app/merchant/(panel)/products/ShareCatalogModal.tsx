@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { MerchantOut } from "@/lib/types/merchant";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 interface ShareCatalogModalProps {
   merchant: MerchantOut;
@@ -88,7 +89,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
           {/* Mock Storefront logo/initial */}
           <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#0E9F88] to-teal-400 flex items-center justify-center text-white text-[16px] font-bold shadow-md shadow-[#0E9F88]/20 mb-4 overflow-hidden border-2 border-white dark:border-[#121824]">
             {merchant.logo_url ? (
-              <img src={merchant.logo_url} alt="" className="w-full h-full object-cover" />
+              <img src={resolveImageUrl(merchant.logo_url)} alt="" className="w-full h-full object-cover" />
             ) : (
               merchant.display_name.charAt(0).toUpperCase()
             )}

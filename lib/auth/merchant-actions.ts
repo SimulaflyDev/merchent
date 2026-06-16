@@ -6,6 +6,7 @@ import {
   inviteMember as apiInvite,
   changeMemberRole as apiChangeRole,
   removeMember as apiRemove,
+  listMyMerchants as apiList,
 } from "@/lib/api/merchants";
 import { setActiveMerchantAction } from "@/lib/auth/actions";
 import type {
@@ -17,39 +18,60 @@ import type {
   MemberRole,
 } from "@/lib/types/merchant";
 
+import { srvAction, type ActionResult } from "@/lib/api/action-utils";
+
+export async function getMyMerchantsAction(): Promise<ActionResult<MerchantOut[]>> {
+  return srvAction(() => apiList());
+}
+
 export async function createMerchantAction(
   payload: MerchantCreatePayload,
-): Promise<MerchantOut> {
-  const merchant = await apiCreate(payload);
-  await setActiveMerchantAction(merchant.id);
-  return merchant;
+): Promise<ActionResult<MerchantOut>> {
+  return srvAction(async () => {
+    const merchant = await apiCreate(payload);
+    await setActiveMerchantAction(merchant.id);
+    return merchant;
+  });
 }
 
 export async function updateMerchantAction(
   id: string,
   payload: MerchantUpdatePayload,
-): Promise<MerchantOut> {
-  return apiUpdate(id, payload);
+): Promise<ActionResult<MerchantOut>> {
+  return srvAction(async () => {
+    const merchant = await apiUpdate(id, payload);
+    await setActiveMerchantAction(merchant.id);
+    return merchant;
+  });
 }
 
 export async function inviteMemberAction(
   merchantId: string,
   payload: MemberInvitePayload,
-): Promise<MerchantMemberOut> {
-  return apiInvite(merchantId, payload);
+): Promise<ActionResult<MerchantMemberOut>> {
+  return srvAction(() => apiInvite(merchantId, payload));
 }
 
 export async function changeMemberRoleAction(
   merchantId: string,
   userId: string,
   role: MemberRole,
-): Promise<MerchantMemberOut> {
-  return apiChangeRole(merchantId, userId, role);
+): Promise<ActionResult<MerchantMemberOut>> {
+  return srvAction(() => apiChangeRole(merchantId, userId, role));
 }
 
 export async function removeMemberAction(
   merchantId: string,
   userId: string,
-): Promise<void> {
-  return apiRemove(merchantId, userId);
+): Promise<ActionResult<void>> {
+  return srvAction(() => apiRemove(merchantId, userId));
+}
+
+export async function getPublicMerchantAction(
+  lookup: string,
+): Promise<ActionResult<MerchantOut>> {
+  return srvAction(() => {
+    const { api } = require("@/lib/api/client");
+    return api(`/merchants/public/${lookup}`, { skipAuth: true });
+  });
 }

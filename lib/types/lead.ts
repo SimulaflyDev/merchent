@@ -9,6 +9,11 @@ export interface CustomerInfo {
   name: string | null;
   email: string | null;
   phone: string | null;
+  address_line1: string | null;
+  state: string | null;
+  pincode: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface OrderItemOut {
@@ -81,6 +86,11 @@ export interface Lead {
     email: string;
     phone: string;
     city: string;
+    address_line1: string | null;
+    state: string | null;
+    pincode: string | null;
+    latitude: number | null;
+    longitude: number | null;
   };
   aiInteractions: number;
   aiGeneratedImage: string | null;
@@ -139,6 +149,11 @@ export function adaptLead(raw: BuyerLeadOut): Lead {
       email: raw.customer.email ?? "",
       phone: raw.customer.phone ?? "",
       city: raw.customer.city ?? "",
+      address_line1: raw.customer.address_line1 ?? null,
+      state: raw.customer.state ?? null,
+      pincode: raw.customer.pincode ?? null,
+      latitude: raw.customer.latitude ?? null,
+      longitude: raw.customer.longitude ?? null,
     },
     aiInteractions: raw.ai_interactions_count,
     aiGeneratedImage: raw.ai_generated_image_url,

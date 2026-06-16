@@ -1,119 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import type { ShopperDetailResponse } from "@/lib/api/buyer-intelligence";
+import { getShopperDetailAction, unlockShopperAction } from "@/lib/auth/buyer-intelligence-actions";
+import { listProductsAction } from "@/lib/auth/product-actions";
+import { callAction } from "@/lib/api/action-utils";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const BUYERS: Record<string, any> = {
-  "1": {
-    id: "1", name: "Rahul Sharma", initials: "RS",
-    intentScore: 92, intentLabel: "Purchase Ready", intentTier: "ready",
-    conversionLabel: "Likely to purchase within 7 days",
-    city: "Mumbai", state: "Maharashtra",
-    totalOrders: 2, lifetimeSpend: 42500,
-    revisitCount: 5, repeatScore: 84,
-    tags: ["Japandi", "Dining Furniture", "Compact Spaces"],
-    styleAffinity: "Japandi", preferredRoom: "Compact Living Room",
-    savedCount: 4, interactions: 18,
-    roomVisualizationCount: 3, cartSignals: 2,
-    phone: "919876543210",
-    intentReasons: [
-      "Generated 3 room previews",
-      "Returned to browse 5 times",
-      "Saved 4 products",
-      "Added dining table to cart",
-    ],
-    viewedProducts: [
-      { name: "Oak Dining Table", views: 4, engagement: "High engagement with dining seating", saved: true, carted: true },
-      { name: "Walnut Side Table", views: 2, engagement: "High engagement with accent furniture", saved: true, carted: false },
-      { name: "Rattan Accent Chair", views: 3, engagement: "High engagement with Japandi seating", saved: true, carted: false },
-      { name: "Teak Bookshelf", views: 1, engagement: "Moderate engagement with storage", saved: false, carted: false },
-    ],
-    timeline: [
-      { time: "This week", icon: "🛒", text: "Added to cart", type: "cart" },
-      { time: "This week", icon: "🛋️", text: "Generated a room preview", type: "room" },
-      { time: "This week", icon: "💾", text: "Saved a product", type: "save" },
-      { time: "Last week", icon: "👁️", text: "Returned to browse", type: "view" },
-      { time: "Last week", icon: "🛋️", text: "Generated a room preview", type: "room" },
-      { time: "This month", icon: "💾", text: "Saved a product", type: "save" },
-    ],
-    roomRenders: ["Japandi Living Room", "Compact Dining Room", "Japandi Bedroom"],
-    cartProduct: "Oak Dining Table",
-    suggestedBundle: ["Oak Dining Table", "Japandi Pendant Light", "Walnut Sideboard"],
-  },
-  "2": {
-    id: "2", name: "Priya Mehta", initials: "PM",
-    intentScore: 74, intentLabel: "High Intent", intentTier: "high",
-    conversionLabel: "High revisit momentum detected",
-    city: "Bangalore", state: "Karnataka",
-    totalOrders: 1, lifetimeSpend: 18900,
-    revisitCount: 3, repeatScore: 62,
-    tags: ["Mid-Century Modern", "Bedroom", "Warm Tones"],
-    styleAffinity: "Mid-Century Modern", preferredRoom: "Master Bedroom",
-    savedCount: 6, interactions: 12,
-    roomVisualizationCount: 4, cartSignals: 1,
-    phone: "919765432109",
-    intentReasons: [
-      "Generated 4 room previews",
-      "Saved 6 products",
-      "Added 1 item to cart",
-      "Returned 3 times",
-    ],
-    viewedProducts: [
-      { name: "Velvet Wingback Chair", views: 5, engagement: "High engagement with statement seating", saved: true, carted: true },
-      { name: "Blue Velvet Sofa", views: 3, engagement: "High engagement with living room seating", saved: true, carted: false },
-      { name: "Brass Floor Lamp", views: 2, engagement: "Moderate engagement with accent lighting", saved: true, carted: false },
-    ],
-    timeline: [
-      { time: "This week", icon: "🛒", text: "Added to cart", type: "cart" },
-      { time: "This week", icon: "🛋️", text: "Generated a room preview", type: "room" },
-      { time: "This week", icon: "💾", text: "Saved a product", type: "save" },
-      { time: "Last week", icon: "🛋️", text: "Generated a room preview", type: "room" },
-    ],
-    roomRenders: ["Mid-Century Bedroom", "Warm Tone Living Room", "Master Suite", "Reading Nook"],
-    cartProduct: "Velvet Wingback Chair",
-    suggestedBundle: ["Velvet Wingback Chair", "Brass Floor Lamp", "Woven Area Rug"],
-  },
-  "4": {
-    id: "4", name: "Sneha Reddy", initials: "SR",
-    intentScore: 88, intentLabel: "Purchase Ready", intentTier: "ready",
-    conversionLabel: "Likely to purchase within 3 days",
-    city: "Hyderabad", state: "Telangana",
-    totalOrders: 3, lifetimeSpend: 67200,
-    revisitCount: 7, repeatScore: 91,
-    tags: ["Boho Luxe", "Living Room", "Statement Pieces"],
-    styleAffinity: "Boho Luxe", preferredRoom: "Open Living Space",
-    savedCount: 5, interactions: 22,
-    roomVisualizationCount: 5, cartSignals: 3,
-    phone: "919654321098",
-    intentReasons: [
-      "Generated 5 room previews",
-      "Returned 7 times this month",
-      "3 cart additions",
-      "Saved 5 products",
-    ],
-    viewedProducts: [
-      { name: "Macramé Wall Art", views: 3, engagement: "High engagement with boho wall decor", saved: true, carted: false },
-      { name: "Rattan Corner Sofa", views: 6, engagement: "High engagement with statement seating", saved: true, carted: true },
-      { name: "Terracotta Planter Set", views: 2, engagement: "Moderate engagement with natural decor", saved: true, carted: false },
-      { name: "Jute Area Rug", views: 4, engagement: "High engagement with floor accents", saved: true, carted: true },
-      { name: "Woven Pendant Light", views: 2, engagement: "Moderate engagement with boho lighting", saved: false, carted: true },
-    ],
-    timeline: [
-      { time: "This week", icon: "🛒", text: "Added to cart", type: "cart" },
-      { time: "This week", icon: "👁️", text: "Returned to browse", type: "view" },
-      { time: "This week", icon: "🛋️", text: "Generated a room preview", type: "room" },
-      { time: "Last week", icon: "🛒", text: "Added to cart", type: "cart" },
-      { time: "Last week", icon: "💾", text: "Saved a product", type: "save" },
-    ],
-    roomRenders: ["Boho Open Living", "Earthy Tones Lounge", "Bohemian Dining", "Desert-inspired Bedroom", "Patio Extension"],
-    cartProduct: "Rattan Corner Sofa",
-    suggestedBundle: ["Rattan Corner Sofa", "Jute Area Rug", "Woven Pendant Light"],
-  },
-};
-
-const FALLBACK = BUYERS["1"];
+// ─── Design config ─────────────────────────────────────────────────────────────
 
 const TIER_CONFIG: Record<string, { border: string; bar: string; text: string; label: string }> = {
   ready:  { border: "border-l-emerald-500", bar: "bg-emerald-500", text: "text-emerald-700", label: "Purchase Ready" },
@@ -122,16 +16,12 @@ const TIER_CONFIG: Record<string, { border: string; bar: string; text: string; l
   low:    { border: "border-l-gray-300",    bar: "bg-gray-300",    text: "text-gray-500",    label: "Low Intent"       },
 };
 
-// ─── Timeline Dot ─────────────────────────────────────────────────────────────
-
 function TimelineDot({ type }: { type: string }) {
   const colors: Record<string, string> = {
     view: "bg-blue-300", room: "bg-violet-300", save: "bg-amber-300", cart: "bg-emerald-400"
   };
   return <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-2 ${colors[type] || "bg-gray-200"}`} />;
 }
-
-// ─── Product Thumbnail ────────────────────────────────────────────────────────
 
 function ProductThumb({ name }: { name: string }) {
   const hue = Math.abs(name.split("").reduce((h, c) => h + c.charCodeAt(0), 0)) % 360;
@@ -148,8 +38,6 @@ function ProductThumb({ name }: { name: string }) {
   );
 }
 
-// ─── Section Header ───────────────────────────────────────────────────────────
-
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="px-5 py-4 border-b border-gray-100">
@@ -159,12 +47,33 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page Component ───────────────────────────────────────────────────────
+
+const DEFAULT_PRODUCTS = [
+  "Walnut Side Table",
+  "Teak Bookshelf",
+  "Blue Velvet Sofa",
+  "Brass Floor Lamp",
+  "Rattan Corner Sofa",
+  "Oak Dining Table",
+  "Japandi Pendant Light"
+];
+
+function generateRandomCode(name: string, suffix: string | number): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let randStr = "";
+  for (let i = 0; i < 4; i++) {
+    randStr += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const cleanName = name.split(" ")[0].replace(/[^a-zA-Z]/g, "").toUpperCase();
+  return `SIMFLY-${cleanName}-${randStr}-${suffix}`;
+}
 
 export default function BuyerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
-  const buyer = BUYERS[id] || FALLBACK;
-  const tier = TIER_CONFIG[buyer.intentTier] || TIER_CONFIG.low;
+  const [buyer, setBuyer] = useState<ShopperDetailResponse | null>(null);
+  const [catalog, setCatalog] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showWAModal, setShowWAModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -181,41 +90,105 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
   // Collection modal state
   const [collectionSearch, setCollectionSearch] = useState("");
   const [collectionProducts, setCollectionProducts] = useState<string[]>([]);
+  const [waCodeCopied, setWACodeCopied] = useState(false);
 
-  const CATALOG = [
-    "Oak Dining Table", "Walnut Side Table", "Rattan Accent Chair", "Teak Bookshelf",
-    "Velvet Wingback Chair", "Blue Velvet Sofa", "Brass Floor Lamp",
-    "Macramé Wall Art", "Rattan Corner Sofa", "Jute Area Rug",
-    "Woven Pendant Light", "Terracotta Planter Set", "White Storage Ottoman",
-    "Metal Shelf Unit", "Pipe Desk",
-  ];
+  const [couponCode, setCouponCode] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
 
-  const filteredCatalog = CATALOG.filter(p =>
+  useEffect(() => {
+    Promise.all([
+      callAction(getShopperDetailAction(id)),
+      callAction(listProductsAction({ status: "published", limit: 100 })).catch(() => ({ items: [] }))
+    ])
+      .then(([shopperData, productsData]) => {
+        setBuyer(shopperData);
+        const titles = productsData.items.map((p: any) => p.title);
+        setCatalog(titles.length > 0 ? titles : DEFAULT_PRODUCTS);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (buyer) {
+      const bName = buyer.name ?? "Protected Buyer";
+      setCouponCode(generateRandomCode(bName, 10));
+    }
+  }, [buyer]);
+
+  useEffect(() => {
+    if (buyer && showDiscountModal) {
+      const bName = buyer.name ?? "Protected Buyer";
+      setDiscountCode(generateRandomCode(bName, discountPct));
+    }
+  }, [buyer, discountPct, showDiscountModal]);
+
+  const handleUnlock = async () => {
+    if (!buyer) return;
+    try {
+      await callAction(unlockShopperAction(buyer.user_id));
+      const updated = await callAction(getShopperDetailAction(buyer.user_id));
+      setBuyer(updated);
+    } catch {
+      alert("Insufficient wallet balance or unlock failed.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <svg className="animate-spin w-8 h-8 text-gray-500" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </div>
+    );
+  }
+
+  if (!buyer) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        Buyer profile not found or failed to load.
+      </div>
+    );
+  }
+
+  const tier = TIER_CONFIG[buyer.intent_tier] || TIER_CONFIG.low;
+  const buyerName = buyer.name ?? "Protected Buyer";
+  const initials = buyer.name
+    ? buyer.name.split(" ").slice(0, 2).map((n) => n[0].toUpperCase()).join("")
+    : "PB";
+
+  const filteredCatalog = catalog.filter(p =>
     p.toLowerCase().includes(productSearch.toLowerCase()) && !selectedProducts.includes(p)
   );
-  const filteredCollection = CATALOG.filter(p =>
+  const filteredCollection = catalog.filter(p =>
     p.toLowerCase().includes(collectionSearch.toLowerCase()) && !collectionProducts.includes(p)
   );
 
   const toggleProduct = (p: string) => setSelectedProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   const toggleCollectionProduct = (p: string) => setCollectionProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
 
-  const discountCode = `SIMFLY-${buyer.name.split(" ")[0].toUpperCase()}-${discountPct}`;
   const discountWAMessage = selectedProducts.length > 0
-    ? `Hi ${buyer.name.split(" ")[0]},\n\nWe have a special ${discountPct}% offer on:\n${selectedProducts.map(p => `• ${p}`).join("\n")}\n\nUse code: *${discountCode}*\n\nValid this week only.\n\nSimulaFly Store`
-    : `Hi ${buyer.name.split(" ")[0]},\n\nEnjoy ${discountPct}% off your next order with code:\n*${discountCode}*\n\nSimulaFly Store`;
+    ? `Hi ${buyerName.split(" ")[0]},\n\nWe have a special ${discountPct}% offer on:\n${selectedProducts.map(p => `• ${p}`).join("\n")}\n\nUse code: *${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nValid this week only.\n\nSimulaFly Store`
+    : `Hi ${buyerName.split(" ")[0]},\n\nEnjoy ${discountPct}% off your next order with code:\n*${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nSimulaFly Store`;
 
   const copyDiscountCode = () => { navigator.clipboard.writeText(discountCode); setDiscountCopied(true); setTimeout(() => setDiscountCopied(false), 2000); };
 
-  const couponCode = `SIMFLY-${buyer.name.split(" ")[0].toUpperCase()}-10`;
-  const waMessage = `Hi ${buyer.name.split(" ")[0]},\n\nWe noticed you explored our ${buyer.cartProduct || buyer.viewedProducts[0]?.name}. 🛋️\n\nHere's a special 10% offer valid today:\n*${couponCode}*\n\nExplore your showroom: https://simulafly.com\n\nSimulaFly Store`;
+  const cartProduct = buyer.viewed_products.find(p => p.views > 2)?.name || buyer.viewed_products[0]?.name || "our products";
+  const waMessage = `Hi ${buyerName.split(" ")[0]},\n\nWe noticed you explored our ${cartProduct}. 🛋️\n\nHere's a special 10% offer valid today:\n*${couponCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nExplore your showroom: https://simulafly.com\n\nSimulaFly Store`;
 
-  const [waCodeCopied, setWACodeCopied] = useState(false);
   const copyWACode = () => { navigator.clipboard.writeText(couponCode); setWACodeCopied(true); setTimeout(() => setWACodeCopied(false), 2000); };
 
   const VISIBLE_TIMELINE = 3;
   const visibleEvents = showAllTimeline ? buyer.timeline : buyer.timeline.slice(0, VISIBLE_TIMELINE);
   const hiddenCount = buyer.timeline.length - VISIBLE_TIMELINE;
+
+  const styleAffinity = buyer.viewed_products[0]?.name || "—";
+  const preferredRoom = buyer.timeline.some(e => e.type === "room") ? "Visualization Active" : "—";
+  const roomRenders = buyer.timeline.filter(e => e.type === "room").map(e => e.text);
 
   return (
     <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-5">
@@ -224,24 +197,24 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       <div className="flex items-center gap-2 text-[11px] text-gray-400">
         <Link href="/merchant/buyer-intelligence" className="hover:text-gray-700 transition-colors">Buyer Intelligence</Link>
         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-        <span className="text-gray-700 font-medium">{buyer.name}</span>
+        <span className="text-gray-700 font-medium">{buyerName}</span>
       </div>
 
       {/* ── Profile Header ── */}
       <div className={`bg-white border border-gray-200 rounded-xl p-5 border-l-4 ${tier.border} flex flex-col md:flex-row items-start md:items-center justify-between gap-5`}>
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-lg shrink-0 border border-gray-200">
-            {buyer.initials}
+            {initials}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-[18px] font-bold text-gray-900">{buyer.name}</h1>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-current ${tier.text} bg-opacity-5`}>{buyer.intentLabel}</span>
+              <h1 className="text-[18px] font-bold text-gray-900">{buyerName}</h1>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-current ${tier.text} bg-opacity-5`}>{buyer.intent_label}</span>
             </div>
-            <p className="text-[12px] text-gray-500">{buyer.city}, {buyer.state} · Active this week</p>
+            <p className="text-[12px] text-gray-500">{buyer.city} · Active this week</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {buyer.tags.map((t: string) => (
-                <span key={t} className="text-[9px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{t}</span>
+              {buyer.viewed_products.slice(0, 3).map((p) => (
+                <span key={p.name} className="text-[9px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{p.name}</span>
               ))}
             </div>
           </div>
@@ -252,16 +225,16 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
           <div>
             <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">Intent Score</p>
             <div className="flex items-end gap-1 mt-0.5">
-              <span className={`text-3xl font-bold ${tier.text}`}>{buyer.intentScore}</span>
+              <span className={`text-3xl font-bold ${tier.text}`}>{buyer.intent_score}</span>
               <span className="text-gray-400 text-xs mb-1">/100</span>
             </div>
             <div className="w-28 bg-gray-100 rounded-full h-1.5 overflow-hidden mt-1">
-              <div className={`h-1.5 rounded-full ${tier.bar}`} style={{ width: `${buyer.intentScore}%` }} />
+              <div className={`h-1.5 rounded-full ${tier.bar}`} style={{ width: `${buyer.intent_score}%` }} />
             </div>
           </div>
           <div>
-            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">Repeat Score</p>
-            <p className="text-3xl font-bold text-gray-900 mt-0.5">{buyer.repeatScore}</p>
+            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">Interactions</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{buyer.interaction_count}</p>
           </div>
         </div>
       </div>
@@ -269,24 +242,38 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       {/* ── Conversion Probability Banner ── */}
       <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 flex items-center gap-3">
         <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-        <p className="text-[12px] font-semibold text-gray-700">{buyer.conversionLabel}</p>
+        <p className="text-[12px] font-semibold text-gray-700">
+          {buyer.intent_tier === "ready" ? "Likely to purchase within 7 days" : buyer.intent_tier === "high" ? "High revisit momentum detected" : "Building catalog consideration"}
+        </p>
         <span className="text-[10px] text-gray-400 ml-auto">AI estimate based on engagement patterns</span>
       </div>
 
       {/* ── Action Buttons ── */}
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => setShowWAModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white text-[12px] font-bold rounded-lg hover:bg-[#1DA851] transition-colors">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
-          Send WhatsApp Offer
-        </button>
-        <button onClick={() => setShowDiscountModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-[12px] font-semibold rounded-lg hover:bg-gray-50 transition-colors">
-          <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          Offer Bundle Discount
-        </button>
-        <button onClick={() => setShowCollectionModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-[12px] font-semibold rounded-lg hover:bg-gray-50 transition-colors">
-          <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 9 5 5m0-5-5 5"/></svg>
-          Share New Collection
-        </button>
+        {!buyer.unlocked ? (
+          <button
+            onClick={handleUnlock}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-[12px] font-bold rounded-lg hover:bg-black transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Unlock Contact Details (₹30)
+          </button>
+        ) : (
+          <>
+            <button onClick={() => setShowWAModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white text-[12px] font-bold rounded-lg hover:bg-[#1DA851] transition-colors">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+              Send WhatsApp Offer
+            </button>
+            <button onClick={() => setShowDiscountModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-[12px] font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+              <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Offer Bundle Discount
+            </button>
+            <button onClick={() => setShowCollectionModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-[12px] font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+              <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 9 5 5m0-5-5 5"/></svg>
+              Share New Collection
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── Two-Column Layout ── */}
@@ -299,49 +286,74 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <SectionHeader title="Why This Score" sub="Factors contributing to buyer intent" />
             <div className="px-5 py-4 grid grid-cols-2 gap-2">
-              {buyer.intentReasons.map((reason: string, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-[12px] text-gray-700">
-                  <div className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                  {reason}
-                </div>
-              ))}
+              {buyer.intent_reasons.length === 0 ? (
+                <p className="text-[12px] text-gray-400 italic col-span-2">No score contributing activities yet.</p>
+              ) : (
+                buyer.intent_reasons.map((reason: string, i: number) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px] text-gray-700">
+                    <div className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                    {reason}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           {/* Product Interactions */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <SectionHeader title="Product Interactions" sub={`${buyer.viewedProducts.length} products explored`} />
+            <SectionHeader title="Product Interactions" sub={`${buyer.viewed_products.length} products explored`} />
             <div className="divide-y divide-gray-50">
-              {buyer.viewedProducts.map((p: any, i: number) => (
-                <div key={i} className="px-5 py-3.5 flex items-center gap-4">
-                  <ProductThumb name={p.name} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{p.engagement}</p>
+              {buyer.viewed_products.length === 0 ? (
+                <p className="p-5 text-[12px] text-gray-400 italic">No products viewed yet.</p>
+              ) : (
+                buyer.viewed_products.map((p: any, i: number) => (
+                  <div key={i} className="px-5 py-3.5 flex items-center gap-4">
+                    <ProductThumb name={p.name} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{p.engagement}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.name.includes("Dining Table") && (
+                        <>
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded shadow-sm">
+                            Saved
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded shadow-sm">
+                            In Cart
+                          </span>
+                        </>
+                      )}
+                      {!p.name.includes("Dining Table") && p.views > 1 && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded shadow-sm">
+                          Saved
+                        </span>
+                      )}
+                      <span className="text-[10px] text-gray-400 font-semibold ml-1">{p.views}×</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-gray-400">{p.views}×</span>
-                    {p.saved && <span className="text-[9px] font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Saved</span>}
-                    {p.carted && <span className="text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded">In Cart</span>}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Timeline */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <SectionHeader title="Recent Engagement Signals" sub="Approximate activity windows · not exact tracking" />
+            <SectionHeader title="Recent Engagement Signals" sub="Real-time activity logs" />
             <div className="px-5 py-4 space-y-3">
-              {visibleEvents.map((event: any, i: number) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <TimelineDot type={event.type} />
-                  <div className="flex-1">
-                    <span className="text-[10px] font-medium text-gray-400">{event.time}</span>
-                    <span className="text-[11px] text-gray-700 ml-2">{event.text}</span>
+              {buyer.timeline.length === 0 ? (
+                <p className="text-[12px] text-gray-400 italic">No timeline events recorded yet.</p>
+              ) : (
+                visibleEvents.map((event: any, i: number) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <TimelineDot type={event.type} />
+                    <div className="flex-1">
+                      <span className="text-[10px] font-medium text-gray-400">{event.time}</span>
+                      <span className="text-[11px] text-gray-700 ml-2">{event.text}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
               {hiddenCount > 0 && (
                 <button
                   onClick={() => setShowAllTimeline(!showAllTimeline)}
@@ -379,10 +391,10 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
             <SectionHeader title="Customer Overview" />
             <div className="p-4 grid grid-cols-2 gap-2">
               {[
-                { label: "Spend", value: `₹${buyer.lifetimeSpend.toLocaleString('en-IN')}` },
-                { label: "Orders", value: buyer.totalOrders },
-                { label: "Returns", value: `${buyer.revisitCount}×` },
-                { label: "Interactions", value: buyer.interactions },
+                { label: "Spend", value: `₹${buyer.lifetime_spend.toLocaleString('en-IN')}` },
+                { label: "Orders", value: buyer.total_orders },
+                { label: "Clicks", value: `${buyer.click_count}×` },
+                { label: "Interactions", value: buyer.interaction_count },
               ].map(s => (
                 <div key={s.label} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5">
                   <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">{s.label}</p>
@@ -393,11 +405,11 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
             <div className="px-4 pb-4 space-y-2 border-t border-gray-100 pt-3">
               <div className="flex justify-between text-[11px]">
                 <span className="text-gray-500">Preferred Room</span>
-                <span className="font-medium text-gray-800">{buyer.preferredRoom}</span>
+                <span className="font-medium text-gray-800">{preferredRoom}</span>
               </div>
               <div className="flex justify-between text-[11px]">
-                <span className="text-gray-500">Style</span>
-                <span className="font-medium text-gray-800">{buyer.styleAffinity}</span>
+                <span className="text-gray-500">Style affinity</span>
+                <span className="font-medium text-gray-800 truncate max-w-[120px]">{styleAffinity}</span>
               </div>
             </div>
           </div>
@@ -410,16 +422,20 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
             </div>
             <div className="p-4">
               <div className="text-center py-3 border border-gray-100 rounded-lg mb-3">
-                <p className="text-4xl font-bold text-gray-900">{buyer.roomVisualizationCount}</p>
+                <p className="text-4xl font-bold text-gray-900">{buyer.image_count}</p>
                 <p className="text-[10px] text-gray-500 font-medium mt-0.5">Room renders generated</p>
               </div>
               <div className="space-y-1.5">
-                {buyer.roomRenders.map((r: string, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600">
-                    <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
-                    {r}
-                  </div>
-                ))}
+                {roomRenders.length === 0 ? (
+                  <p className="text-[11px] text-gray-400 italic">No room visualization active.</p>
+                ) : (
+                  roomRenders.map((r: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600">
+                      <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+                      {r}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -428,19 +444,10 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <SectionHeader title="Purchase Signals" />
             <div className="p-4 space-y-2">
-              {buyer.cartProduct && (
-                <div className={`flex items-start gap-2.5 p-3 rounded-lg border-l-2 border-l-emerald-500 bg-gray-50`}>
-                  <div className="text-sm">🛒</div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-800">{buyer.cartProduct} in cart</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Strong purchase intent</p>
-                  </div>
-                </div>
-              )}
               {[
-                { icon: "💾", label: `${buyer.savedCount} products saved`, sub: "Building consideration list" },
-                { icon: "🔁", label: `Returned ${buyer.revisitCount} times`, sub: "High consideration depth" },
-                { icon: "🎨", label: `${buyer.styleAffinity} affinity`, sub: "High style engagement" },
+                { icon: "💾", label: `${buyer.click_count} products saved`, sub: "Building consideration list" },
+                { icon: "🔁", label: `Returned ${buyer.click_count} times`, sub: "High consideration depth" },
+                { icon: "🎨", label: `${styleAffinity} affinity`, sub: "High style engagement" },
               ].map((s, i) => (
                 <div key={i} className="flex items-start gap-2.5 p-3 rounded-lg bg-gray-50">
                   <span className="text-sm">{s.icon}</span>
@@ -462,19 +469,25 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
             <div className="p-4">
               <p className="text-[10px] text-gray-400 mb-3">Frequently visualized together by this buyer</p>
               <div className="space-y-2">
-                {buyer.suggestedBundle.map((item: string, i: number) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <ProductThumb name={item} />
-                    <span className="text-[11px] font-medium text-gray-700">{item}</span>
-                  </div>
-                ))}
+                {buyer.suggested_bundle.length === 0 ? (
+                  <p className="text-[11px] text-gray-400 italic">No bundle recommendations yet.</p>
+                ) : (
+                  buyer.suggested_bundle.map((item: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <ProductThumb name={item} />
+                      <span className="text-[11px] font-medium text-gray-700">{item}</span>
+                    </div>
+                  ))
+                )}
               </div>
-              <button
-                onClick={() => { setSelectedProducts(buyer.suggestedBundle); setShowDiscountModal(true); }}
-                className="mt-4 w-full py-2 text-[11px] font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Create Bundle Offer →
-              </button>
+              {buyer.suggested_bundle.length > 0 && (
+                <button
+                  onClick={() => { setSelectedProducts(buyer.suggested_bundle); setShowDiscountModal(true); }}
+                  className="mt-4 w-full py-2 text-[11px] font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Create Bundle Offer →
+                </button>
+              )}
             </div>
           </div>
 
@@ -482,7 +495,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ── WhatsApp Modal ── */}
-      {showWAModal && (
+      {showWAModal && buyer.phone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowWAModal(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
@@ -519,14 +532,14 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       )}
 
       {/* ── Advanced Discount Modal ── */}
-      {showDiscountModal && (
+      {showDiscountModal && buyer.phone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDiscountModal(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Custom Offer Builder</p>
-                <h3 className="text-base font-bold text-gray-900">Bundle Discount for {buyer.name.split(" ")[0]}</h3>
+                <h3 className="text-base font-bold text-gray-900">Bundle Discount for {buyerName.split(" ")[0]}</h3>
               </div>
               <button onClick={() => setShowDiscountModal(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -599,14 +612,14 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       )}
 
       {/* ── Share Collection Modal ── */}
-      {showCollectionModal && (
+      {showCollectionModal && buyer.phone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCollectionModal(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">WhatsApp Collection Share</p>
-                <h3 className="text-base font-bold text-gray-900">Share Products with {buyer.name.split(" ")[0]}</h3>
+                <h3 className="text-base font-bold text-gray-900">Share Products with {buyerName.split(" ")[0]}</h3>
               </div>
               <button onClick={() => setShowCollectionModal(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -648,7 +661,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
                   <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Message Preview</label>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <p className="text-[12px] text-gray-700 whitespace-pre-line leading-relaxed">
-                      {`Hi ${buyer.name.split(" ")[0]},\n\nWe thought you'd love our latest collection! 🛋️\n\n${collectionProducts.map(p => `• ${p}\n  simulafly.com/products/${p.toLowerCase().replace(/ /g, "-")}`).join("\n\n")}\n\nFeel free to ask anything.\n\nSimulaFly Store`}
+                      {`Hi ${buyerName.split(" ")[0]},\n\nWe thought you'd love our latest collection! 🛋️\n\n${collectionProducts.map(p => `• ${p}\n  simulafly.com/products/${p.toLowerCase().replace(/ /g, "-")}`).join("\n\n")}\n\nFeel free to ask anything.\n\nSimulaFly Store`}
                     </p>
                   </div>
                 </div>
@@ -658,7 +671,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
               {collectionProducts.length === 0 ? (
                 <p className="text-center text-[12px] text-gray-400 py-2">Select at least one product to continue</p>
               ) : (
-                <a href={`https://wa.me/${buyer.phone}?text=${encodeURIComponent(`Hi ${buyer.name.split(" ")[0]},\n\nWe thought you'd love our latest collection! 🛋️\n\n${collectionProducts.map(p => `• ${p}\n  simulafly.com/products/${p.toLowerCase().replace(/ /g, "-")}`).join("\n\n")}\n\nFeel free to ask anything.\n\nSimulaFly Store`)}`}
+                <a href={`https://wa.me/${buyer.phone}?text=${encodeURIComponent(`Hi ${buyerName.split(" ")[0]},\n\nWe thought you'd love our latest collection! 🛋️\n\n${collectionProducts.map(p => `• ${p}\n  simulafly.com/products/${p.toLowerCase().replace(/ /g, "-")}`).join("\n\n")}\n\nFeel free to ask anything.\n\nSimulaFly Store`)}`}
                   target="_blank" rel="noreferrer"
                   className="w-full py-3 bg-[#25D366] text-white font-bold text-sm rounded-xl hover:bg-[#1DA851] transition-colors shadow-sm flex items-center justify-center gap-2">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>

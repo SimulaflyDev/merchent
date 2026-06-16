@@ -7,10 +7,12 @@ import { useState, useTransition } from "react";
 import type { MerchantProductOut, PaginatedProducts, ProductStatus } from "@/lib/types/product";
 import { archiveProductAction, publishProductAction } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
+import { callAction } from "@/lib/api/action-utils";
 import ProductEditModal from "./ProductEditModal";
 import ProductPreviewModal from "./ProductPreviewModal";
-import { useMerchant } from "../../context/MerchantContext";
+import { useMerchant } from "@/app/merchant/context/MerchantContext";
 import ShareCatalogModal from "./ShareCatalogModal";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 interface Props {
   initialData: PaginatedProducts;
@@ -65,6 +67,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { merchant } = useMerchant();
+  const onboardingCompleted = merchant?.settings?.onboarding_completed === true;
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState(initialStatus);
@@ -88,7 +91,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
   const handlePublish = (id: string) => {
     setActionError(null);
     startTransition(async () => {
-      try { await publishProductAction(id); router.refresh(); }
+      try { await callAction(publishProductAction(id)); router.refresh(); }
       catch (err) { setActionError(isApiError(err) ? err.detail : "Failed to publish"); }
     });
   };
@@ -97,7 +100,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
     if (!confirm("Archive this product? It will stop appearing to shoppers.")) return;
     setActionError(null);
     startTransition(async () => {
-      try { await archiveProductAction(id); router.refresh(); }
+      try { await callAction(archiveProductAction(id)); router.refresh(); }
       catch (err) { setActionError(isApiError(err) ? err.detail : "Failed to archive"); }
     });
   };
@@ -156,7 +159,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
           </button>
 
           <Link
-            href="/merchant/products/add"
+            href={onboardingCompleted ? "/merchant/products/add" : "/merchant/onboarding"}
             className="flex items-center gap-2 h-9 px-4 bg-[#111827] text-white text-[12px] font-medium rounded-lg hover:bg-black transition-colors"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -166,6 +169,31 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
           </Link>
         </div>
       </div>
+
+      {/* Onboarding Incomplete Banner */}
+      {!onboardingCompleted && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div className="text-left">
+              <h4 className="text-[13px] font-bold text-amber-900">Finish Store Setup to Add Products</h4>
+              <p className="text-[11px] text-amber-700 mt-0.5">Your showroom profile and legal verification must be completed before you can manage products.</p>
+            </div>
+          </div>
+          <Link
+            href="/merchant/onboarding"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded-lg transition-all shadow-sm shrink-0"
+          >
+            Resume Setup
+          </Link>
+        </div>
+      )}
 
       {/* Status tabs */}
       <div className="flex items-center gap-1 mb-5">
@@ -226,8 +254,8 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
           <p className="text-[12px] text-gray-400 mb-5 max-w-xs">
             Add your first product to start appearing in SimulaFly shopper searches and AI recommendations.
           </p>
-          <Link href="/merchant/products/add" className="px-5 py-2.5 bg-[#111827] text-white text-[12px] font-medium rounded-lg hover:bg-black transition-colors">
-            Add your first product
+          <Link href={onboardingCompleted ? "/merchant/products/add" : "/merchant/onboarding"} className="px-5 py-2.5 bg-[#111827] text-white text-[12px] font-medium rounded-lg hover:bg-black transition-colors">
+            {onboardingCompleted ? "Add your first product" : "Complete setup to add product"}
           </Link>
         </div>
       )}
@@ -326,7 +354,7 @@ function ProductCard({
       >
         {product.primary_image_url ? (
           <img
-            src={product.primary_image_url}
+            src={resolveImageUrl(product.primary_image_url)}
             alt={product.title}
             className="w-full h-44 object-cover"
           />
@@ -373,6 +401,13 @@ function ProductCard({
               </span>
             )}
           </div>
+          {product.in_app_stock != null && (
+            <div className="mt-2 flex items-center justify-between">
+              <span className={`text-[11px] font-medium ${product.in_app_stock > 0 ? "text-[#0E9F88]" : "text-red-500"}`}>
+                {product.in_app_stock > 0 ? `${product.in_app_stock} available` : "Out of stock"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* AI health indicator */}
@@ -413,7 +448,7 @@ function ProductCard({
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
-            {product.status === "draft" && (
+            {(product.status === "draft" || product.status === "archived") && (
               <button
                 onClick={() => onPublish(product.id)}
                 disabled={pending}
@@ -469,7 +504,7 @@ function ProductListRow({
           onClick={() => onPreview(product)}
         >
           {product.primary_image_url ? (
-            <img src={product.primary_image_url} alt="" className="w-full h-full object-cover" />
+            <img src={resolveImageUrl(product.primary_image_url)} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className={`w-full h-full bg-gradient-to-br ${grad}`} />
           )}
@@ -528,7 +563,7 @@ function ProductListRow({
         >
           Edit
         </button>
-        {product.status === "draft" && (
+        {(product.status === "draft" || product.status === "archived") && (
           <button
             onClick={() => onPublish(product.id)}
             disabled={pending}

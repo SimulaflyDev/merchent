@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getMerchantSession } from "@/lib/auth/session";
@@ -23,11 +22,7 @@ export default async function MerchantPanelLayout({ children }: { children: Reac
     wallet = w;
   } catch (err) {
     if (isApiError(err) && err.status === 401) {
-      const c = await cookies();
-      c.delete("access_token");
-      c.delete("refresh_token");
-      c.delete("active_merchant_id");
-      redirect("/merchant/sign_in");
+      redirect("/api/auth/logout");
     }
     throw err;
   }

@@ -22,18 +22,17 @@ interface UnlockModalProps {
   onUnlock: (buyerId: string, cost: number) => Promise<void>;
 }
 
-const REVEAL_COST = 30;
-
 export default function UnlockModal({ buyer, credits, onClose, onUnlock }: UnlockModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const canAfford = credits >= REVEAL_COST;
+  const cost = buyer.intentScore >= 81 ? 30 : 15;
+  const canAfford = credits >= cost;
 
   const handleUnlock = async () => {
     if (!canAfford) return;
     setIsProcessing(true);
     try {
-      await onUnlock(buyer.id, REVEAL_COST);
+      await onUnlock(buyer.id, cost);
       setIsProcessing(false);
       setIsSuccess(true);
       setTimeout(onClose, 1500);
@@ -98,7 +97,7 @@ export default function UnlockModal({ buyer, credits, onClose, onUnlock }: Unloc
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Unlock Cost</p>
-                  <p className="text-2xl font-bold text-[#111827]">₹{REVEAL_COST}</p>
+                  <p className="text-2xl font-bold text-[#111827]">₹{cost}</p>
                 </div>
                 <div className="text-right space-y-1">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Available Credits</p>

@@ -13,6 +13,8 @@ export interface MerchantOut {
   status: MerchantStatus;
   referral_code: string;
   settings: Record<string, unknown>;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +34,11 @@ export interface MerchantCreatePayload {
   country?: string;
   support_email?: string;
   support_phone?: string;
+  logo_url?: string;
+  settings?: Record<string, unknown>;
+  latitude?: number | null;
+  longitude?: number | null;
+  referred_by_code?: string;
 }
 
 export interface MerchantUpdatePayload {
@@ -41,6 +48,9 @@ export interface MerchantUpdatePayload {
   support_email?: string;
   support_phone?: string;
   settings?: Record<string, unknown>;
+  latitude?: number | null;
+  longitude?: number | null;
+  is_kyc_completed?: boolean;
 }
 
 export interface MemberInvitePayload {

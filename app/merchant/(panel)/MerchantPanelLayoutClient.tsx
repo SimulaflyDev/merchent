@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { MerchantProvider, useMerchant } from "../context/MerchantContext";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { MerchantProvider, useMerchant } from "@/app/merchant/context/MerchantContext";
+import { updateMerchantAction } from "@/lib/auth/merchant-actions";
+import { callAction } from "@/lib/api/action-utils";
 import Spinner from "../components/Spinner";
 import type { MerchantOut } from "@/lib/types/merchant";
 import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -51,12 +54,49 @@ interface Props {
 
 export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant, initialWallet }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
 
   const walletBalance = Number(initialWallet.balance);
   const walletLow = walletBalance < initialWallet.low_balance_threshold;
   const currencySymbol = initialWallet.currency === "INR" ? "₹" : initialWallet.currency + " ";
   const merchantInitials = initialMerchant.display_name.slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          callAction(updateMerchantAction(initialMerchant.id, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })).catch((err) => console.error("Failed to update merchant location:", err));
+        },
+        (error) => {
+          console.warn("Geolocation failed or denied:", error);
+        }
+      );
+    }
+  }, [initialMerchant.id]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.hasAttribute("contenteditable"))
+      ) {
+        return;
+      }
+      if (e.key === "p" || e.key === "P" || (e.altKey && (e.key === "p" || e.key === "P"))) {
+        e.preventDefault();
+        router.push("/merchant/products/add");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
 
   const iconSize = "w-5 h-5"; // 20px icons
 
@@ -299,7 +339,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                     <Link href="/merchant/settings" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Settings</Link>
                     <Link href="/merchant/onboarding" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Store Setup</Link>
                     <div className="border-t border-[#F1F3F5] mt-1 pt-1">
-                      <Link href="/merchant/sign_in" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
+                      <Link href="/api/auth/logout" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
                     </div>
                   </div>
                 </div>
@@ -313,7 +353,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#F5F5F7] transition-colors group"
                   >
                     {initialMerchant.logo_url ? (
-                      <img src={initialMerchant.logo_url} alt={initialMerchant.display_name} className="w-9 h-9 rounded-full border border-[#EAECEF] object-cover shrink-0" />
+                      <img src={resolveImageUrl(initialMerchant.logo_url)} alt={initialMerchant.display_name} className="w-9 h-9 rounded-full border border-[#EAECEF] object-cover shrink-0" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-[#111827] font-bold text-[11px] shrink-0 group-hover:bg-gray-200 transition-colors">
                         {merchantInitials}
@@ -338,7 +378,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                     <Link href="/merchant/settings" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Settings</Link>
                     <Link href="/merchant/onboarding" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Store Setup</Link>
                     <div className="border-t border-[#F1F3F5] mt-1 pt-1">
-                      <Link href="/merchant/sign_in" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
+                      <Link href="/api/auth/logout" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
                     </div>
                   </div>
                 </div>

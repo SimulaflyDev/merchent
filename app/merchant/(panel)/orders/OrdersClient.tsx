@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import type { Lead, LeadStatus } from "@/lib/types/lead";
-import { reverseLeadStatus, mapLeadStatus } from "@/lib/types/lead";
+import { reverseLeadStatus, adaptLead } from "@/lib/types/lead";
 import { updateLeadStatusAction } from "@/lib/auth/lead-actions";
 import { LeadDrawer } from "./LeadDrawer";
+import { callAction } from "@/lib/api/action-utils";
 
 interface Props {
   initialLeads: Lead[];
@@ -35,11 +36,10 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
 
     const backendStatus = reverseLeadStatus(newStatus);
     try {
-      const updated = await updateLeadStatusAction(backendId, backendStatus);
+      const updated = await callAction(updateLeadStatusAction(backendId, backendStatus));
+      const adapted = adaptLead(updated);
       setLeads((prev) =>
-        prev.map((l) =>
-          l.id === displayId ? { ...l, status: mapLeadStatus(updated.status) } : l
-        )
+        prev.map((l) => (l.id === displayId ? adapted : l))
       );
       if (newStatus === "Synced") {
         const lead = leads.find((l) => l.id === displayId);

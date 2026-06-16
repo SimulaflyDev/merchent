@@ -9,8 +9,11 @@ import * as z from "zod";
 
 import { createProductAction, uploadProductImageAction } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
+import { callAction } from "@/lib/api/action-utils";
 import ProductPreviewModal from "../ProductPreviewModal";
 import type { MerchantProductOut } from "@/lib/types/product";
+import { resolveImageUrl } from "@/lib/api/image-utils";
+import { useMerchant } from "@/app/merchant/context/MerchantContext";
 
 const schema = z.object({
   title:       z.string().min(1, "Title is required").max(500),
@@ -56,6 +59,9 @@ const CATEGORY_SUGGESTIONS = [
 
 export default function AddProductPage() {
   const router = useRouter();
+  const { merchant } = useMerchant();
+  const onboardingCompleted = merchant?.settings?.onboarding_completed === true;
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -63,6 +69,74 @@ export default function AddProductPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!onboardingCompleted) {
+    return (
+      <div className="min-h-[80vh] w-full flex items-center justify-center p-6">
+        <div className="relative w-full max-w-lg bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 overflow-hidden p-8 sm:p-10 text-center flex flex-col items-center">
+          {/* Decorative subtle gradients */}
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#1FAF9A]/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#108A77]/5 rounded-full blur-3xl" />
+
+          {/* Premium Animated Icon container */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-[#1FAF9A]/10 rounded-full animate-ping" style={{ animationDuration: "3s" }} />
+            <div className="relative w-20 h-20 bg-gradient-to-br from-[#1FAF9A] to-[#108A77] rounded-full flex items-center justify-center shadow-lg shadow-[#1FAF9A]/20">
+              <svg className="w-9 h-9 text-white animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-[#0F2925] tracking-tight mb-3">
+            Onboarding Required
+          </h2>
+          <p className="text-sm text-gray-500 max-w-sm mb-8 leading-relaxed">
+            To keep the SimulaFly ecosystem secure and verify your store, we require all merchants to complete the quick store setup onboarding wizard before adding products.
+          </p>
+
+          {/* Checklist progress visual */}
+          <div className="w-full bg-[#F8FAFB] border border-gray-100 rounded-2xl p-5 mb-8 text-left space-y-3">
+            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Your Setup Status</h4>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+              </div>
+              <span className="text-xs font-semibold text-gray-400">Business Details</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+              </div>
+              <span className="text-xs font-semibold text-gray-400">Store Showroom Profile</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+              </div>
+              <span className="text-xs font-semibold text-gray-400">Initial Product Showcase</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+            <Link
+              href="/merchant/onboarding"
+              className="px-8 py-3.5 bg-gradient-to-r from-[#1FAF9A] to-[#108A77] text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-[#1FAF9A]/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center"
+            >
+              Complete Setup Now
+            </Link>
+            <Link
+              href="/merchant/dashboard"
+              className="px-8 py-3.5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors text-center"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const {
     register, control, handleSubmit, watch,
@@ -163,7 +237,10 @@ export default function AddProductPage() {
     try {
       const { base64, mediaType } = await fileToBase64(file);
       setImagePreview(`data:${mediaType};base64,${base64}`);
-      const result = await uploadProductImageAction(base64, mediaType);
+      const formData = new FormData();
+      formData.append("imageBase64", base64);
+      formData.append("mediaType", mediaType);
+      const result = await callAction(uploadProductImageAction(formData));
       setUploadedImageUrl(result.url);
     } catch (err) {
       setSubmitError(isApiError(err) ? `Image upload failed: ${err.detail}` : "Image upload failed. Please try again.");
@@ -183,7 +260,7 @@ export default function AddProductPage() {
     if (data.productUrl) customMetadata.legacy_product_url = data.productUrl;
 
     try {
-      await createProductAction({
+      await callAction(createProductAction({
         sku: data.sku,
         title: data.title,
         description: data.description || undefined,
@@ -194,7 +271,7 @@ export default function AddProductPage() {
         in_app_price: data.price ? parseFloat(data.price) : undefined,
         in_app_stock: data.stock ? parseInt(data.stock) : undefined,
         custom_metadata: customMetadata,
-      });
+      }));
       router.push("/merchant/products");
     } catch (err) {
       setSubmitError(
@@ -520,7 +597,7 @@ export default function AddProductPage() {
                 <div className="relative aspect-[4/3] bg-[#FAFBFC] flex items-center justify-center overflow-hidden">
                   {previewProductData.primary_image_url ? (
                     <img
-                      src={previewProductData.primary_image_url}
+                      src={resolveImageUrl(previewProductData.primary_image_url)}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />

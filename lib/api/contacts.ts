@@ -34,3 +34,8 @@ export async function listContacts(params: {
   const q = qs.toString();
   return api<PaginatedContacts>(`/merchant/contacts/${q ? `?${q}` : ""}`);
 }
+
+export async function getContact(contactId: string): Promise<ContactOut> {
+  return api<ContactOut>(`/merchant/contacts/${contactId}`);
+}
+

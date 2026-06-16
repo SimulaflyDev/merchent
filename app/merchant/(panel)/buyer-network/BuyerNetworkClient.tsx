@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   createContactAction,
   updateContactInviteAction,
+  importContactsCsvAction,
 } from "@/lib/auth/buyer-intelligence-actions";
 import type { ContactOut } from "@/lib/api/contacts";
+import { callAction } from "@/lib/api/action-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,17 +36,13 @@ function adaptContact(c: ContactOut): Customer {
         ? "CSV"
         : c.source === "whatsapp"
           ? "WhatsApp"
-          : "Manual",
+          : c.source === "checkout" || c.source === "Checkout"
+            ? "Checkout"
+            : "Manual",
     lastPurchase: c.last_purchase_note ?? "—",
     inviteStatus: statusMap[c.invite_status] ?? "Not Invited",
   };
 }
-
-const MOCK_PRODUCTS = [
-  "Your latest collection",
-  "Featured product",
-  "Seasonal special",
-];
 
 const ACTIONS = [
   { id: "visualize", label: "Invite to Visualize a Room" },
@@ -71,26 +70,29 @@ function defaultMessage(action: string, product: string, name: string): string {
 }
 
 const INVITE_STATUS_STYLE: Record<string, { dot: string; text: string; bg: string }> = {
-  "Joined":      { dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" },
-  "Invited":     { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50"   },
-  "Not Invited": { dot: "bg-gray-300",    text: "text-gray-500",    bg: "bg-gray-50"    },
+  "Joined":      { dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50/70 border-emerald-100" },
+  "Invited":     { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50/70 border-amber-100"   },
+  "Not Invited": { dot: "bg-gray-300",    text: "text-gray-500",    bg: "bg-gray-50/70 border-gray-200"    },
 };
 
 // ─── WhatsApp Invite Modal ────────────────────────────────────────────────────
 
 function InviteModal({
   customer,
+  products,
   onClose,
   onSent,
 }: {
   customer: Customer;
+  products: string[];
   onClose: () => void;
   onSent: () => void;
 }) {
+  const inviteProducts = products && products.length > 0 ? products : ["Your Catalog", "Featured Products"];
   const [action, setAction] = useState("visualize");
-  const [product, setProduct] = useState(MOCK_PRODUCTS[0]);
+  const [product, setProduct] = useState(inviteProducts[0]);
   const [message, setMessage] = useState(() =>
-    defaultMessage("visualize", MOCK_PRODUCTS[0], customer.name.split(" ")[0])
+    defaultMessage("visualize", inviteProducts[0], customer.name.split(" ")[0])
   );
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -101,7 +103,7 @@ function InviteModal({
   const handleSend = async () => {
     setSending(true);
     try {
-      await updateContactInviteAction(customer.id, "invited");
+      await callAction(updateContactInviteAction(customer.id, "invited"));
       setSent(true);
       setTimeout(() => {
         onSent();
@@ -152,7 +154,7 @@ function InviteModal({
                 onChange={(e) => { setProduct(e.target.value); updateMessage(action, e.target.value); }}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-[12px] text-gray-800 font-medium outline-none focus:border-gray-400 transition-colors"
               >
-                {MOCK_PRODUCTS.map((p) => <option key={p}>{p}</option>)}
+                {inviteProducts.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
@@ -207,7 +209,7 @@ function AddContactModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: C
     e.preventDefault();
     setSaving(true);
     try {
-      const result = await createContactAction({ name, phone: phone || undefined, last_purchase_note: lastPurchase || undefined });
+      const result = await callAction(createContactAction({ name, phone: phone || undefined, last_purchase_note: lastPurchase || undefined }));
       onAdd(adaptContact(result));
       onClose();
     } catch {
@@ -254,16 +256,41 @@ function AddContactModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: C
 
 interface Props {
   initialContacts: ContactOut[];
+  products: string[];
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function BuyerNetworkClient({ initialContacts }: Props) {
+export default function BuyerNetworkClient({ initialContacts, products }: Props) {
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>(initialContacts.map(adaptContact));
   const [search, setSearch] = useState("");
   const [inviting, setInviting] = useState<Customer | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [sentBanner, setSentBanner] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const result = await callAction(importContactsCsvAction(formData));
+      const newCustomers = result.map(adaptContact);
+      setCustomers((prev) => [...newCustomers, ...prev]);
+    } catch (err: any) {
+      alert(err.message || "Failed to import CSV");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const filtered = customers.filter(
     (c) =>
@@ -285,16 +312,33 @@ export default function BuyerNetworkClient({ initialContacts }: Props) {
 
   return (
     <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-5">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleCsvUpload}
+        accept=".csv"
+        className="hidden"
+      />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-[20px] font-bold text-gray-900 tracking-tight">My Customers</h1>
-          <p className="text-[12px] text-gray-400 mt-0.5">Your offline customer base — import and invite them to SimulaFly.</p>
+          <p className="text-[12px] text-gray-400 mt-0.5">Upload your offline customers and invite them to SimulaFly.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-[12px] font-semibold rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60"
+          >
+            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            {uploading ? "Uploading..." : "Upload CSV"}
+          </button>
+          <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-[12px] font-bold rounded-xl hover:bg-black transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-[12px] font-bold rounded-xl hover:bg-black transition-colors shadow-sm"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Customer
@@ -313,11 +357,11 @@ export default function BuyerNetworkClient({ initialContacts }: Props) {
         {[
           { icon: "↑", text: "Import your customers for free" },
           { icon: "🛋️", text: "Invite them to visualize products" },
-          { icon: "✦", text: "Track engagement & invite status" },
+          { icon: "✦", text: "Earn invite balance when customers join" },
         ].map((item) => (
-          <div key={item.text} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5">
+          <div key={item.text} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md transition-all">
             <span className="text-[13px]">{item.icon}</span>
-            <span className="text-[11px] font-medium text-gray-600">{item.text}</span>
+            <span className="text-[11px] font-semibold text-gray-700">{item.text}</span>
           </div>
         ))}
       </div>
@@ -341,19 +385,19 @@ export default function BuyerNetworkClient({ initialContacts }: Props) {
       {hasCustomers && (
         <>
           <div className="relative">
-            <svg className="w-3.5 h-3.5 text-gray-400 absolute left-3.5 top-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg className="w-3.5 h-3.5 text-gray-400 absolute left-3.5 top-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
-              placeholder="Search customers…"
+              placeholder="Search customers..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-[12px] text-gray-800 placeholder-gray-400 outline-none focus:border-gray-400 transition-colors"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-[13px] text-gray-800 placeholder-gray-400 outline-none focus:border-gray-400 transition-colors shadow-sm font-medium"
             />
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px] border-b border-gray-100 px-6 py-3">
-              {["Name", "Phone", "Source", "Last Purchase", "Status", ""].map((h, i) => (
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] border-b border-gray-100 px-6 py-4 bg-gray-50/50">
+              {["Name", "Phone", "Source", "Last Purchase", "Status", "", ""].map((h, i) => (
                 <p key={i} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
               ))}
             </div>
@@ -362,32 +406,41 @@ export default function BuyerNetworkClient({ initialContacts }: Props) {
               <p className="px-6 py-10 text-center text-[12px] text-gray-400">No customers match your search.</p>
             ) : (
               filtered.map((c) => {
-                const st = INVITE_STATUS_STYLE[c.inviteStatus];
+                const st = INVITE_STATUS_STYLE[c.inviteStatus] || INVITE_STATUS_STYLE["Not Invited"];
                 return (
-                  <div key={c.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px] items-center px-6 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
+                  <div 
+                    key={c.id} 
+                    onClick={() => router.push(`/merchant/buyer-network/${c.id}`)}
+                    className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] items-center px-6 py-4.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors cursor-pointer group/row"
+                  >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[10px] flex items-center justify-center shrink-0">
-                        {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] flex items-center justify-center shrink-0 shadow-sm">
+                        {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                       </div>
-                      <p className="text-[13px] font-semibold text-gray-900">{c.name}</p>
+                      <p className="text-[13px] font-bold text-[#1FAF9A] hover:underline transition-colors">{c.name}</p>
                     </div>
-                    <p className="text-[12px] text-gray-500">{c.phone || "—"}</p>
-                    <p className="text-[11px] text-gray-400">{c.source}</p>
-                    <p className="text-[11px] text-gray-500">{c.lastPurchase}</p>
+                    <p className="text-[12px] text-gray-500 font-semibold">{c.phone || "—"}</p>
+                    <p className="text-[11px] text-gray-400 font-semibold">{c.source}</p>
+                    <p className="text-[11px] text-gray-500 font-semibold">{c.lastPurchase}</p>
                     <div>
-                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${st.bg} ${st.text}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.bg} ${st.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                         {c.inviteStatus}
                       </span>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setInviting(c)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-[#25D366] bg-white border border-[#25D366]/30 rounded-lg hover:bg-[#25D366]/5 whitespace-nowrap transition-colors shadow-sm"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-emerald-600 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50/50 hover:border-emerald-300 whitespace-nowrap transition-colors shadow-sm"
                       >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                        <svg className="w-3.5 h-3.5 fill-current text-emerald-500" viewBox="0 0 24 24"><path d="M2.004 22l1.352-4.938A9.954 9.954 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10a9.954 9.954 0 01-5.062-1.356L2.004 22zM12 4a8 8 0 00-8 8c0 1.637.496 3.197 1.43 4.512l.164.249-.806 2.941 3.013-.788.243.144A7.961 7.961 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
                         WhatsApp Offer
                       </button>
+                    </div>
+                    <div className="flex justify-end text-gray-300 group-hover/row:text-gray-400 transition-colors">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
                     </div>
                   </div>
                 );
@@ -401,6 +454,7 @@ export default function BuyerNetworkClient({ initialContacts }: Props) {
       {inviting && (
         <InviteModal
           customer={inviting}
+          products={products}
           onClose={() => setInviting(null)}
           onSent={handleInviteSent}
         />

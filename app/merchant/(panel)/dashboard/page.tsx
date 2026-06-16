@@ -4,6 +4,7 @@ import { listProducts } from "@/lib/api/products";
 import { getWallet } from "@/lib/api/wallet";
 import { adaptLead } from "@/lib/types/lead";
 import DashboardClient from "./DashboardClient";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 export default async function DashboardPage() {
   const [summary, productPerf, leadsData, productsData, wallet] = await Promise.all([
@@ -19,6 +20,14 @@ export default async function DashboardPage() {
       ctr: 0,
       start_date: new Date().toISOString(),
       end_date: new Date().toISOString(),
+      daily_metrics: [],
+      total_leads: 0,
+      pipeline_value: 0,
+      drop_rate: 0,
+      catalog_published: 0,
+      catalog_archived: 0,
+      catalog_draft: 0,
+      catalog_paused: 0,
     })),
     listProductPerformance(30).catch(() => ({ items: [], start_date: "", end_date: "" })),
     listLeads({ limit: 5 }).catch(() => ({ items: [], total: 0, limit: 5, offset: 0 })),
@@ -36,7 +45,7 @@ export default async function DashboardPage() {
       title: r.title,
       category: productMap[r.product_id]?.category ?? null,
       price: productMap[r.product_id]?.in_app_price ?? null,
-      image: productMap[r.product_id]?.primary_image_url ?? null,
+      image: resolveImageUrl(productMap[r.product_id]?.primary_image_url) || null,
       ai_mentions: r.ai_mentions,
       clicks: r.clicks,
       spend: r.spend,
@@ -60,11 +69,19 @@ export default async function DashboardPage() {
         published_products: summary.published_products,
         total_products: summary.total_products,
         ctr: summary.ctr,
+        daily_metrics: summary.daily_metrics || [],
+        total_leads: summary.total_leads || 0,
+        pipeline_value: summary.pipeline_value || 0,
+        drop_rate: summary.drop_rate || 0,
+        catalog_published: summary.catalog_published || 0,
+        catalog_archived: summary.catalog_archived || 0,
+        catalog_draft: summary.catalog_draft || 0,
+        catalog_paused: summary.catalog_paused || 0,
       }}
       topProducts={topProducts}
       recentLeads={recentLeads}
-      totalLeads={leadsData.total}
-      pipelineValue={pipelineValue}
+      totalLeads={summary.total_leads != null ? summary.total_leads : leadsData.total}
+      pipelineValue={summary.pipeline_value != null ? summary.pipeline_value : pipelineValue}
       walletBalance={Number(wallet.balance)}
       walletStatus={wallet.status}
       walletCurrency={wallet.currency}

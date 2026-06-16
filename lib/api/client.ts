@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { ApiError } from "./errors";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
 interface ApiOptions extends RequestInit {
   skipAuth?: boolean;
@@ -13,7 +13,9 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const { skipAuth = false, skipMerchantId = false, headers, ...rest } = opts;
 
   const h = new Headers(headers);
-  h.set("Content-Type", "application/json");
+  if (!(opts.body instanceof FormData)) {
+    h.set("Content-Type", "application/json");
+  }
 
   if (!skipAuth) {
     const c = await cookies();

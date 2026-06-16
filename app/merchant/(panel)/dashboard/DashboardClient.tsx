@@ -3,6 +3,17 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Lead } from "@/lib/types/lead";
+import { useMerchant } from "@/app/merchant/context/MerchantContext";
+import ShareCatalogModal from "../products/ShareCatalogModal";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+interface DailyMetric {
+  date: string;
+  spend: number;
+  revenue: number;
+  pipeline: number;
+  drop_rate: number;
+}
 
 interface AnalyticsSnapshot {
   external_redirects: number;
@@ -14,6 +25,14 @@ interface AnalyticsSnapshot {
   published_products: number;
   total_products: number;
   ctr: number;
+  daily_metrics: DailyMetric[];
+  total_leads: number;
+  pipeline_value: number;
+  drop_rate: number;
+  catalog_published: number;
+  catalog_archived: number;
+  catalog_draft: number;
+  catalog_paused: number;
 }
 
 interface TopProduct {
@@ -54,18 +73,7 @@ const statusDotMap: Record<string, string> = {
 function fmt(n: number) { return n.toLocaleString("en-IN"); }
 function fmtRs(n: number) { return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`; }
 
-function generateSparkline(points: number[], width: number, height: number) {
-  if (points.length < 2) return "";
-  const max = Math.max(...points) * 1.1 || 1;
-  const min = Math.min(...points) * 0.9;
-  const range = max - min || 1;
-  const step = width / (points.length - 1);
-  return points.map((p, i) => {
-    const x = i * step;
-    const y = height - ((p - min) / range) * height;
-    return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(" ");
-}
+
 
 export default function DashboardClient({
   analyticsSnapshot: s,
@@ -79,6 +87,9 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const [hideBanner, setHideBanner] = useState(false);
   const [period, setPeriod] = useState("30D");
+  const [graphType, setGraphType] = useState<"revenue" | "pipeline" | "drop_rate">("revenue");
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const { merchant } = useMerchant();
 
   const walletLow = walletBalance < 200;
   const currencySymbol = walletCurrency === "INR" ? "₹" : walletCurrency + " ";
@@ -87,29 +98,64 @@ export default function DashboardClient({
   // Only show chart lines when there is real activity to display
   const hasActivity = s.total_spend > 0 || pipelineValue > 0 || s.ai_mentions > 0;
 
-  const xAxisLabels = useMemo(() => {
-    if (period === "7D")  return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    if (period === "1Y")  return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return ["1", "4", "7", "10", "13", "16", "19", "22", "25", "28", "30"];
-  }, [period]);
-
-  // Illustrative shape only shown when account already has real activity
-  const mockRevenueData = useMemo(() => {
+  const chartData = useMemo(() => {
+    const metrics = s.daily_metrics || [];
     if (!hasActivity) return [];
-    if (period === "7D")  return [3800, 3600, 4000, 4200, 4800, 4500, 5000];
-    if (period === "1Y")  return [10000, 12000, 15000, 11000, 22000, 28000, 25000, 31000, 29000, 38000, 36000, 42000];
-    return [1200, 1500, 1100, 2200, 2800, 2500, 3100, 2900, 3800, 3600, 4200, 4800];
-  }, [period, hasActivity]);
 
-  const mockSpendData = useMemo(() => {
-    if (!hasActivity) return [];
-    if (period === "7D")  return [140, 135, 150, 160, 180, 170, 190];
-    if (period === "1Y")  return [400, 500, 600, 450, 900, 1100, 1000, 1200, 1150, 1400, 1350, 1600];
-    return [50, 60, 45, 90, 110, 100, 120, 115, 140, 135, 160, 180];
-  }, [period, hasActivity]);
+    const formatMetric = (m: DailyMetric) => {
+      const d = new Date(m.date);
+      const name = isNaN(d.getTime()) ? m.date : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const base = {
+        name,
+        Spend: m.spend,
+      };
+      if (graphType === "revenue") {
+        return { ...base, Revenue: m.revenue };
+      } else if (graphType === "pipeline") {
+        return { ...base, Pipeline: m.pipeline };
+      } else {
+        return { ...base, "Drop Rate (%)": m.drop_rate * 100 };
+      }
+    };
 
-  const revPath   = generateSparkline(mockRevenueData, 600, 200);
-  const spendPath = generateSparkline(mockSpendData,   600, 200);
+    if (period === "7D") {
+      return metrics.slice(-7).map(formatMetric);
+    }
+
+    if (period === "1Y") {
+      const groupedByMonth: Record<string, { spend: number; revenue: number; pipeline: number; drop_rate_sum: number; count: number }> = {};
+      metrics.forEach((m) => {
+        const d = new Date(m.date);
+        if (isNaN(d.getTime())) return;
+        const monthKey = d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+        if (!groupedByMonth[monthKey]) {
+          groupedByMonth[monthKey] = { spend: 0, revenue: 0, pipeline: 0, drop_rate_sum: 0, count: 0 };
+        }
+        groupedByMonth[monthKey].spend += m.spend;
+        groupedByMonth[monthKey].revenue += m.revenue;
+        groupedByMonth[monthKey].pipeline += m.pipeline;
+        groupedByMonth[monthKey].drop_rate_sum += m.drop_rate;
+        groupedByMonth[monthKey].count += 1;
+      });
+      return Object.entries(groupedByMonth).map(([month, val]) => {
+        const base = {
+          name: month,
+          Spend: val.spend,
+        };
+        if (graphType === "revenue") {
+          return { ...base, Revenue: val.revenue };
+        } else if (graphType === "pipeline") {
+          return { ...base, Pipeline: val.pipeline };
+        } else {
+          return { ...base, "Drop Rate (%)": (val.drop_rate_sum / (val.count || 1)) * 100 };
+        }
+      });
+    }
+
+    // 30D (default)
+    return metrics.map(formatMetric);
+  }, [s.daily_metrics, period, graphType, hasActivity]);
+
 
   return (
     <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-8">
@@ -144,6 +190,42 @@ export default function DashboardClient({
           Add Product
         </Link>
       </div>
+
+      {/* ── QR Share Card ── */}
+      {merchant && (
+        <div className="bg-gradient-to-r from-[#111827] to-[#1f2937] border border-[#2d3748] rounded-xl p-5 flex items-center gap-5">
+          {/* Live QR preview */}
+          <div className="shrink-0 bg-white p-2.5 rounded-xl shadow-lg">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`simulafly://merchant/${merchant.referral_code || merchant.slug}`)}&color=111827&margin=4`}
+              alt="Store QR"
+              className="w-16 h-16 block"
+            />
+          </div>
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-[#0E9F88] tracking-widest uppercase mb-1">Your Store QR Code</p>
+            <h3 className="text-[15px] font-semibold text-white leading-tight truncate">{merchant.display_name}</h3>
+            <p className="text-[12px] text-gray-400 mt-1 font-mono">{merchant.referral_code}</p>
+          </div>
+          {/* Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setQrModalOpen(true)}
+              className="flex items-center gap-2 h-9 px-4 bg-white text-[#111827] text-[12px] font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+              </svg>
+              Share / Download QR
+            </button>
+          </div>
+        </div>
+      )}
+      {qrModalOpen && merchant && (
+        <ShareCatalogModal merchant={merchant} onClose={() => setQrModalOpen(false)} />
+      )}
 
       {/* ── KPI Ribbon (real data) ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -189,10 +271,16 @@ export default function DashboardClient({
           </div>
           <div>
             <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">
-              {s.published_products}
+              {s.catalog_published}
               <span className="text-[16px] text-gray-400 font-medium">/{s.total_products}</span>
             </h3>
-            <p className="text-[11px] text-gray-400 mt-1 font-normal">Products published</p>
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400 font-normal">
+              <span className="text-[#0E9F88] font-semibold">{s.catalog_published} pub.</span>
+              <span>•</span>
+              <span>{s.catalog_archived} arch.</span>
+              <span>•</span>
+              <span>{s.catalog_draft} draft</span>
+            </div>
           </div>
         </div>
       </div>
@@ -252,25 +340,53 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* ── Spend vs Revenue Chart ── */}
+      {/* ── Dynamic Chart ── */}
       <div className="bg-white rounded-xl border border-[#EAECEF] overflow-hidden">
         <div className="px-6 pt-6 pb-4 border-b border-gray-50">
           <div className="flex flex-wrap justify-between items-start gap-4 mb-5">
             <div>
-              <h4 className="text-[15px] font-semibold text-[#111827] tracking-tight">Spend vs Revenue</h4>
-              <p className="text-[11px] text-gray-400 mt-0.5">Token investment vs checkout revenue over time.</p>
+              <h4 className="text-[15px] font-semibold text-[#111827] tracking-tight">
+                {graphType === "revenue" && "Spend vs Revenue"}
+                {graphType === "pipeline" && "Spend vs Pipeline"}
+                {graphType === "drop_rate" && "Spend vs Drop Rate"}
+              </h4>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {graphType === "revenue" && "Token investment vs checkout revenue over time."}
+                {graphType === "pipeline" && "Token investment vs active cart pipeline value over time."}
+                {graphType === "drop_rate" && "Token investment vs drop/cancellation rate over time."}
+              </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Graph Type Selector */}
+              <div className="flex items-center gap-1 bg-[#EDEEF0] border border-[#EAECEF] rounded-lg p-1">
+                {(["revenue", "pipeline", "drop_rate"] as const).map((gt) => (
+                  <button
+                    key={gt}
+                    onClick={() => setGraphType(gt)}
+                    className={`px-3 py-1 text-[10px] font-medium rounded-md transition-colors ${graphType === gt ? "bg-white text-[#111827] shadow-sm" : "text-gray-500 hover:text-[#111827]"}`}
+                  >
+                    {gt === "revenue" && "Revenue"}
+                    {gt === "pipeline" && "Pipeline"}
+                    {gt === "drop_rate" && "Drop Rate"}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-8 h-0.5 bg-[#0E9F88] rounded inline-block" />
-                  <span className="text-[11px] font-medium text-gray-500">Revenue</span>
+                  <span className={`w-8 h-0.5 rounded inline-block ${graphType === "revenue" ? "bg-[#0E9F88]" : graphType === "pipeline" ? "bg-blue-500" : "bg-red-500"}`} />
+                  <span className="text-[11px] font-medium text-gray-500">
+                    {graphType === "revenue" && "Revenue"}
+                    {graphType === "pipeline" && "Pipeline"}
+                    {graphType === "drop_rate" && "Drop Rate (%)"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-8 border-t-2 border-dashed border-gray-400 inline-block" />
                   <span className="text-[11px] font-medium text-gray-500">Token Spend</span>
                 </div>
               </div>
+              
               <div className="flex items-center gap-1 bg-[#EDEEF0] border border-[#EAECEF] rounded-lg p-1">
                 {(["7D", "30D", "1Y"] as const).map((p) => (
                   <button
@@ -284,7 +400,7 @@ export default function DashboardClient({
               </div>
             </div>
           </div>
-
+ 
           {/* Real summary strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             <div className="pr-6">
@@ -306,7 +422,7 @@ export default function DashboardClient({
             </div>
           </div>
         </div>
-
+ 
         {/* SVG Chart */}
         {!hasActivity ? (
           <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
@@ -324,43 +440,43 @@ export default function DashboardClient({
             </Link>
           </div>
         ) : (
-          <div className="relative px-6 pt-6 pb-10" style={{ height: "340px" }}>
-            <div className="absolute left-6 top-6 bottom-10 flex flex-col justify-between text-[10px] font-semibold text-gray-400">
-              <span>₹5L</span><span>₹4L</span><span>₹3L</span><span>₹2L</span><span>₹1L</span><span>₹0</span>
-            </div>
-            <div className="relative border-l border-b border-gray-100 ml-8" style={{ height: "260px" }}>
-              {/* Grid lines */}
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                {[0,1,2,3,4,5].map((i) => <div key={i} className="w-full h-px bg-gray-50/80" />)}
-              </div>
-              <svg viewBox="0 0 600 260" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
+          <div className="relative px-6 pt-6 pb-6" style={{ height: "340px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="revGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#0E9F88" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#0E9F88" stopOpacity="0" />
-                  </linearGradient>
-                  <linearGradient id="spendGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#9CA3AF" stopOpacity="0.08" />
-                    <stop offset="100%" stopColor="#9CA3AF" stopOpacity="0" />
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0E9F88" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#0E9F88" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                {/* Revenue area fill */}
-                <path d={`${revPath} L 600 260 L 0 260 Z`} fill="url(#revGrad)" />
-                {/* Revenue line */}
-                <path d={revPath} fill="none" stroke="#0E9F88" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Spend area fill */}
-                <path d={`${spendPath} L 600 260 L 0 260 Z`} fill="url(#spendGrad)" />
-                {/* Spend dashed line */}
-                <path d={spendPath} fill="none" stroke="#9CA3AF" strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" strokeLinejoin="round" />
-                {/* End dot */}
-                <circle cx="545" cy="25" r="5" fill="white" stroke="#0E9F88" strokeWidth="2" />
-                <circle cx="545" cy="210" r="3.5" fill="white" stroke="#9CA3AF" strokeWidth="1.5" />
-              </svg>
-            </div>
-            {/* X-axis labels */}
-            <div className="absolute left-14 right-6 bottom-3 flex justify-between text-[10px] font-semibold text-gray-400">
-              {xAxisLabels.map((l, i) => <span key={i}>{l}</span>)}
-            </div>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAECEF" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} dy={10} />
+                <YAxis 
+                  yAxisId="left" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} 
+                  tickFormatter={(value) => graphType === "drop_rate" ? `${value.toFixed(0)}%` : `₹${value > 1000 ? (value/1000).toFixed(0) + 'K' : value}`} 
+                  dx={-10} 
+                />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} tickFormatter={(value) => `₹${value}`} dx={10} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #EAECEF', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 500 }}
+                  labelStyle={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}
+                />
+                {graphType === "revenue" && (
+                  <Line yAxisId="left" type="monotone" dataKey="Revenue" stroke="#0E9F88" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#0E9F88', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                )}
+                {graphType === "pipeline" && (
+                  <Line yAxisId="left" type="monotone" dataKey="Pipeline" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#3B82F6', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                )}
+                {graphType === "drop_rate" && (
+                  <Line yAxisId="left" type="monotone" dataKey="Drop Rate (%)" stroke="#EF4444" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#EF4444', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                )}
+                <Line yAxisId="right" type="monotone" dataKey="Spend" stroke="#9CA3AF" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#fff', stroke: '#9CA3AF', strokeWidth: 1.5 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>

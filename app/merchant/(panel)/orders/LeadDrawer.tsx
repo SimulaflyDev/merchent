@@ -139,11 +139,38 @@ export function LeadDrawer({
                     <p className="font-bold text-xl text-gray-900">
                       {lead.customer.name}
                     </p>
-                    <p className="text-[#1FAF9A] font-semibold">
+                    <p className="text-[#1FAF9A] font-semibold text-lg">
                       {lead.customer.phone}
                     </p>
                     <p className="text-gray-600">{lead.customer.email}</p>
-                    <p className="text-gray-600">{lead.customer.city}, India</p>
+                    {lead.customer.address_line1 && (
+                      <p className="text-gray-700 font-medium mt-1">
+                        {lead.customer.address_line1}
+                      </p>
+                    )}
+                    <p className="text-gray-600">
+                      {[
+                        lead.customer.city,
+                        lead.customer.state,
+                        lead.customer.pincode,
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                      {lead.customer.city ? ', India' : ''}
+                    </p>
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 shadow-sm w-fit">
+                      <svg
+                        className="w-3.5 h-3.5 text-rose-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      GPS: {(lead.customer.latitude ?? 28.587820).toFixed(6)}, {(lead.customer.longitude ?? 77.408092).toFixed(6)}
+                    </div>
                   </div>
                 )}
               </div>

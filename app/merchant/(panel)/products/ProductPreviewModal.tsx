@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { MerchantProductOut } from "@/lib/types/product";
+import { resolveImageUrl } from "@/lib/api/image-utils";
+
 
 interface Props {
   product: MerchantProductOut;
@@ -70,7 +72,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
               <div className="md:w-2/5 shrink-0 bg-[#F8FAFB] flex items-center justify-center p-6">
                 {product.primary_image_url ? (
                   <img
-                    src={product.primary_image_url}
+                    src={resolveImageUrl(product.primary_image_url)}
                     alt={product.title}
                     className="max-w-full max-h-72 object-contain rounded-xl shadow-sm"
                   />
