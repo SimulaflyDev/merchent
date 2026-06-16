@@ -69,6 +69,13 @@ function generateRandomCode(name: string, suffix: string | number): string {
   return `SIMFLY-${cleanName}-${randStr}-${suffix}`;
 }
 
+function getValidityDateStr(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 export default function BuyerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const [buyer, setBuyer] = useState<ShopperDetailResponse | null>(null);
@@ -85,6 +92,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
   const [productSearch, setProductSearch] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [discountPct, setDiscountPct] = useState(10);
+  const [durationDays, setDurationDays] = useState(7);
   const [discountCopied, setDiscountCopied] = useState(false);
 
   // Collection modal state
@@ -171,9 +179,10 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
   const toggleProduct = (p: string) => setSelectedProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   const toggleCollectionProduct = (p: string) => setCollectionProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
 
+  const validityDateText = getValidityDateStr(durationDays);
   const discountWAMessage = selectedProducts.length > 0
-    ? `Hi ${buyerName.split(" ")[0]},\n\nWe have a special ${discountPct}% offer on:\n${selectedProducts.map(p => `• ${p}`).join("\n")}\n\nUse code: *${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nValid this week only.\n\nSimulaFly Store`
-    : `Hi ${buyerName.split(" ")[0]},\n\nEnjoy ${discountPct}% off your next order with code:\n*${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nSimulaFly Store`;
+    ? `Hi ${buyerName.split(" ")[0]},\n\nWe have a special ${discountPct}% offer on:\n${selectedProducts.map(p => `• ${p}`).join("\n")}\n\nUse code: *${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nValid until ${validityDateText}.\n\nSimulaFly Store`
+    : `Hi ${buyerName.split(" ")[0]},\n\nEnjoy ${discountPct}% off your next order with code:\n*${discountCode}*\n(One-time use only. Exclusively for ${buyerName.split(" ")[0]})\n\nValid until ${validityDateText}.\n\nSimulaFly Store`;
 
   const copyDiscountCode = () => { navigator.clipboard.writeText(discountCode); setDiscountCopied(true); setTimeout(() => setDiscountCopied(false), 2000); };
 
@@ -581,23 +590,108 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">2. Discount Percentage</label>
-                  <span className="text-xl font-bold text-gray-900">{discountPct}%</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={discountPct || ""}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val >= 1 && val <= 100) {
+                          setDiscountPct(val);
+                        } else if (e.target.value === "") {
+                          setDiscountPct(0);
+                        }
+                      }}
+                      className="w-16 text-right px-2 py-1 text-sm font-bold text-gray-900 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-gray-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-sm font-bold text-gray-900">%</span>
+                  </div>
                 </div>
-                <input type="range" min={5} max={50} step={5} value={discountPct} onChange={(e) => setDiscountPct(Number(e.target.value))} className="w-full h-2 rounded-full accent-gray-800 cursor-pointer" />
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={discountPct || ""}
+                  onChange={(e) => setDiscountPct(Number(e.target.value))}
+                  className="w-full h-1.5 bg-gray-100 rounded-full accent-gray-800 cursor-pointer appearance-none"
+                />
                 <div className="flex gap-2">
                   {[10, 15, 20, 25].map(n => (
-                    <button key={n} onClick={() => setDiscountPct(n)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all ${discountPct === n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>{n}% off</button>
+                    <button
+                      key={n}
+                      onClick={() => setDiscountPct(n)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all ${discountPct === n ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    >
+                      {n}% off
+                    </button>
                   ))}
                 </div>
               </div>
+
               {/* Step 3 */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">3. Offer Duration</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={durationDays || ""}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val >= 1 && val <= 365) {
+                          setDurationDays(val);
+                        } else if (e.target.value === "") {
+                          setDurationDays(0);
+                        }
+                      }}
+                      className="w-16 text-right px-2 py-1 text-sm font-bold text-gray-900 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-gray-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-xs font-semibold text-gray-500">{durationDays === 1 ? "day" : "days"}</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={durationDays || ""}
+                  onChange={(e) => setDurationDays(Number(e.target.value))}
+                  className="w-full h-1.5 bg-gray-100 rounded-full accent-gray-800 cursor-pointer appearance-none"
+                />
+                <div className="flex gap-2">
+                  {[1, 3, 7, 14, 30].map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDurationDays(d)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all ${durationDays === d ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    >
+                      {d} {d === 1 ? "day" : "days"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step 4 */}
               <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">3. Generated Code</label>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">4. Generated Code</label>
                 <div className="flex items-center justify-between bg-gray-50 border border-dashed border-gray-300 rounded-xl p-4">
                   <span className="font-mono text-sm font-bold text-gray-800 tracking-widest">{discountCode}</span>
                   <button onClick={copyDiscountCode} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${discountCopied ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{discountCopied ? '✓ Copied' : 'Copy'}</button>
                 </div>
                 {selectedProducts.length > 0 && <p className="text-[11px] text-gray-400">Applies to: {selectedProducts.join(", ")}</p>}
+              </div>
+
+              {/* Message Preview */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Message Preview</label>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <p className="text-[12px] text-gray-700 whitespace-pre-line leading-relaxed">{discountWAMessage}</p>
+                </div>
               </div>
             </div>
             <div className="px-6 pb-6 shrink-0">
