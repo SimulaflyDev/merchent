@@ -291,13 +291,13 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
               <option value={90}>Last 90 Days</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
             </div>
           </div>
           {/* Export Report Button */}
           <button className="flex items-center gap-2 h-9 px-4 bg-[#111827] text-white text-[12px] font-semibold rounded-lg hover:bg-black transition-colors shadow-sm">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             Export Report
           </button>
@@ -314,11 +314,10 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key as any)}
-            className={`px-4 py-2 rounded-lg text-[12px] font-bold transition-all relative flex items-center gap-1.5 ${
-              activeTab === t.key
+            className={`px-4 py-2 rounded-lg text-[12px] font-bold transition-all relative flex items-center gap-1.5 ${activeTab === t.key
                 ? "bg-[#111827] text-white"
                 : "text-gray-500 hover:text-[#111827] hover:bg-gray-100"
-            }`}
+              }`}
           >
             {t.label}
             {t.badge && (
@@ -344,8 +343,8 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
               <div className="flex flex-wrap gap-2">
                 <TogglePill label="Impressions" checked={showImpressions} onChange={setShowImpressions} color="bg-gray-600" />
                 <TogglePill label="Clicks" checked={showClicks} onChange={setShowClicks} color="bg-[#0E9F88]" />
-                <TogglePill label="Shopper Interact." checked={showInteractions} onChange={setShowInteractions} color="bg-[#6366F1]" />
-                <TogglePill label="Leads" checked={showLeads} onChange={setShowLeads} color="bg-[#3B82F6]" />
+                <TogglePill label="AI Mentions" checked={showInteractions} onChange={setShowInteractions} color="bg-[#6366F1]" />
+                <TogglePill label="Orders" checked={showLeads} onChange={setShowLeads} color="bg-[#3B82F6]" />
                 <TogglePill label="Converted" checked={showConverted} onChange={setShowConverted} color="bg-[#8B5CF6]" />
               </div>
             </div>
@@ -382,9 +381,9 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <MiniKpi label="Impressions" value={imp.toLocaleString()} trend={impTrend.text} trendDir={impTrend.dir} />
             <MiniKpi label="Total Clicks" value={click.toLocaleString()} trend={clickTrend.text} trendDir={clickTrend.dir} />
-            <MiniKpi label="Shopper RAG Mentions" value={summary.ai_mentions.toLocaleString()} trend={mentionsTrend.text} trendDir={mentionsTrend.dir} showAi />
+            <MiniKpi label="AI Mentions" value={summary.ai_mentions.toLocaleString()} trend={mentionsTrend.text} trendDir={mentionsTrend.dir} showAi />
             <MiniKpi label="Avg. CTR" value={`${(summary.ctr * 100).toFixed(1)}%`} trend={ctrTrend.text} trendDir={ctrTrend.dir} />
-            <MiniKpi label="Total Leads" value={lead.toLocaleString()} trend={leadsTrend.text} trendDir={leadsTrend.dir} />
+            <MiniKpi label="Total Orders" value={lead.toLocaleString()} trend={leadsTrend.text} trendDir={leadsTrend.dir} />
             <MiniKpi label="Conv. Rate" value={`${overallConvRate.toFixed(1)}%`} trend={convTrend.text} trendDir={convTrend.dir} />
           </div>
 
@@ -399,8 +398,8 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
             <div className="space-y-4">
               <FunnelRow label="App Impressions" val={imp.toLocaleString()} pct={100} advance={`${clickPct}% advance`} />
               <FunnelRow label="Product Clicks" val={click.toLocaleString()} pct={clickFunnelPct} advance={`${interactPct}% advance`} />
-              <FunnelRow label="Shopper Gen Interactions" val={interact.toLocaleString()} pct={interactFunnelPct} advance={`${leadPct}% advance`} />
-              <FunnelRow label="Leads Raised" val={lead.toLocaleString()} pct={leadFunnelPct} advance={`${convertedPct}% advance`} />
+              <FunnelRow label="AI Mentions" val={interact.toLocaleString()} pct={interactFunnelPct} advance={`${leadPct}% advance`} />
+              <FunnelRow label="Orders Raised" val={lead.toLocaleString()} pct={leadFunnelPct} advance={`${convertedPct}% advance`} />
               <FunnelRow label="Converted" val={converted.toLocaleString()} pct={convertedFunnelPct} />
             </div>
           </div>
@@ -415,17 +414,17 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
                   <ChannelBox label="Reach" value={(summary.reach_count || 0).toLocaleString()} sub="unique users" />
                   <ChannelBox label="Frequency" value={`${(summary.reach_count > 0 ? (imp / summary.reach_count) : 1.0).toFixed(1)}x`} sub="avg per user" />
                   <ChannelBox label="CTR" value={`${(summary.ctr * 100).toFixed(1)}%`} sub="click-through" />
-                  <ChannelBox label="Cost/Lead" value={`₹${lead > 0 ? Math.round(summary.total_spend / lead) : 0}`} sub="token spend" />
-                  <ChannelBox label="Total Leads" value={lead.toLocaleString()} sub="from AI" />
+                  <ChannelBox label="Cost/Order" value={`₹${lead > 0 ? Math.round(summary.total_spend / lead) : 0}`} sub="totsl spend" />
+                  <ChannelBox label="Total Orders" value={lead.toLocaleString()} sub="from AI" />
                   <ChannelBox label="Est. ROAS" value={`${summary.total_spend > 0 ? ((summary.daily_metrics.reduce((acc, m) => acc + (m.revenue || 0), 0)) / summary.total_spend).toFixed(1) : "0.0"}x`} sub="return" />
                 </div>
               </div>
             </div>
 
-            {/* 7-Day Lead Trend */}
+            {/* 7-Day Order Trend */}
             <div className="bg-white rounded-2xl border border-[#EAECEF] p-6 shadow-sm flex flex-col justify-between">
               <div>
-                <h4 className="text-[13px] font-bold text-[#111827]">7-Day Lead Trend</h4>
+                <h4 className="text-[13px] font-bold text-[#111827]">7-Day Order Trend</h4>
                 <p className="text-[10px] text-gray-400 mt-0.5">New - Converted - Lost breakdown</p>
               </div>
               <div className="h-[140px] mt-4">
@@ -462,10 +461,10 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
             const statusLabel = p.status === "published"
               ? "Healthy"
               : p.status === "paused_insufficient_funds"
-              ? "Paused"
-              : p.status === "draft"
-              ? "Review"
-              : "Review";
+                ? "Paused"
+                : p.status === "draft"
+                  ? "Review"
+                  : "Review";
 
             return (
               <ProductCard
@@ -474,10 +473,11 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
                 sku={p.sku}
                 category={p.category || "General"}
                 status={statusLabel as any}
-                activity={p.impressions + p.clicks}
+                rawStatus={p.status}
+                activity={p.orders_count || 0}
                 ctr={p.ctr * 100}
                 converted={p.converted || 0}
-                roas={`${(p.est_roas || 0.0).toFixed(1)}x`}
+                estRos={p.est_ros || 0}
                 trend={p.trend || "Trend: Stable performance and regular shopper exposure."}
                 bgColor={bgColor}
                 productId={p.product_id}
@@ -595,11 +595,10 @@ function TogglePill({ label, checked, onChange, color }: { label: string; checke
   return (
     <button
       onClick={() => onChange(!checked)}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${
-        checked
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all ${checked
           ? `${color} text-white border-transparent`
           : "bg-white text-gray-500 border-gray-250 hover:bg-gray-50"
-      }`}
+        }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${checked ? "bg-white" : color}`} />
       {label}
@@ -616,7 +615,7 @@ function MiniKpi({ label, value, trend, trendDir, showAi = false }: { label: str
         {showAi && (
           <span className="text-violet-500" title="AI Insight Powered">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
           </span>
         )}
@@ -703,10 +702,11 @@ interface ProductCardProps {
   sku: string;
   category: string;
   status: "Healthy" | "Review" | "Paused";
+  rawStatus: string;
   activity: number;
   ctr: number;
   converted: number;
-  roas: string;
+  estRos: number;
   trend: string;
   bgColor: string;
   productId?: string;
@@ -719,10 +719,11 @@ function ProductCard({
   sku,
   category,
   status,
+  rawStatus,
   activity,
   ctr,
   converted,
-  roas,
+  estRos,
   trend,
   bgColor,
   productId,
@@ -752,6 +753,18 @@ function ProductCard({
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
+            {/* Status identifier badge */}
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide ${
+              rawStatus === "published" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : rawStatus === "archived" ? "bg-gray-100 text-gray-500 border-gray-300"
+              : rawStatus === "paused_insufficient_funds" ? "bg-red-50 text-red-600 border-red-200"
+              : "bg-amber-50 text-amber-700 border-amber-200"
+            }`}>
+              {rawStatus === "published" ? "Published"
+                : rawStatus === "archived" ? "Archived"
+                : rawStatus === "paused_insufficient_funds" ? "Paused"
+                : "Draft"}
+            </span>
             {/* Health Status Dot */}
             <span className="flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${status === "Healthy" ? "bg-[#0E9F88]" : status === "Review" ? "bg-amber-400" : "bg-red-400"}`} />
@@ -760,9 +773,8 @@ function ProductCard({
             {/* Tiny Sparkline */}
             <div className="w-14 h-5 opacity-80">
               <svg
-                className={`w-full h-full ${
-                  status === "Healthy" ? "text-[#0E9F88]" : status === "Review" ? "text-amber-500" : "text-red-500"
-                }`}
+                className={`w-full h-full ${status === "Healthy" ? "text-[#0E9F88]" : status === "Review" ? "text-amber-500" : "text-red-500"
+                  }`}
                 viewBox="0 0 100 30"
                 fill="none"
               >
@@ -782,7 +794,7 @@ function ProductCard({
         {/* 4 KPIs grid */}
         <div className="grid grid-cols-4 gap-2 border-t border-[#F1F3F5] mt-4 pt-4 text-center">
           <div>
-            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Buyer Activity</p>
+            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Orders Placed</p>
             <p className="text-[14px] font-bold text-[#111827] mt-1 tabular-nums">{activity.toLocaleString()}</p>
           </div>
           <div>
@@ -794,8 +806,8 @@ function ProductCard({
             <p className="text-[14px] font-bold text-[#111827] mt-1 tabular-nums">{converted}</p>
           </div>
           <div>
-            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Est. ROAS</p>
-            <p className="text-[14px] font-bold text-[#111827] mt-1">{roas}</p>
+            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Est. ROS</p>
+            <p className="text-[14px] font-bold text-[#111827] mt-1">{estRos.toFixed(2)}</p>
           </div>
         </div>
       </div>

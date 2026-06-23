@@ -24,15 +24,16 @@ export async function unlockShopperAction(userId: string): Promise<ActionResult<
   });
 }
 
-export async function createContactAction(body: {
-  name: string;
-  phone?: string;
-  email?: string;
-  source?: string;
-  last_purchase_note?: string;
-}): Promise<ActionResult<ContactOut>> {
+export async function launchBulkOfferAction(body: {
+  contact_ids: string[];
+  products: string[];
+  discount: number;
+  max_customers: number;
+  max_days: number;
+  message: string;
+}): Promise<ActionResult<{ campaign_id: string; sent_count: number; message: string }>> {
   return srvAction(async () => {
-    const result = await api<ContactOut>("/merchant/contacts/", {
+    const result = await api<{ campaign_id: string; sent_count: number; message: string }>("/merchant/contacts/bulk-offer", {
       method: "POST",
       body: JSON.stringify(body),
     });
@@ -55,18 +56,6 @@ export async function updateContactInviteAction(
   });
 }
 
-export async function importContactsCsvAction(
-  formData: FormData
-): Promise<ActionResult<ContactOut[]>> {
-  return srvAction(async () => {
-    const result = await api<ContactOut[]>("/merchant/contacts/csv-import", {
-      method: "POST",
-      body: formData,
-    });
-    revalidatePath("/merchant/buyer-network");
-    return result;
-  });
-}
 
 export async function getContactAction(contactId: string): Promise<ActionResult<ContactOut>> {
   return srvAction(() => apiGetContact(contactId));

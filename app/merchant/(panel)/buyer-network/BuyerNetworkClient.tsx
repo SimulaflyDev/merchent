@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  createContactAction,
   updateContactInviteAction,
-  importContactsCsvAction,
+  launchBulkOfferAction,
 } from "@/lib/auth/buyer-intelligence-actions";
 import type { ContactOut } from "@/lib/api/contacts";
 import { callAction } from "@/lib/api/action-utils";
@@ -194,59 +193,320 @@ function InviteModal({
   );
 }
 
-// ─── Add Contact Modal ────────────────────────────────────────────────────────
+// ─── WhatsApp Bulk Offer Modal ────────────────────────────────────────────────
 
-function AddContactModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: Customer) => void }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [lastPurchase, setLastPurchase] = useState("");
-  const [saving, setSaving] = useState(false);
+interface BulkOfferModalProps {
+  targets: Customer[];
+  products: string[];
+  onClose: () => void;
+  onSent: (sentIds: string[]) => void;
+}
 
-  const inputCls = "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] outline-none focus:border-gray-400 transition-colors text-gray-900 font-medium";
-  const labelCls = "block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5";
+function BulkOfferModal({ targets, products, onClose, onSent }: BulkOfferModalProps) {
+  const inviteProducts = products && products.length > 0 ? products : ["Your Catalog", "Featured Products"];
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([inviteProducts[0]]);
+  const [discount, setDiscount] = useState(15);
+  const [maxCustomers, setMaxCustomers] = useState(50);
+  const [maxDays, setMaxDays] = useState(7);
+  const [message, setMessage] = useState("");
+  const [isMessageEdited, setIsMessageEdited] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentSendingName, setCurrentSendingName] = useState("");
+  const [successList, setSuccessList] = useState<string[]>([]);
+  const [campaignCompleted, setCampaignCompleted] = useState(false);
+  const [successCount, setSuccessCount] = useState(0);
+
+  const getProductListString = (prods: string[]) => {
+    if (prods.length === 0) return "our catalog";
+    if (prods.length === 1) return prods[0];
+    if (prods.length === 2) return `${prods[0]} & ${prods[1]}`;
+    return `${prods.slice(0, 2).join(", ")}, and ${prods.length - 2} other products`;
+  };
+
+  const getBulkMessage = (prods: string[], disc: number, maxCust: number, days: number, namePlaceholder: string = "[Name]") => {
+    const prodStr = getProductListString(prods);
+    return `Hi ${namePlaceholder}! 🛋️ Special bulk offer: Get ${disc}% off on ${prodStr}. This offer is valid for the first ${maxCust} customers or up to ${days} days, whichever reaches first! Visualise it in your home now → [your SimulaFly link]`;
+  };
+
+  useEffect(() => {
+    if (!isMessageEdited) {
+      setMessage(getBulkMessage(selectedProducts, discount, maxCustomers, maxDays));
+    }
+  }, [selectedProducts, discount, maxCustomers, maxDays, isMessageEdited]);
+
+  const handleSendBulk = async () => {
+    if (targets.length === 0) return;
+    setSending(true);
+
+    const targetIds = targets.map((t) => t.id);
     try {
-      const result = await callAction(createContactAction({ name, phone: phone || undefined, last_purchase_note: lastPurchase || undefined }));
-      onAdd(adaptContact(result));
-      onClose();
-    } catch {
-      setSaving(false);
+      // Execute campaign in one database transaction on the backend
+      await callAction(
+        launchBulkOfferAction({
+          contact_ids: targetIds,
+          products: selectedProducts,
+          discount,
+          max_customers: maxCustomers,
+          max_days: maxDays,
+          message,
+        })
+      );
+
+      // Animate the sending progress to provide a premium user experience
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        setCurrentSendingName(target.name);
+        // Add a slight delay between list rendering
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        setSuccessList((prev) => [...prev, target.name]);
+        setProgress(Math.round(((i + 1) / targets.length) * 100));
+      }
+
+      setSuccessCount(targets.length);
+      setCampaignCompleted(true);
+      setSending(false);
+      onSent(targetIds);
+    } catch (err) {
+      console.error("Failed to launch campaign", err);
+      alert("Failed to launch campaign");
+      setSending(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-[14px] font-bold text-gray-900">Add Customer</h3>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <form onSubmit={submit} className="p-6 space-y-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={sending ? undefined : onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 shrink-0">
           <div>
-            <label className={labelCls}>Full Name <span className="text-red-400 normal-case">*</span></label>
-            <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Rahul Sharma" className={inputCls} />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">WhatsApp Campaign</span>
+              <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase tracking-wider">Target: {targets.length} customer{targets.length !== 1 ? "s" : ""}</span>
+            </div>
+            <h3 className="text-[16px] font-bold text-gray-900 mt-1">Create Bulk Offer</h3>
           </div>
-          <div>
-            <label className={labelCls}>Phone Number</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Last Purchase <span className="text-gray-300 normal-case font-normal">(optional)</span></label>
-            <input value={lastPurchase} onChange={(e) => setLastPurchase(e.target.value)} placeholder="e.g. Last month" className={inputCls} />
-          </div>
-          <div className="pt-1 flex gap-3">
-            <button type="submit" disabled={saving} className="flex-1 py-3 bg-gray-900 text-white text-[13px] font-bold rounded-xl hover:bg-black transition-colors disabled:opacity-60">
-              {saving ? "Saving…" : "Add Customer"}
+          {!sending && (
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <button type="button" onClick={onClose} className="px-5 py-3 text-[13px] font-semibold text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto p-6 flex-1">
+          {sending ? (
+            <div className="flex flex-col items-center justify-center py-10 space-y-6">
+              <div className="w-16 h-16 relative flex items-center justify-center">
+                <svg className="animate-spin absolute w-full h-full text-emerald-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                <svg className="w-6 h-6 text-emerald-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+              </div>
+              <div className="text-center space-y-1">
+                <h4 className="text-[15px] font-bold text-gray-900">Sending WhatsApp Offers</h4>
+                <p className="text-[12px] text-gray-400">Currently inviting: <span className="font-semibold text-gray-700">{currentSendingName}</span></p>
+              </div>
+
+              <div className="w-full max-w-md space-y-2">
+                <div className="flex justify-between text-[11px] font-semibold text-gray-500">
+                  <span>Progress</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div className="bg-emerald-500 h-full transition-all duration-300 rounded-full" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+
+              <div className="w-full max-w-md bg-gray-50 rounded-xl border border-gray-100 p-4 max-h-[150px] overflow-y-auto space-y-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Logs</p>
+                {successList.map((name, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Sent successfully to {name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : campaignCompleted ? (
+            <div className="flex flex-col items-center justify-center py-10 space-y-5 text-center">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center shadow-inner">
+                <svg className="w-8 h-8 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-[16px] font-bold text-gray-900">Campaign Launched!</h4>
+                <p className="text-[12px] text-gray-500 max-w-sm">Successfully created discount campaign and sent WhatsApp offers to <span className="font-bold text-gray-800">{successCount}</span> customers.</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-[12px] font-bold rounded-xl transition-colors shadow-sm"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Form Side */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Target Products ({selectedProducts.length} selected)</label>
+                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 max-h-[140px] overflow-y-auto space-y-1.5 shadow-inner">
+                    {inviteProducts.map((p) => {
+                      const isChecked = selectedProducts.includes(p);
+                      return (
+                        <label key={p} className="flex items-center gap-2.5 px-2 py-1 hover:bg-gray-100/50 rounded-lg cursor-pointer transition-colors text-[11px] text-gray-700 font-semibold select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                if (selectedProducts.length > 1) {
+                                  setSelectedProducts(prev => prev.filter(item => item !== p));
+                                }
+                              } else {
+                                setSelectedProducts(prev => [...prev, p]);
+                              }
+                            }}
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-500"
+                          />
+                          <span>{p}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom discount slider or text field */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Discount Percentage</label>
+                    <span className="text-[12px] font-bold text-gray-900">{discount}%</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="5"
+                      max="90"
+                      step="5"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value))}
+                      className="flex-1 accent-emerald-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="relative w-20">
+                      <input
+                        type="number"
+                        min="5"
+                        max="100"
+                        value={discount}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val >= 0 && val <= 100) {
+                            setDiscount(val);
+                          }
+                        }}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-[12px] text-gray-800 font-semibold outline-none focus:border-gray-400 transition-colors text-right pr-6"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom limiters */}
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Campaign Expiry Limits</label>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="block text-[9px] text-gray-400 font-bold mb-1">Max Customers</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={maxCustomers}
+                        onChange={(e) => setMaxCustomers(Math.max(1, Number(e.target.value)))}
+                        placeholder="e.g. 50"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-[12px] text-gray-800 font-medium outline-none focus:border-gray-400 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[9px] text-gray-400 font-bold mb-1">Max Duration (Days)</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={maxDays}
+                        onChange={(e) => setMaxDays(Math.max(1, Number(e.target.value)))}
+                        placeholder="e.g. 7"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-[12px] text-gray-800 font-medium outline-none focus:border-gray-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expiry limit rule indicator */}
+                  <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 flex items-start gap-2">
+                    <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <p className="text-[10px] font-semibold text-amber-800 leading-normal">
+                      Coupon expires when customer count reaches <span className="font-bold">{maxCustomers}</span> OR after <span className="font-bold">{maxDays} days</span>, whichever reaches first.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Side (WhatsApp Mockup style) */}
+              <div className="flex flex-col h-full bg-transparent">
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">WhatsApp Message Preview</label>
+                
+                {/* Mobile Preview Screen */}
+                <div className="flex-1 bg-[#E5DDD5] border border-gray-200 rounded-xl overflow-hidden shadow-inner flex flex-col min-h-[280px]">
+                  {/* WhatsApp Header */}
+                  <div className="bg-[#075E54] text-white px-3 py-2 flex items-center gap-2 shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[10px]">SF</div>
+                    <div>
+                      <p className="text-[10px] font-bold leading-tight">SimulaFly Business</p>
+                      <p className="text-[8px] text-emerald-200 leading-none">Online</p>
+                    </div>
+                  </div>
+                  {/* Message Bubble Container */}
+                  <div className="flex-1 p-3 flex flex-col justify-end space-y-2 overflow-y-auto">
+                    <div className="bg-white rounded-lg p-2.5 shadow-sm max-w-[90%] self-start text-[11px] relative leading-relaxed text-gray-800 w-full">
+                      <textarea
+                        value={message}
+                        onChange={(e) => {
+                          setMessage(e.target.value);
+                          setIsMessageEdited(true);
+                        }}
+                        rows={6}
+                        className="w-full bg-transparent border-none outline-none resize-none font-medium p-0 focus:ring-0 text-[11px] leading-relaxed text-gray-800 focus:outline-none focus:border-none"
+                      />
+                      <div className="flex justify-between items-center mt-1 text-[8px] text-gray-400">
+                        <span>Click to edit directly</span>
+                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!sending && !campaignCompleted && (
+          <div className="px-6 py-4.5 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-[12px] font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSendBulk}
+              disabled={targets.length === 0}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366] text-white text-[12px] font-bold rounded-xl hover:bg-[#1DA851] transition-colors shadow-sm disabled:opacity-50"
+            >
+              <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+              Launch Bulk Campaign
+            </button>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
@@ -266,31 +526,10 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
   const [customers, setCustomers] = useState<Customer[]>(initialContacts.map(adaptContact));
   const [search, setSearch] = useState("");
   const [inviting, setInviting] = useState<Customer | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
   const [sentBanner, setSentBanner] = useState("");
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
 
-  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const result = await callAction(importContactsCsvAction(formData));
-      const newCustomers = result.map(adaptContact);
-      setCustomers((prev) => [...newCustomers, ...prev]);
-    } catch (err: any) {
-      alert(err.message || "Failed to import CSV");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   const filtered = customers.filter(
     (c) =>
@@ -308,40 +547,33 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
     }
   };
 
+  const handleBulkSent = (sentIds: string[]) => {
+    setCustomers((prev) =>
+      prev.map((c) => (sentIds.includes(c.id) ? { ...c, inviteStatus: "Invited" as const } : c))
+    );
+    setSentBanner(`${sentIds.length} customer${sentIds.length !== 1 ? "s" : ""}`);
+    setTimeout(() => setSentBanner(""), 3000);
+  };
+
   const hasCustomers = customers.length > 0;
 
   return (
     <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-5">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleCsvUpload}
-        accept=".csv"
-        className="hidden"
-      />
+
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-[20px] font-bold text-gray-900 tracking-tight">My Customers</h1>
-          <p className="text-[12px] text-gray-400 mt-0.5">Upload your offline customers and invite them to SimulaFly.</p>
+          <p className="text-[12px] text-gray-400 mt-0.5">Invite your customer network to SimulaFly.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-[12px] font-semibold rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60"
+            onClick={() => setShowBulk(true)}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#25D366] text-white text-[12px] font-bold rounded-xl hover:bg-[#1DA851] transition-colors shadow-sm disabled:opacity-50"
           >
-            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            {uploading ? "Uploading..." : "Upload CSV"}
-          </button>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-[12px] font-bold rounded-xl hover:bg-black transition-colors shadow-sm"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Customer
+            <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.526 3.658 1.438 5.168L2 22l4.932-1.408A9.954 9.954 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+            WhatsApp Bulk Offer
           </button>
         </div>
       </div>
@@ -367,18 +599,15 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
       </div>
 
       {!hasCustomers && (
-        <div className="bg-white border border-gray-200 border-dashed rounded-2xl py-20 text-center">
+        <div className="bg-white border border-gray-200 border-dashed rounded-2xl py-20 text-center px-6">
           <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
-            <svg className="w-6 h-6 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg className="w-6 h-6 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
           </div>
           <p className="text-[14px] font-semibold text-gray-700 mb-1">No customers yet.</p>
-          <p className="text-[12px] text-gray-400 mb-6">Add your first customer to get started.</p>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-900 text-white text-[12px] font-bold rounded-xl hover:bg-black transition-colors"
-          >
-            Add Customer
-          </button>
+          <p className="text-[12px] text-gray-400 max-w-sm mx-auto">Customers will automatically appear here once they interact with your store or complete a purchase.</p>
         </div>
       )}
 
@@ -459,10 +688,12 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
           onSent={handleInviteSent}
         />
       )}
-      {showAdd && (
-        <AddContactModal
-          onClose={() => setShowAdd(false)}
-          onAdd={(c) => setCustomers((prev) => [c, ...prev])}
+      {showBulk && (
+        <BulkOfferModal
+          targets={filtered}
+          products={products}
+          onClose={() => setShowBulk(false)}
+          onSent={handleBulkSent}
         />
       )}
     </div>

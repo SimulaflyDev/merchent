@@ -46,6 +46,7 @@ export interface BuyerLeadOut {
   ai_generated_image_url: string | null;
   delivery_city: string | null;
   merchant_notes: string | null;
+  cancellation_reason: { parent_reason: string; child_reason: string; note?: string } | null;
   converted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -62,7 +63,7 @@ export interface PaginatedLeads {
 
 // ── UI-friendly Lead (used by orders page + LeadDrawer) ─────────────────────
 
-export type LeadStatus = "New Lead" | "Synced" | "Converted" | "Lost";
+export type LeadStatus = "New Order" | "Order Confirmed" | "Converted" | "Cancelled Orders";
 export type LeadType = BackendLeadType;
 
 export interface LeadProduct {
@@ -100,21 +101,21 @@ export interface Lead {
 /** Map backend status → UI status label. */
 export function mapLeadStatus(s: BackendLeadStatus): LeadStatus {
   const m: Record<BackendLeadStatus, LeadStatus> = {
-    new: "New Lead",
-    synced: "Synced",
+    new: "New Order",
+    synced: "Order Confirmed",
     converted: "Converted",
-    lost: "Lost",
+    lost: "Cancelled Orders",
   };
-  return m[s] ?? "New Lead";
+  return m[s] ?? "New Order";
 }
 
 /** Map UI status label → backend status. */
 export function reverseLeadStatus(s: LeadStatus): BackendLeadStatus {
   const m: Record<LeadStatus, BackendLeadStatus> = {
-    "New Lead": "new",
-    Synced: "synced",
+    "New Order": "new",
+    "Order Confirmed": "synced",
     Converted: "converted",
-    Lost: "lost",
+    "Cancelled Orders": "lost",
   };
   return m[s];
 }

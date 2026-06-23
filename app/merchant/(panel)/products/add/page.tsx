@@ -68,6 +68,7 @@ export default function AddProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [statusToSubmit, setStatusToSubmit] = useState<"draft" | "published">("draft");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!onboardingCompleted) {
@@ -139,7 +140,7 @@ export default function AddProductPage() {
   }
 
   const {
-    register, control, handleSubmit, watch,
+    register, control, handleSubmit, watch, setError,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -253,6 +254,50 @@ export default function AddProductPage() {
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setSubmitError(null);
     setIsSubmitting(true);
+
+    if (statusToSubmit === "published") {
+      let hasError = false;
+      const checkRequired = (field: keyof FormValues, name: string) => {
+        if (!data[field] || (typeof data[field] === "string" && !data[field].trim())) {
+          setError(field, { type: "manual", message: `${name} is required to publish.` });
+          hasError = true;
+        }
+      };
+
+      checkRequired("title", "Product Title");
+      checkRequired("sku", "SKU");
+      checkRequired("price", "Price");
+      checkRequired("category", "Category");
+      checkRequired("subcategory", "Subcategory");
+      checkRequired("brand", "Brand");
+      checkRequired("stock", "Stock Quantity");
+      checkRequired("description", "Description");
+
+      if (!uploadedImageUrl) {
+        setSubmitError("Product Image is required to publish.");
+        hasError = true;
+      }
+
+      if (hasError) {
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+      let hasError = false;
+      if (!data.title?.trim()) {
+        setError("title", { type: "manual", message: "Title is required to create a draft." });
+        hasError = true;
+      }
+      if (!data.sku?.trim()) {
+        setError("sku", { type: "manual", message: "SKU is required to create a draft." });
+        hasError = true;
+      }
+      if (hasError) {
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const customMetadata: Record<string, string> = {};
     for (const row of data.metadata) {
       if (row.key.trim()) customMetadata[row.key.trim()] = row.value;
@@ -271,6 +316,7 @@ export default function AddProductPage() {
         in_app_price: data.price ? parseFloat(data.price) : undefined,
         in_app_stock: data.stock ? parseInt(data.stock) : undefined,
         custom_metadata: customMetadata,
+        status: statusToSubmit,
       }));
       router.push("/merchant/products");
     } catch (err) {
@@ -339,7 +385,7 @@ export default function AddProductPage() {
                   {errors.sku && <p className="text-red-500 text-[11px] mt-1">{errors.sku.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Price (₹)</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Price (₹) <span className="text-red-400">*</span></label>
                   <input
                     {...register("price")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
@@ -352,7 +398,7 @@ export default function AddProductPage() {
               {/* Category + Brand */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category <span className="text-red-400">*</span></label>
                   <input
                     {...register("category")}
                     list="category-suggestions"
@@ -362,21 +408,23 @@ export default function AddProductPage() {
                   <datalist id="category-suggestions">
                     {CATEGORY_SUGGESTIONS.map((c) => <option key={c} value={c} />)}
                   </datalist>
+                  {errors.category && <p className="text-red-500 text-[11px] mt-1">{errors.category.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Brand</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Brand <span className="text-red-400">*</span></label>
                   <input
                     {...register("brand")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="e.g. WoodCraft"
                   />
+                  {errors.brand && <p className="text-red-500 text-[11px] mt-1">{errors.brand.message}</p>}
                 </div>
               </div>
 
               {/* Stock + Subcategory */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Stock Quantity</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Stock Quantity <span className="text-red-400">*</span></label>
                   <input
                     {...register("stock")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
@@ -385,19 +433,20 @@ export default function AddProductPage() {
                   {errors.stock && <p className="text-red-500 text-[11px] mt-1">{errors.stock.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Subcategory</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Subcategory <span className="text-red-400">*</span></label>
                   <input
                     {...register("subcategory")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="e.g. 4-seater"
                   />
+                  {errors.subcategory && <p className="text-red-500 text-[11px] mt-1">{errors.subcategory.message}</p>}
                 </div>
               </div>
 
               {/* Description */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Description</label>
+                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Description <span className="text-red-400">*</span></label>
                   <span className="text-[10px] text-[#0E9F88] font-medium">Improves AI matching ↑</span>
                 </div>
                 <textarea
@@ -406,6 +455,7 @@ export default function AddProductPage() {
                   className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all resize-none"
                   placeholder="Describe the product — material, dimensions, feel, style..."
                 />
+                {errors.description && <p className="text-red-500 text-[11px] mt-1">{errors.description.message}</p>}
                 <p className="text-[10px] text-gray-400 mt-1">30+ characters significantly improves AI recommendation accuracy.</p>
               </div>
             </div>
@@ -490,24 +540,41 @@ export default function AddProductPage() {
           <div className="flex justify-end gap-3 pt-6 border-t border-[#F1F3F5]">
             <Link
               href="/merchant/products"
-              className="px-5 py-2.5 text-[12px] font-medium text-gray-500 hover:text-[#111827] bg-white border border-[#EAECEF] rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-5 py-2.5 text-[12px] font-medium text-gray-500 hover:text-[#111827] bg-white border border-[#EAECEF] rounded-xl hover:bg-gray-50 transition-colors uppercase"
             >
               Cancel
             </Link>
             <button
               type="submit"
-              disabled={isSubmitting || uploadingImage || !isValid}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#111827] text-white text-[12px] font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-50"
+              onClick={() => setStatusToSubmit("draft")}
+              disabled={isSubmitting || uploadingImage}
+              className="flex items-center gap-2 px-5 py-2.5 text-gray-700 bg-white border border-[#EAECEF] hover:bg-gray-50 text-[12px] font-semibold rounded-xl transition-colors disabled:opacity-50 uppercase"
             >
-              {isSubmitting ? (
+              {isSubmitting && statusToSubmit === "draft" ? (
                 <>
                   <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Creating…
+                  Saving Draft…
                 </>
               ) : "Create Draft"}
+            </button>
+            <button
+              type="submit"
+              onClick={() => setStatusToSubmit("published")}
+              disabled={isSubmitting || uploadingImage}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#111827] text-white text-[12px] font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-50 uppercase"
+            >
+              {isSubmitting && statusToSubmit === "published" ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Publishing…
+                </>
+              ) : "Publish Product"}
             </button>
           </div>
         </div>
@@ -517,7 +584,7 @@ export default function AddProductPage() {
           {/* ── Section: Product Image ── */}
           <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-[#F1F3F5]">
-              <h2 className="text-[13px] font-semibold text-[#111827]">Product Image</h2>
+              <h2 className="text-[13px] font-semibold text-[#111827]">Product Image <span className="text-red-400">*</span></h2>
               <p className="text-[11px] text-gray-400 mt-0.5">Drag & drop or select your primary product image.</p>
             </div>
             <div className="p-6 space-y-3">

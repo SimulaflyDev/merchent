@@ -61,6 +61,8 @@ export interface ProductPerformanceRow {
   category: string | null;
   converted: number;
   est_roas: number;
+  est_ros: number;
+  orders_count: number;
   trend: string | null;
   primary_image_url?: string | null;
   daily_impressions?: number[];

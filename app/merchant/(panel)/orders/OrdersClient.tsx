@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { Lead, LeadStatus } from "@/lib/types/lead";
 import { reverseLeadStatus, adaptLead } from "@/lib/types/lead";
-import { updateLeadStatusAction } from "@/lib/auth/lead-actions";
+import { updateLeadStatusAction, cancelLeadAction } from "@/lib/auth/lead-actions";
+import type { CancellationReason } from "@/lib/api/leads";
 import { LeadDrawer } from "./LeadDrawer";
 import { callAction } from "@/lib/api/action-utils";
 
@@ -41,7 +42,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
       setLeads((prev) =>
         prev.map((l) => (l.id === displayId ? adapted : l))
       );
-      if (newStatus === "Synced") {
+      if (newStatus === "Order Confirmed") {
         const lead = leads.find((l) => l.id === displayId);
         showToast(
           `WhatsApp sent to ${lead?.customer.name ?? "customer"}: "Hi, SimulaFly Merchant confirmed. We'll connect shortly."`
@@ -54,31 +55,47 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
     }
   };
 
+  const cancelLead = async (
+    displayId: string,
+    reason: CancellationReason,
+  ) => {
+    const backendId = backendIdMap[displayId];
+    if (!backendId) return;
+    try {
+      const updated = await callAction(cancelLeadAction(backendId, reason));
+      const adapted = adaptLead(updated);
+      setLeads((prev) => prev.map((l) => (l.id === displayId ? adapted : l)));
+    } catch {
+      showToast("Failed to cancel order. Please try again.");
+    }
+  };
+
+
   const modeFilteredLeads = leads.filter(
     (l) => leadMode === "all" || l.type === leadMode
   );
 
   const counts = {
     all: modeFilteredLeads.length,
-    "new-lead": modeFilteredLeads.filter((l) => l.status === "New Lead").length,
-    synced: modeFilteredLeads.filter((l) => l.status === "Synced").length,
+    "new-lead": modeFilteredLeads.filter((l) => l.status === "New Order").length,
+    synced: modeFilteredLeads.filter((l) => l.status === "Order Confirmed").length,
     converted: modeFilteredLeads.filter((l) => l.status === "Converted").length,
-    lost: modeFilteredLeads.filter((l) => l.status === "Lost").length,
+    lost: modeFilteredLeads.filter((l) => l.status === "Cancelled Orders").length,
   };
 
   const filteredLeads = modeFilteredLeads.filter((lead) => {
     const q = searchQuery.toLowerCase();
     const matchesStatus =
       activeTab === "all" ||
-      (activeTab === "new-lead" && lead.status === "New Lead") ||
-      (activeTab === "synced" && lead.status === "Synced") ||
+      (activeTab === "new-lead" && lead.status === "New Order") ||
+      (activeTab === "synced" && lead.status === "Order Confirmed") ||
       (activeTab === "converted" && lead.status === "Converted") ||
-      (activeTab === "lost" && lead.status === "Lost");
+      (activeTab === "lost" && lead.status === "Cancelled Orders");
     const matchesSearch =
       !q ||
       lead.id.toLowerCase().includes(q) ||
       lead.customer.city.toLowerCase().includes(q) ||
-      (lead.status !== "New Lead" &&
+      (lead.status !== "New Order" &&
         lead.customer.name.toLowerCase().includes(q));
     return matchesStatus && matchesSearch;
   });
@@ -114,59 +131,8 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
             Orders
           </h1>
           <p className="text-sm text-gray-500">
-            Track AI-generated leads and purchase intents from SimulaFly.
+            Track AI-generated orders and purchase intents from SimulaFly.
           </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() =>
-              setLeadMode(
-                leadMode === "direct_purchase" ? "all" : "direct_purchase"
-              )
-            }
-            className={`px-4 py-2 border text-sm font-semibold rounded-lg transition-colors shadow-sm flex items-center gap-2 ${
-              leadMode === "direct_purchase"
-                ? "bg-[#1FAF9A] border-[#1FAF9A] text-white"
-                : "bg-white border-gray-200 text-neutral-dark hover:bg-gray-50"
-            }`}
-          >
-            <svg
-              className={`w-4 h-4 ${leadMode === "direct_purchase" ? "text-white" : "text-gray-500"}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            Direct Purchases
-          </button>
-          <button
-            onClick={() =>
-              setLeadMode(
-                leadMode === "high_intent_view" ? "all" : "high_intent_view"
-              )
-            }
-            className={`px-4 py-2 border text-sm font-semibold rounded-lg transition-colors shadow-sm flex items-center gap-2 ${
-              leadMode === "high_intent_view"
-                ? "bg-[#1FAF9A] border-[#1FAF9A] text-white"
-                : "bg-white border-gray-200 text-neutral-dark hover:bg-gray-50"
-            }`}
-          >
-            <svg
-              className={`w-4 h-4 ${leadMode === "high_intent_view" ? "text-white" : "text-gray-500"}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            High Intent Views
-          </button>
         </div>
       </div>
 
@@ -184,12 +150,12 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                 { key: "all", label: "All", color: "bg-[#1FAF9A] text-white" },
                 {
                   key: "new-lead",
-                  label: "New Lead",
+                  label: "New Order",
                   color: "bg-blue-100 text-blue-700",
                 },
                 {
                   key: "synced",
-                  label: "Synced/Ack",
+                  label: "Order Confirmed",
                   color: "bg-amber-100 text-amber-700",
                 },
                 {
@@ -199,7 +165,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                 },
                 {
                   key: "lost",
-                  label: "Lost",
+                  label: "Cancelled Orders",
                   color: "bg-gray-100 text-gray-500",
                 },
               ] as const
@@ -314,7 +280,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                         </div>
                         <div className="col-span-2">
                           <p className="text-sm font-bold text-neutral-dark truncate">
-                            {lead.status === "New Lead"
+                            {lead.status === "New Order"
                               ? "Protected Customer"
                               : lead.customer.name}
                           </p>
@@ -353,12 +319,12 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 {lead.status}
                               </span>
-                            ) : lead.status === "Lost" ? (
+                            ) : lead.status === "Cancelled Orders" ? (
                               <span className="text-gray-400 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                                 {lead.status}
                               </span>
-                            ) : lead.status === "Synced" ? (
+                            ) : lead.status === "Order Confirmed" ? (
                               <span className="text-amber-600 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                 {lead.status}
@@ -396,6 +362,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
         lead={selectedLead}
         onClose={() => setSelectedLeadId(null)}
         onUpdateStatus={updateLeadStatus}
+        onCancelLead={cancelLead}
         onShowToast={showToast}
       />
     </div>

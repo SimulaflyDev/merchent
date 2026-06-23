@@ -181,21 +181,20 @@ export default function ProductAnalyticsView({ detail }: Props) {
           <p className="text-[10px] text-gray-400 mt-0.5">Step-by-step journey for this product</p>
         </div>
         <div className="space-y-4">
-          <FunnelRow label="App Impressions" val={imp.toLocaleString()} pct={100} advance={`${clickPct}% advance`} />
-          <FunnelRow label="Product Clicks" val={click.toLocaleString()} pct={clickFunnelPct} advance={`${interactPct}% advance`} />
-          <FunnelRow label="AI Gen Interactions" val={interact.toLocaleString()} pct={interactFunnelPct} advance={`${leadPct}% advance`} />
-          <FunnelRow label="Leads Raised" val={lead.toLocaleString()} pct={leadFunnelPct} advance={`${convertedPct}% advance`} />
-          <FunnelRow label="Confirmed Converted" val={converted.toLocaleString()} pct={convertedFunnelPct} />
+          <FunnelRow label="Total Impressions" val={imp.toLocaleString()} pct={100} advance={`${clickPct}% advance`} />
+          <FunnelRow label="Total Clicks" val={click.toLocaleString()} pct={clickFunnelPct} advance={`${interactPct}% advance`} />
+          <FunnelRow label="AI Visualization" val={interact.toLocaleString()} pct={interactFunnelPct} advance={`${leadPct}% advance`} />
+          <FunnelRow label="Total Order Placed" val={lead.toLocaleString()} pct={leadFunnelPct} advance={`${convertedPct}% advance`} />
+          <FunnelRow label="Total Converted" val={converted.toLocaleString()} pct={convertedFunnelPct} />
         </div>
       </div>
 
       {/* 5-Column KPI Ribbon */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MiniKpi label="AI Score" value={`${Math.round(detail.ai_relevance_score ?? 0)}/100`} sub="relevance rating" />
         <MiniKpi label="CTR" value={`${((detail.ctr || 0) * 100).toFixed(1)}%`} sub="click-through rate" />
-        <MiniKpi label="Cost Per Lead" value={`₹${(detail.cost_per_lead || 0).toFixed(0)}`} sub="token spend per lead" />
-        <MiniKpi label="Avg. Sale" value={`₹${(detail.avg_sale || 0).toLocaleString()}`} sub="converted contract value" />
-        <MiniKpi label="Token ROAS" value={`${(detail.token_roas || 0).toFixed(1)}x`} sub="vs ad token spend" highlight />
+        <MiniKpi label="Total Cost For Converted Orders" value={`₹${(detail.cost_per_lead || 0).toFixed(0)}`} sub="wallet spend on converted" />
+        <MiniKpi label="Total Sales (Converted)" value={`₹${(detail.avg_sale || 0).toLocaleString()}`} sub="converted contract value" />
       </div>
 
       {/* Two-Column Insights Grid */}
@@ -245,11 +244,11 @@ export default function ProductAnalyticsView({ detail }: Props) {
         <div className="bg-white rounded-2xl border border-[#EAECEF] p-6 shadow-sm flex flex-col justify-between">
           <div className="space-y-4">
             <h4 className="text-[13px] font-bold text-[#111827] border-b border-[#F1F3F5] pb-4">Revenue Intelligence</h4>
-            
-            {/* Realized Revenue */}
+
+            {/* Total Sales Converted */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-[11px] font-semibold text-gray-500">
-                <span>REALIZED REVENUE</span>
+                <span>TOTAL SALES (CONVERTED)</span>
                 <span className="text-[#111827] font-bold">₹{realizedRevenue.toLocaleString()}</span>
               </div>
               <div className="w-full bg-[#F3F4F6] rounded-full h-2.5">
@@ -268,18 +267,12 @@ export default function ProductAnalyticsView({ detail }: Props) {
               </div>
             </div>
 
-            {/* Spend & Profitability */}
-            <div className="grid grid-cols-2 gap-4 border-t border-[#F1F3F5] pt-4 mt-2">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Token Spend</p>
-                <p className="text-[18px] font-bold text-[#111827] mt-1">₹{totalSpend.toFixed(0)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Profitability Status</p>
-                <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-lg border ${profitabilityColor}`}>
-                  {profitabilityStatus}
-                </span>
-              </div>
+            {/* Profitability Status */}
+            <div className="border-t border-[#F1F3F5] pt-4 mt-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Profitability Status</p>
+              <span className={`inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-lg border ${profitabilityColor}`}>
+                {profitabilityStatus}
+              </span>
             </div>
           </div>
         </div>
@@ -434,11 +427,10 @@ function ActionCard({
       </div>
       <Link
         href={link}
-        className={`w-full text-center py-2 text-[11px] font-bold rounded-lg transition-colors border block ${
-          highlight
-            ? "bg-[#0E9F88] hover:bg-[#0B7A69] text-white border-transparent"
-            : "bg-white border-[#EAECEF] text-gray-700 hover:bg-gray-50"
-        }`}
+        className={`w-full text-center py-2 text-[11px] font-bold rounded-lg transition-colors border block ${highlight
+          ? "bg-[#0E9F88] hover:bg-[#0B7A69] text-white border-transparent"
+          : "bg-white border-[#EAECEF] text-gray-700 hover:bg-gray-50"
+          }`}
       >
         {btn}
       </Link>

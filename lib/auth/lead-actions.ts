@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { patchLead as apiPatchLead } from "@/lib/api/leads";
+import type { CancellationReason } from "@/lib/api/leads";
 import type { BuyerLeadOut } from "@/lib/types/lead";
 
 import { srvAction, type ActionResult } from "@/lib/api/action-utils";
@@ -12,6 +13,21 @@ export async function updateLeadStatusAction(
 ): Promise<ActionResult<BuyerLeadOut>> {
   return srvAction(async () => {
     const updated = await apiPatchLead(leadId, { status });
+    revalidatePath("/merchant/orders");
+    return updated;
+  });
+}
+
+/** Cancel an order with a structured reason — sent as a single atomic PATCH. */
+export async function cancelLeadAction(
+  leadId: string,
+  cancellationReason: CancellationReason,
+): Promise<ActionResult<BuyerLeadOut>> {
+  return srvAction(async () => {
+    const updated = await apiPatchLead(leadId, {
+      status: "lost",
+      cancellation_reason: cancellationReason,
+    });
     revalidatePath("/merchant/orders");
     return updated;
   });

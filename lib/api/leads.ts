@@ -23,9 +23,19 @@ export async function getLead(leadId: string): Promise<BuyerLeadOut> {
   return api<BuyerLeadOut>(`/merchant/leads/${leadId}`);
 }
 
+export interface CancellationReason {
+  parent_reason: string;
+  child_reason: string;
+  note?: string;
+}
+
 export async function patchLead(
   leadId: string,
-  body: { status?: string; merchant_notes?: string },
+  body: {
+    status?: string;
+    merchant_notes?: string;
+    cancellation_reason?: CancellationReason;
+  },
 ): Promise<BuyerLeadOut> {
   return api<BuyerLeadOut>(`/merchant/leads/${leadId}`, {
     method: "PATCH",

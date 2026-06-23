@@ -58,16 +58,16 @@ interface DashboardClientProps {
 }
 
 const statusColorMap: Record<string, string> = {
-  "New Lead": "text-blue-600",
-  Synced: "text-amber-600",
+  "New Order": "text-blue-600",
+  "Order Confirmed": "text-amber-600",
   Converted: "text-[#0E9F88]",
-  Lost: "text-gray-400",
+  "Cancelled Orders": "text-gray-400",
 };
 const statusDotMap: Record<string, string> = {
-  "New Lead": "bg-blue-500",
-  Synced: "bg-amber-500",
+  "New Order": "bg-blue-500",
+  "Order Confirmed": "bg-amber-500",
   Converted: "bg-[#0E9F88]",
-  Lost: "bg-gray-400",
+  "Cancelled Orders": "bg-gray-400",
 };
 
 function fmt(n: number) { return n.toLocaleString("en-IN"); }
@@ -94,6 +94,9 @@ export default function DashboardClient({
   const walletLow = walletBalance < 200;
   const currencySymbol = walletCurrency === "INR" ? "₹" : walletCurrency + " ";
   const ctrPct = (s.ctr * 100).toFixed(1);
+  const totalRevenue = useMemo(() => {
+    return (s.daily_metrics || []).reduce((acc, m) => acc + (m.revenue || 0), 0);
+  }, [s.daily_metrics]);
 
   // Only show chart lines when there is real activity to display
   const hasActivity = s.total_spend > 0 || pipelineValue > 0 || s.ai_mentions > 0;
@@ -107,7 +110,7 @@ export default function DashboardClient({
       const name = isNaN(d.getTime()) ? m.date : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
       const base = {
         name,
-        Spend: m.spend,
+        "Total Balance Spent": m.spend,
       };
       if (graphType === "revenue") {
         return { ...base, Revenue: m.revenue };
@@ -140,7 +143,7 @@ export default function DashboardClient({
       return Object.entries(groupedByMonth).map(([month, val]) => {
         const base = {
           name: month,
-          Spend: val.spend,
+          "Total Balance Spent": val.spend,
         };
         if (graphType === "revenue") {
           return { ...base, Revenue: val.revenue };
@@ -164,7 +167,7 @@ export default function DashboardClient({
       {!hideBanner && walletLow && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4">
           <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg className="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           </div>
           <div className="flex-1">
             <h4 className="text-[13px] font-semibold text-amber-900 mb-1">Wallet Balance Low</h4>
@@ -174,7 +177,7 @@ export default function DashboardClient({
             </p>
           </div>
           <button onClick={() => setHideBanner(true)} className="p-1 text-amber-500 hover:text-amber-700">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
       )}
@@ -186,7 +189,7 @@ export default function DashboardClient({
           <p className="text-[12px] text-gray-400 font-normal mt-1">Your storefront overview — last 30 days.</p>
         </div>
         <Link href="/merchant/products" className="h-8 px-4 bg-[#111827] text-white text-[11px] font-medium rounded-lg hover:bg-black transition-colors flex items-center gap-2">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           Add Product
         </Link>
       </div>
@@ -215,8 +218,8 @@ export default function DashboardClient({
               className="flex items-center gap-2 h-9 px-4 bg-white text-[#111827] text-[12px] font-semibold rounded-lg hover:bg-gray-100 transition-colors"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="3" height="3" />
               </svg>
               Share / Download QR
             </button>
@@ -247,7 +250,7 @@ export default function DashboardClient({
 
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-medium text-gray-400">Token Spend (30d)</span>
+            <span className="text-[10px] font-medium text-gray-400">Total Balance Spent (30d)</span>
           </div>
           <div>
             <h3 className="text-[28px] font-bold text-[#111827] tabular-nums tracking-tight">{fmtRs(s.total_spend)}</h3>
@@ -290,7 +293,7 @@ export default function DashboardClient({
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </div>
           <div className="min-w-0">
@@ -303,7 +306,7 @@ export default function DashboardClient({
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
           <div className="min-w-0">
@@ -316,7 +319,7 @@ export default function DashboardClient({
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-[#F0FDF4] flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
           <div className="min-w-0">
@@ -329,7 +332,7 @@ export default function DashboardClient({
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
           </div>
           <div className="min-w-0">
@@ -351,9 +354,9 @@ export default function DashboardClient({
                 {graphType === "drop_rate" && "Spend vs Drop Rate"}
               </h4>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                {graphType === "revenue" && "Token investment vs checkout revenue over time."}
-                {graphType === "pipeline" && "Token investment vs active cart pipeline value over time."}
-                {graphType === "drop_rate" && "Token investment vs drop/cancellation rate over time."}
+                {graphType === "revenue" && "Total investment vs checkout revenue over time."}
+                {graphType === "pipeline" && "Total investment vs active cart pipeline value over time."}
+                {graphType === "drop_rate" && "Total investment vs drop/cancellation rate over time."}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -383,10 +386,10 @@ export default function DashboardClient({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-8 border-t-2 border-dashed border-gray-400 inline-block" />
-                  <span className="text-[11px] font-medium text-gray-500">Token Spend</span>
+                  <span className="text-[11px] font-medium text-gray-500">Total Balance Spent</span>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-1 bg-[#EDEEF0] border border-[#EAECEF] rounded-lg p-1">
                 {(["7D", "30D", "1Y"] as const).map((p) => (
                   <button
@@ -400,18 +403,30 @@ export default function DashboardClient({
               </div>
             </div>
           </div>
- 
+
           {/* Real summary strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-100">
             <div className="pr-6">
-              <p className="text-[10px] font-medium text-gray-400">Token Spend (30d)</p>
+              <p className="text-[10px] font-medium text-gray-400">Total Balance Spent (30d)</p>
               <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">{fmtRs(s.total_spend)}</p>
               <p className="text-[11px] text-gray-500 font-medium mt-0.5">{s.published_products} products active</p>
             </div>
             <div className="px-6">
-              <p className="text-[10px] font-medium text-gray-400">Pipeline Value</p>
-              <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">{fmtRs(pipelineValue)}</p>
-              <p className="text-[11px] text-gray-500 font-medium mt-0.5">From {fmt(totalLeads)} leads</p>
+              <p className="text-[10px] font-medium text-gray-400">
+                {graphType === "revenue" && "Total Revenue Generated"}
+                {graphType === "pipeline" && "Pipeline Value"}
+                {graphType === "drop_rate" && "Drop Rate Value"}
+              </p>
+              <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">
+                {graphType === "revenue" && fmtRs(totalRevenue)}
+                {graphType === "pipeline" && fmtRs(pipelineValue)}
+                {graphType === "drop_rate" && `${(s.drop_rate * 100).toFixed(1)}%`}
+              </p>
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                {graphType === "revenue" && "From checkout conversions"}
+                {graphType === "pipeline" && `From ${fmt(totalLeads)} orders`}
+                {graphType === "drop_rate" && "Average cancellation rate"}
+              </p>
             </div>
             <div className="pl-6">
               <p className="text-[10px] font-medium text-gray-400">Wallet Balance</p>
@@ -422,13 +437,13 @@ export default function DashboardClient({
             </div>
           </div>
         </div>
- 
+
         {/* SVG Chart */}
         {!hasActivity ? (
           <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
             <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-[#EAECEF] flex items-center justify-center">
               <svg className="w-6 h-6 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </div>
             <div>
@@ -445,22 +460,22 @@ export default function DashboardClient({
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0E9F88" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#0E9F88" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#0E9F88" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#0E9F88" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAECEF" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} dy={10} />
-                <YAxis 
-                  yAxisId="left" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} 
-                  tickFormatter={(value) => graphType === "drop_rate" ? `${value.toFixed(0)}%` : `₹${value > 1000 ? (value/1000).toFixed(0) + 'K' : value}`} 
-                  dx={-10} 
+                <YAxis
+                  yAxisId="left"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }}
+                  tickFormatter={(value) => graphType === "drop_rate" ? `${value.toFixed(0)}%` : `₹${value > 1000 ? (value / 1000).toFixed(0) + 'K' : value}`}
+                  dx={-10}
                 />
                 <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} tickFormatter={(value) => `₹${value}`} dx={10} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '8px', border: '1px solid #EAECEF', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
                   itemStyle={{ fontSize: '12px', fontWeight: 500 }}
                   labelStyle={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}
@@ -474,7 +489,7 @@ export default function DashboardClient({
                 {graphType === "drop_rate" && (
                   <Line yAxisId="left" type="monotone" dataKey="Drop Rate (%)" stroke="#EF4444" strokeWidth={3} dot={{ r: 4, fill: '#fff', stroke: '#EF4444', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 )}
-                <Line yAxisId="right" type="monotone" dataKey="Spend" stroke="#9CA3AF" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#fff', stroke: '#9CA3AF', strokeWidth: 1.5 }} />
+                <Line yAxisId="right" type="monotone" dataKey="Total Balance Spent" stroke="#9CA3AF" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#fff', stroke: '#9CA3AF', strokeWidth: 1.5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -529,11 +544,11 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* Recent Leads (real from leads API) */}
+        {/* Recent Orders (real from leads API) */}
         <div className="lg:col-span-7 bg-white rounded-xl border border-[#EAECEF] flex flex-col overflow-hidden">
           <div className="flex justify-between items-center px-6 py-5 border-b border-[#F1F3F5]">
             <div>
-              <h4 className="text-[13px] font-semibold text-[#111827] tracking-tight">Recent Leads</h4>
+              <h4 className="text-[13px] font-semibold text-[#111827] tracking-tight">Recent Orders</h4>
               <p className="text-[10px] text-gray-400 mt-0.5">Latest purchase intents from SimulaFly.</p>
             </div>
             <Link href="/merchant/orders" className="text-[11px] font-medium text-[#0E9F88] hover:underline">
@@ -556,8 +571,8 @@ export default function DashboardClient({
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-[#F1F2F4] border border-[#EAECEF] rounded-lg flex items-center justify-center shrink-0">
                         <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
                         </svg>
                       </div>
                       <div>

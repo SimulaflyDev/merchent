@@ -24,7 +24,6 @@ const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "draft", label: "Draft" },
   { value: "published", label: "Live" },
-  { value: "paused_insufficient_funds", label: "Paused" },
   { value: "archived", label: "Archived" },
 ];
 
@@ -90,6 +89,25 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
   const handlePublish = (id: string) => {
     setActionError(null);
+    const prod = initialData.items.find((p) => p.id === id);
+    if (prod) {
+      const missingFields: string[] = [];
+      if (!prod.title?.trim()) missingFields.push("Product Title");
+      if (!prod.sku?.trim()) missingFields.push("SKU");
+      if (prod.in_app_price == null) missingFields.push("Price");
+      if (!prod.category?.trim()) missingFields.push("Category");
+      if (!prod.subcategory?.trim()) missingFields.push("Subcategory");
+      if (!prod.brand?.trim()) missingFields.push("Brand");
+      if (prod.in_app_stock == null) missingFields.push("Stock Quantity");
+      if (!prod.description?.trim()) missingFields.push("Description");
+      if (!prod.primary_image_url) missingFields.push("Product Image");
+
+      if (missingFields.length > 0) {
+        setActionError(`Cannot publish product. The following fields are required: ${missingFields.join(", ")}`);
+        return;
+      }
+    }
+
     startTransition(async () => {
       try { await callAction(publishProductAction(id)); router.refresh(); }
       catch (err) { setActionError(isApiError(err) ? err.detail : "Failed to publish"); }
