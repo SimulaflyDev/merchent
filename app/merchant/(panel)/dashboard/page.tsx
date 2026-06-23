@@ -45,7 +45,7 @@ export default function DashboardPage() {
   // Live data from context
   const recentLeads = [...leads].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5);
   const topProducts = [...products]
-    .sort((a, b) => b.aiConversions - a.aiConversions)
+    .sort((a, b) => (b.aiConversions ?? 0) - (a.aiConversions ?? 0))
     .slice(0, 4);
 
   const statusColorMap: Record<string, string> = {
