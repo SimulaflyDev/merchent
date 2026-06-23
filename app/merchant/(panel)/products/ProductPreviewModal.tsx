@@ -1,132 +1,355 @@
 "use client";
 
+import { useState } from "react";
 import type { MerchantProductOut } from "@/lib/types/product";
+import { resolveImageUrl } from "@/lib/api/image-utils";
+
 
 interface Props {
   product: MerchantProductOut;
   onClose: () => void;
 }
 
+const HEALTH_CONFIG: Record<string, { label: string; cls: string; bar: string; icon: string }> = {
+  good:     { label: "Healthy",  cls: "text-[#0E9F88] bg-[#F0FDF4] border-[#D1FAF0]", bar: "bg-[#0E9F88]", icon: "✓" },
+  review:   { label: "Needs Review", cls: "text-amber-700 bg-amber-50 border-amber-100", bar: "bg-amber-400", icon: "⚠" },
+  mismatch: { label: "Mismatch", cls: "text-red-600 bg-red-50 border-red-100", bar: "bg-red-400", icon: "✕" },
+  paused:   { label: "Paused",   cls: "text-gray-500 bg-gray-50 border-gray-100", bar: "bg-gray-300", icon: "‖" },
+};
+
+const PLATFORM_LABELS: Record<string, string> = {
+  amazon: "Amazon",
+  shopify: "Shopify",
+  brand_site: "Brand Site",
+  whatsapp: "WhatsApp",
+  other: "Other",
+};
+
 export default function ProductPreviewModal({ product, onClose }: Props) {
+  const [tab, setTab] = useState<"preview" | "details" | "ai">("preview");
+  const health = HEALTH_CONFIG[product.health_score] ?? HEALTH_CONFIG.review;
+  const aiScore = product.ai_relevance_score != null ? Math.round(product.ai_relevance_score) : null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-lg font-semibold">{product.title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F5] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              {(["preview", "details", "ai"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-3.5 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-colors ${
+                    tab === t ? "bg-[#111827] text-white" : "text-gray-500 hover:text-[#111827] hover:bg-gray-100"
+                  }`}
+                >
+                  {t === "ai" ? "AI Health" : t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          {product.primary_image_url && (
-            <img
-              src={product.primary_image_url}
-              alt={product.title}
-              className="w-full max-h-80 object-cover rounded-lg bg-gray-100"
-            />
-          )}
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
 
-          <PreviewRow label="SKU" value={product.sku} mono />
-          <PreviewRow label="Category" value={product.category ?? "—"} />
-          <PreviewRow label="Brand" value={product.brand ?? "—"} />
-          <PreviewRow label="Status" value={product.status} />
-          {product.description && (
-            <div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</div>
-              <p className="text-sm text-gray-700">{product.description}</p>
-            </div>
-          )}
-
-          {product.has_simulafly_listing && (
-            <div className="p-3 bg-green-50 rounded-lg">
-              <div className="text-xs text-green-700 font-semibold uppercase tracking-wider">
-                Available on SimulaFly
+          {/* ── Preview Tab ── */}
+          {tab === "preview" && (
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Left: image */}
+              <div className="md:w-2/5 shrink-0 bg-[#F8FAFB] flex items-center justify-center p-6">
+                {product.primary_image_url ? (
+                  <img
+                    src={resolveImageUrl(product.primary_image_url)}
+                    alt={product.title}
+                    className="max-w-full max-h-72 object-contain rounded-xl shadow-sm"
+                  />
+                ) : (
+                  <div className={`w-full max-w-[240px] aspect-square rounded-2xl bg-gradient-to-br ${gradientFor(product.sku)} flex items-center justify-center`}>
+                    <svg className="w-16 h-16 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                  </div>
+                )}
               </div>
-              <div className="mt-1 text-sm">
-                {product.in_app_price != null
-                  ? `₹${product.in_app_price.toLocaleString("en-IN")}`
-                  : "Price not set"}
-                {product.in_app_stock != null && ` · ${product.in_app_stock} in stock`}
-              </div>
-            </div>
-          )}
 
-          {product.external_links.length > 0 && (
-            <div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Also available on</div>
-              <ul className="space-y-1">
-                {product.external_links.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between text-sm">
+              {/* Right: SimulaFly consumer card preview */}
+              <div className="flex-1 p-6">
+                {/* SimulaFly tag */}
+                <div className="inline-flex items-center gap-1.5 mb-4 px-2.5 py-1 bg-[#F0FDF4] border border-[#D1FAF0] rounded-full">
+                  <div className="w-4 h-4 rounded-full bg-[#0E9F88] flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#0E9F88]">SimulaFly Storefront Preview</span>
+                </div>
+
+                <h2 className="text-[20px] font-bold text-[#111827] leading-tight mb-1">{product.title}</h2>
+                {product.brand && <p className="text-[12px] text-gray-400 mb-3">by {product.brand}</p>}
+
+                {product.in_app_price != null && (
+                  <p className="text-[28px] font-bold text-[#111827] mb-1">
+                    ₹{product.in_app_price.toLocaleString("en-IN")}
+                  </p>
+                )}
+                {product.in_app_stock != null && (
+                  <p className={`text-[11px] font-medium mb-4 ${product.in_app_stock > 0 ? "text-[#0E9F88]" : "text-red-500"}`}>
+                    {product.in_app_stock > 0 ? `${product.in_app_stock} in stock` : "Out of stock"}
+                  </p>
+                )}
+
+                {product.description && (
+                  <p className="text-[13px] text-gray-600 leading-relaxed mb-5 line-clamp-4">{product.description}</p>
+                )}
+
+                {/* Category + tags */}
+                <div className="flex flex-wrap gap-1.5 mb-5">
+                  {product.category && (
+                    <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{product.category}</span>
+                  )}
+                  {product.subcategory && (
+                    <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{product.subcategory}</span>
+                  )}
+                  {Object.entries(product.colors).filter(([k]) => k !== "secondary").map(([, v]) => typeof v === "string" && v && (
+                    <span key={v} className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">{v}</span>
+                  ))}
+                </div>
+
+                {/* CTAs */}
+                <div className="flex flex-col gap-2">
+                  {product.has_simulafly_listing && (
+                    <div className="flex items-center gap-2 p-3 bg-[#111827] text-white rounded-xl text-[12px] font-semibold">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                      </svg>
+                      Buy on SimulaFly
+                    </div>
+                  )}
+                  {product.external_links.slice(0, 2).map((link) => (
                     <a
-                      href={l.url}
+                      key={link.id}
+                      href={link.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#0E9F88] hover:underline"
+                      className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[12px] font-medium text-[#111827] hover:bg-gray-100 transition-colors"
                     >
-                      {l.label ?? l.platform}
+                      <span>{link.label ?? PLATFORM_LABELS[link.platform] ?? link.platform}</span>
+                      {link.last_seen_price != null && (
+                        <span className="text-gray-400">₹{link.last_seen_price.toLocaleString("en-IN")}</span>
+                      )}
                     </a>
-                    {l.last_seen_price != null && (
-                      <span className="text-gray-500">
-                        ~₹{l.last_seen_price.toLocaleString("en-IN")}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {(Object.keys(product.dimensions).length > 0 ||
-            Object.keys(product.materials).length > 0) && (
-            <div className="grid grid-cols-2 gap-4">
-              {Object.keys(product.dimensions).length > 0 && (
+          {/* ── Details Tab ── */}
+          {tab === "details" && (
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <InfoBlock label="SKU" value={product.sku} mono />
+                <InfoBlock label="Status" value={product.status.replace(/_/g, " ")} />
+                <InfoBlock label="Category" value={product.category ?? "—"} />
+                <InfoBlock label="Subcategory" value={product.subcategory ?? "—"} />
+                <InfoBlock label="Brand" value={product.brand ?? "—"} />
+                <InfoBlock label="Price" value={product.in_app_price != null ? `₹${product.in_app_price.toLocaleString("en-IN")}` : "—"} />
+                <InfoBlock label="Stock" value={product.in_app_stock != null ? String(product.in_app_stock) : "—"} />
+                <InfoBlock label="SimulaFly Listing" value={product.has_simulafly_listing ? "Yes" : "No"} />
+              </div>
+
+              {product.description && (
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                    Dimensions
-                  </div>
-                  <ul className="text-sm text-gray-700">
-                    {Object.entries(product.dimensions).map(([k, v]) => (
-                      <li key={k}>
-                        <span className="text-gray-500">{k}:</span> {String(v)}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Description</p>
+                  <p className="text-[13px] text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">{product.description}</p>
                 </div>
               )}
+
+              {Object.keys(product.dimensions).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dimensions</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Object.entries(product.dimensions).filter(([, v]) => v != null).map(([k, v]) => (
+                      <div key={k} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 capitalize mb-1">{k}</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{String(v)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {Object.keys(product.materials).length > 0 && (
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                    Materials
-                  </div>
-                  <ul className="text-sm text-gray-700">
-                    {Object.entries(product.materials).map(([k, v]) => (
-                      <li key={k}>
-                        <span className="text-gray-500">{k}:</span> {String(v)}
-                      </li>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Materials</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Object.entries(product.materials).filter(([, v]) => v != null).map(([k, v]) => (
+                      <div key={k} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 capitalize mb-1">{k.replace(/_/g, " ")}</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{String(v)}</p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+              )}
+
+              {product.external_links.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">External Links</p>
+                  <div className="space-y-2">
+                    {product.external_links.map((l) => (
+                      <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div>
+                          <p className="text-[12px] font-medium text-[#111827]">{l.label ?? PLATFORM_LABELS[l.platform]}</p>
+                          <p className="text-[10px] text-gray-400 font-mono truncate max-w-xs">{l.url}</p>
+                        </div>
+                        {l.last_seen_price != null && (
+                          <span className="text-[12px] font-semibold text-gray-600">
+                            ₹{l.last_seen_price.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
+
+          {/* ── AI Health Tab ── */}
+          {tab === "ai" && (
+            <div className="p-6 space-y-6">
+              {/* Score hero */}
+              <div className={`flex items-start gap-4 p-5 rounded-2xl border ${health.cls}`}>
+                <div className="text-[28px] leading-none">{health.icon}</div>
+                <div className="flex-1">
+                  <p className="text-[14px] font-bold mb-1">AI Status: {health.label}</p>
+                  {product.health_reason && (
+                    <p className="text-[12px] opacity-80 leading-relaxed">{product.health_reason}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* AI relevance score */}
+              {aiScore != null && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-[12px] font-semibold text-[#111827]">AI Relevance Score</p>
+                    <p className="text-[13px] font-bold text-[#111827]">{aiScore}/100</p>
+                  </div>
+                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${health.bar}`}
+                      style={{ width: `${aiScore}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1.5">
+                    {aiScore >= 80 ? "Excellent — highly likely to appear in AI recommendations"
+                     : aiScore >= 60 ? "Good — products above 80 appear more frequently"
+                     : aiScore >= 40 ? "Fair — add more details to improve AI matching"
+                     : "Low — consider adding description, dimensions and materials"}
+                  </p>
+                </div>
+              )}
+
+              {/* What improves score */}
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">What helps AI matching</p>
+                <div className="space-y-2">
+                  {[
+                    { done: !!product.description && product.description.length >= 30, text: "Description ≥ 30 characters" },
+                    { done: !!product.category, text: "Category assigned" },
+                    { done: !!product.brand, text: "Brand name set" },
+                    { done: !!product.primary_image_url, text: "Primary image uploaded" },
+                    { done: Object.keys(product.dimensions).length > 0, text: "Dimensions filled in" },
+                    { done: Object.keys(product.materials).length > 0, text: "Materials specified" },
+                    { done: product.has_simulafly_listing, text: "SimulaFly in-app listing active" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2.5 py-2 px-3 bg-gray-50 rounded-xl">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#0E9F88]" : "bg-gray-200"}`}>
+                        {item.done
+                          ? <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          : <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        }
+                      </div>
+                      <span className={`text-[12px] ${item.done ? "text-gray-600" : "text-gray-400"}`}>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Room storytelling */}
+              {Object.keys(product.room_storytelling).length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Room Storytelling</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {product.room_storytelling.best_used_in && (
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 mb-1">Best Used In</p>
+                        <p className="text-[12px] font-medium text-[#111827]">{product.room_storytelling.best_used_in as string}</p>
+                      </div>
+                    )}
+                    {product.room_storytelling.mood && (
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-[10px] text-gray-400 mb-1">Mood</p>
+                        <p className="text-[12px] font-medium text-[#111827]">{product.room_storytelling.mood as string}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-[#F1F3F5] flex justify-between items-center shrink-0 bg-[#FAFBFC]">
+          <p className="text-[10px] text-gray-400">
+            Last updated {new Date(product.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-[12px] font-medium bg-white border border-[#EAECEF] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function PreviewRow({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function InfoBlock({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex gap-3">
-      <span className="text-xs text-gray-500 uppercase tracking-wider w-24">{label}</span>
-      <span className={`text-sm text-gray-900 ${mono ? "font-mono" : ""}`}>{value}</span>
+    <div className="bg-gray-50 rounded-xl p-3.5">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-[13px] font-semibold text-[#111827] ${mono ? "font-mono" : ""}`}>{value}</p>
     </div>
   );
+}
+
+function gradientFor(sku: string) {
+  const GRADIENTS = [
+    "from-violet-200 to-purple-300",
+    "from-amber-200 to-orange-300",
+    "from-sky-200 to-blue-300",
+    "from-emerald-200 to-teal-300",
+    "from-rose-200 to-pink-300",
+    "from-lime-200 to-green-300",
+  ];
+  let h = 0;
+  for (let i = 0; i < sku.length; i++) h = (h * 31 + sku.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
 }

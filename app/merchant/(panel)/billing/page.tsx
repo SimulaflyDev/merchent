@@ -1,4 +1,6 @@
-import { getWallet, listTransactions } from "@/lib/api/wallet";
+import { getWallet } from "@/lib/api/wallet";
+import { getMerchant } from "@/lib/api/merchants";
+import { getMerchantSession } from "@/lib/auth/session";
 import BillingClient from "./BillingClient";
 
 interface PageProps {
@@ -6,18 +8,25 @@ interface PageProps {
 }
 
 export default async function BillingPage({ searchParams }: PageProps) {
-  const sp = await searchParams;
-  const offset = sp.offset ? Number(sp.offset) : 0;
+  const session = await getMerchantSession();
+  if (!session?.activeMerchantId) {
+    return (
+      <div className="p-6 text-center text-red-500 font-semibold">
+        Unauthorized access. Please log in again.
+      </div>
+    );
+  }
 
-  const [wallet, transactions] = await Promise.all([
+  const [wallet, merchant] = await Promise.all([
     getWallet(),
-    listTransactions({ offset, limit: 25 }),
+    getMerchant(session.activeMerchantId),
   ]);
 
   return (
     <BillingClient
       wallet={wallet}
-      transactions={transactions}
+      merchant={merchant}
     />
   );
 }
+

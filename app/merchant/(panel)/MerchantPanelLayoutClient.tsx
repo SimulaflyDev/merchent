@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { MerchantProvider, useMerchant } from "../context/MerchantContext";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { MerchantProvider, useMerchant } from "@/app/merchant/context/MerchantContext";
+import { updateMerchantAction } from "@/lib/auth/merchant-actions";
+import { callAction } from "@/lib/api/action-utils";
 import Spinner from "../components/Spinner";
 import type { MerchantOut } from "@/lib/types/merchant";
 import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -51,9 +54,49 @@ interface Props {
 
 export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant, initialWallet }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
 
-  const mockWallet = { balance: 2400.00, currencySymbol: "₹", threshold: 500 };
+  const walletBalance = Number(initialWallet.balance);
+  const walletLow = walletBalance < initialWallet.low_balance_threshold;
+  const currencySymbol = initialWallet.currency === "INR" ? "₹" : initialWallet.currency + " ";
+  const merchantInitials = initialMerchant.display_name.slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          callAction(updateMerchantAction(initialMerchant.id, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })).catch((err) => console.error("Failed to update merchant location:", err));
+        },
+        (error) => {
+          console.warn("Geolocation failed or denied:", error);
+        }
+      );
+    }
+  }, [initialMerchant.id]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.hasAttribute("contenteditable"))
+      ) {
+        return;
+      }
+      if (e.key === "p" || e.key === "P" || (e.altKey && (e.key === "p" || e.key === "P"))) {
+        e.preventDefault();
+        router.push("/merchant/products/add");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
 
   const iconSize = "w-5 h-5"; // 20px icons
 
@@ -190,8 +233,9 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
 
   const ReferralCodeBox = () => {
     const [copied, setCopied] = useState(false);
+    const code = initialMerchant.referral_code;
     const handleCopy = () => {
-      navigator.clipboard.writeText("SIMULA-ACME-2026");
+      navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     };
@@ -204,7 +248,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
       >
         <p className="text-[9px] font-bold text-gray-700 uppercase tracking-widest mb-0.5">Referral Code</p>
         <p className="text-[11px] font-bold text-[#0B7A69] font-mono tracking-wider">
-          {copied ? "COPIED!" : "SIMULA-ACME-2026"}
+          {copied ? "COPIED!" : code}
         </p>
         {copied && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap z-50 animate-in fade-in zoom-in slide-in-from-bottom-2">
@@ -280,20 +324,22 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                   <button
                     onClick={() => { const d = document.getElementById('sidebar-profile-dropdown'); d?.classList.toggle('hidden'); }}
                     className="w-10 h-10 rounded-full bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-[#111827] font-bold text-[11px] hover:bg-gray-200 transition-colors"
-                    title="Acme Furniture Co."
+                    title={initialMerchant.display_name}
                   >
-                    AC
+                    {merchantInitials}
                   </button>
                   <div id="sidebar-profile-dropdown" className="hidden absolute left-full bottom-0 ml-2 w-52 bg-white border border-[#EAECEF] rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-1 z-50">
                     <div className="px-4 py-3 border-b border-[#F1F3F5] mb-1">
-                      <p className="text-[12px] font-semibold text-[#111827]">Sarah Jenkins</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">sarah@acmefurniture.co</p>
+                      <p className="text-[12px] font-semibold text-[#111827]">{initialMerchant.display_name}</p>
+                      {initialMerchant.support_email && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">{initialMerchant.support_email}</p>
+                      )}
                       <ReferralCodeBox />
                     </div>
                     <Link href="/merchant/settings" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Settings</Link>
                     <Link href="/merchant/onboarding" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Store Setup</Link>
                     <div className="border-t border-[#F1F3F5] mt-1 pt-1">
-                      <Link href="/merchant/sign_in" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
+                      <Link href="/api/auth/logout" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
                     </div>
                   </div>
                 </div>
@@ -306,25 +352,33 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                     onClick={() => { const d = document.getElementById('sidebar-profile-dropdown-exp'); d?.classList.toggle('hidden'); }}
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#F5F5F7] transition-colors group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-[#111827] font-bold text-[11px] shrink-0 group-hover:bg-gray-200 transition-colors">
-                      AC
-                    </div>
+                    {initialMerchant.logo_url ? (
+                      <img src={resolveImageUrl(initialMerchant.logo_url)} alt={initialMerchant.display_name} className="w-9 h-9 rounded-full border border-[#EAECEF] object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-[#111827] font-bold text-[11px] shrink-0 group-hover:bg-gray-200 transition-colors">
+                        {merchantInitials}
+                      </div>
+                    )}
                     <div className="text-left flex-1 min-w-0">
-                      <p className="text-[12px] font-medium text-[#111827] truncate">Acme Furniture Co.</p>
-                      <p className="text-[10px] text-gray-400 truncate">Sarah Jenkins</p>
+                      <p className="text-[12px] font-medium text-[#111827] truncate">{initialMerchant.display_name}</p>
+                      {initialMerchant.support_email && (
+                        <p className="text-[10px] text-gray-400 truncate">{initialMerchant.support_email}</p>
+                      )}
                     </div>
                     <svg className="w-4 h-4 text-gray-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
                   <div id="sidebar-profile-dropdown-exp" className="hidden absolute left-0 bottom-full mb-2 w-full bg-white border border-[#EAECEF] rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] py-1 z-50">
                     <div className="px-4 py-3 border-b border-[#F1F3F5] mb-1">
-                      <p className="text-[12px] font-semibold text-[#111827]">Sarah Jenkins</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">sarah@acmefurniture.co</p>
+                      <p className="text-[12px] font-semibold text-[#111827]">{initialMerchant.display_name}</p>
+                      {initialMerchant.support_email && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">{initialMerchant.support_email}</p>
+                      )}
                       <ReferralCodeBox />
                     </div>
                     <Link href="/merchant/settings" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Settings</Link>
                     <Link href="/merchant/onboarding" className="block px-4 py-2.5 text-[12px] text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827] transition-colors">Store Setup</Link>
                     <div className="border-t border-[#F1F3F5] mt-1 pt-1">
-                      <Link href="/merchant/sign_in" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
+                      <Link href="/api/auth/logout" className="block px-4 py-2.5 text-[12px] text-red-500 hover:bg-red-50 transition-colors">Sign Out</Link>
                     </div>
                   </div>
                 </div>
@@ -361,15 +415,15 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0E9F88] rounded-full border border-white"></span>
               </button>
 
-              {/* Balance widget — top right */}
+              {/* Balance widget — top right (real wallet data) */}
               <Link href="/merchant/billing" className="flex items-center gap-2.5 pl-3 border-l border-[#F1F3F5] group">
                 <div className="text-right hidden sm:block">
-                  <p className="text-[10px] text-gray-400 font-medium">Token Balance</p>
-                  <p className={`text-[14px] font-bold tabular-nums tracking-tight ${mockWallet.balance < mockWallet.threshold ? 'text-red-500' : 'text-[#111827]'}`}>
-                    {mockWallet.currencySymbol}{mockWallet.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <p className="text-[10px] text-gray-400 font-medium">Wallet Balance</p>
+                  <p className={`text-[14px] font-bold tabular-nums tracking-tight ${walletLow ? 'text-amber-600' : 'text-[#111827]'}`}>
+                    {currencySymbol}{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="w-9 h-9 rounded-lg bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-[#0E9F88] group-hover:bg-[#0E9F88] group-hover:text-white transition-all">
+                <div className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${walletLow ? 'bg-amber-50 border-amber-200 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : 'bg-[#F5F5F7] border-[#EAECEF] text-[#0E9F88] group-hover:bg-[#0E9F88] group-hover:text-white'}`}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </div>
               </Link>

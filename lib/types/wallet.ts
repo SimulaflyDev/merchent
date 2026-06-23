@@ -43,3 +43,35 @@ export interface TopupIntentResponse {
   currency: string;
   transaction_id: string;
 }
+
+export interface BalanceHistoryItemProduct {
+  title: string;
+  sku: string;
+  image_url: string | null;
+}
+
+export interface BalanceHistoryItem {
+  id: string;
+  created_at: string;
+  amount: number;
+  entry_type: string;
+  reason: string;
+  payment_method: string | null;
+  gateway_ref: string | null;
+  running_balance: number;
+  product: BalanceHistoryItemProduct | null;
+}
+
+export interface BalanceHistoryResponse {
+  items: BalanceHistoryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RedeemResponse {
+  message: string;
+  balance: number;
+  credit_amount: number;
+}
+

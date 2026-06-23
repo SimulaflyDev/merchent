@@ -8,7 +8,7 @@ import type { WalletOut } from "@/lib/types/wallet";
 // --- Types ---
 // Phase 1 retains the full Lead/Product type definitions from the original mock
 // so unconverted pages compile. Later phases will replace these with real fetches.
-export type LeadStatus = "New Lead" | "Synced" | "Converted" | "Lost";
+export type LeadStatus = "New Order" | "Order Confirmed" | "Converted" | "Cancelled Orders";
 export type LeadType = "direct_purchase" | "cart_abandonment" | "high_intent_view";
 
 export interface Lead {

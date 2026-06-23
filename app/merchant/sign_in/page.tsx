@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Spinner from "../components/Spinner";
 import { loginAction } from "@/lib/auth/actions";
 import { isApiError } from "@/lib/api/errors";
+import { callAction } from "@/lib/api/action-utils";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await loginAction(email, password);
+      await callAction(loginAction(email, password));
       // loginAction redirects on success; if we reach here, something unexpected happened.
     } catch (err) {
       if (isApiError(err)) {

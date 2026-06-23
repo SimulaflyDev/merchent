@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { useMerchant } from "../../context/MerchantContext";
+import { useMerchant } from "@/app/merchant/context/MerchantContext";
 
 export default function LowBalanceBanner() {
   const { wallet } = useMerchant();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Product } from "../../context/MerchantContext";
+import { Product } from "@/app/merchant/context/MerchantContext";
 
 interface ImportModalProps {
   onClose: () => void;

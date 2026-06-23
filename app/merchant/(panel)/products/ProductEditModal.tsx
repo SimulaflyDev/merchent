@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { updateProductAction } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
+import { callAction } from "@/lib/api/action-utils";
 import type {
   MerchantProductOut,
   MerchantProductUpdatePayload,
@@ -60,7 +61,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
     };
 
     try {
-      const updated = await updateProductAction(product.id, payload);
+      const updated = await callAction(updateProductAction(product.id, payload));
       onSaved(updated);
     } catch (err) {
       setSaveError(isApiError(err) ? err.detail : "Failed to save");

@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Spinner from "../components/Spinner";
-import { createMerchantAction } from "@/lib/auth/merchant-actions";
+import { createMerchantAction, updateMerchantAction, getMyMerchantsAction, getPublicMerchantAction } from "@/lib/auth/merchant-actions";
+import { createProductAction, uploadProductImageAction } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
+import { callAction } from "@/lib/api/action-utils";
+import { setActiveMerchantAction, sendMobileOtpAction, verifyMobileOtpAction } from "@/lib/auth/actions";
+import { resolveImageUrl } from "@/lib/api/image-utils";
 
 const STORE_TYPES = [
-  "Furniture store",
-  "Interior studio",
-  "Home decor shop",
   "Manufacturer",
-  "Dealer",
-  "Wholesale seller",
+  "Whole Seller",
+  "Retailors",
 ];
 
 const PRODUCT_CATEGORIES = [
@@ -61,6 +62,101 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [storeName, setStoreName] = useState("");
 
+  // Step 2: Business Details
+  const [legalName, setLegalName] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [city, setCity] = useState("");
+  const [locality, setLocality] = useState("");
+  const [businessState, setBusinessState] = useState("");
+  const [website, setWebsite] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isDetectingLoc, setIsDetectingLoc] = useState(false);
+
+  // Mobile OTP Verification States
+  const [mobileOtp, setMobileOtp] = useState("");
+  const [isSendingMobileOtp, setIsSendingMobileOtp] = useState(false);
+  const [isVerifyingMobileOtp, setIsVerifyingMobileOtp] = useState(false);
+  const [mobileOtpSent, setMobileOtpSent] = useState(false);
+  const [isMobileVerified, setIsMobileVerified] = useState(false);
+  const [mobileOtpError, setMobileOtpError] = useState<string | null>(null);
+  const [mobileOtpSuccess, setMobileOtpSuccess] = useState<string | null>(null);
+  const [devMobileOtp, setDevMobileOtp] = useState<string | null>(null);
+
+  const handleSendMobileOtp = async () => {
+    if (!mobileNumber.trim()) {
+      setMobileOtpError("Please enter a valid mobile number.");
+      return;
+    }
+    setMobileOtpError(null);
+    setMobileOtpSuccess(null);
+    setIsSendingMobileOtp(true);
+    try {
+      const res = await callAction(sendMobileOtpAction(mobileNumber.trim()));
+      setMobileOtpSent(true);
+      setMobileOtpSuccess(res.message);
+      if (res.dev_otp) {
+        setDevMobileOtp(res.dev_otp);
+      }
+    } catch (err) {
+      if (isApiError(err)) {
+        setMobileOtpError(err.detail || "Failed to send mobile OTP.");
+      } else {
+        setMobileOtpError("Failed to send mobile OTP.");
+      }
+    } finally {
+      setIsSendingMobileOtp(false);
+    }
+  };
+
+  const handleVerifyMobileOtp = async () => {
+    if (mobileOtp.length !== 6 || isNaN(Number(mobileOtp))) {
+      setMobileOtpError("Please enter a 6-digit code.");
+      return;
+    }
+    setMobileOtpError(null);
+    setMobileOtpSuccess(null);
+    setIsVerifyingMobileOtp(true);
+    try {
+      await callAction(verifyMobileOtpAction(mobileNumber.trim(), mobileOtp));
+      setIsMobileVerified(true);
+      setMobileOtpSuccess("Mobile number verified successfully!");
+    } catch (err) {
+      if (isApiError(err)) {
+        setMobileOtpError(err.detail || "Invalid code.");
+      } else {
+        setMobileOtpError("Invalid code.");
+      }
+    } finally {
+      setIsVerifyingMobileOtp(false);
+    }
+  };
+
+  // Step 3: Store Profile
+  const [storeDescription, setStoreDescription] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Step 5: First Product Details
+  const [productTitle, setProductTitle] = useState("");
+  const [productCategory, setProductCategory] = useState("");
+  const [productPrice, setProductPrice] = useState("");
+  const [productStock, setProductStock] = useState("");
+  const [productMaterial, setProductMaterial] = useState("");
+  const [productLength, setProductLength] = useState("");
+  const [productWidth, setProductWidth] = useState("");
+  const [productHeight, setProductHeight] = useState("");
+  const [productRoomPlacement, setProductRoomPlacement] = useState("");
+  const [productStyleTag, setProductStyleTag] = useState("");
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
+  const [uploadingProductImage, setUploadingProductImage] = useState(false);
+  const productImageInputRef = useRef<HTMLInputElement>(null);
+
+  const [existingMerchantId, setExistingMerchantId] = useState<string | null>(null);
+
   // Restore last saved step on mount
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('sf_onboarding_step') : null;
@@ -68,6 +164,51 @@ export default function OnboardingPage() {
       const n = parseInt(saved, 10);
       if (n >= 1 && n <= 7) setStep(n);
     }
+  }, []);
+
+  // Prepopulate onboarding form with existing merchant data if available
+  useEffect(() => {
+    async function loadExistingMerchant() {
+      try {
+        const merchants = await callAction(getMyMerchantsAction());
+        if (merchants && merchants.length > 0) {
+          const m = merchants[0];
+          setExistingMerchantId(m.id);
+          setStoreName(m.display_name || "");
+          setLegalName(m.legal_name || "");
+          setLogoUrl(m.logo_url || null);
+          setMobileNumber(m.support_phone || "");
+          if (m.support_phone) {
+            setIsMobileVerified(true);
+          }
+          setLatitude(m.latitude || null);
+          setLongitude(m.longitude || null);
+
+          const onboardData = (m.settings?.onboarding_data as any) || {};
+          setGstNumber(onboardData.gst_number || "");
+          setCity(onboardData.city || "");
+          setLocality(onboardData.locality || "");
+          setBusinessState(onboardData.state || "");
+          setWebsite(onboardData.website || "");
+
+          const sType = onboardData.store_type || "";
+          if (sType && !STORE_TYPES.includes(sType)) {
+            setStoreType("__other");
+            setCustomStoreType(sType);
+          } else {
+            setStoreType(sType);
+          }
+
+          setSelectedCategories(onboardData.categories || []);
+          setStoreDescription(onboardData.description || "");
+          setCatalogChoice(onboardData.catalog_choice || "add");
+          setReferralCode(onboardData.referral_code_entered || "");
+        }
+      } catch (err) {
+        console.error("Failed to load existing merchant data:", err);
+      }
+    }
+    loadExistingMerchant();
   }, []);
 
   // Auto-save step to localStorage whenever it changes
@@ -84,22 +225,109 @@ export default function OnboardingPage() {
   const [referralCode, setReferralCode] = useState("");
   const [referralValid, setReferralValid] = useState<null | boolean>(null);
   const referralApplied = referralValid === true;
+  const [isValidatingReferral, setIsValidatingReferral] = useState(false);
+  const [referredMerchantName, setReferredMerchantName] = useState<string | null>(null);
 
-  const validateReferral = (code: string) => {
-    const upper = code.toUpperCase();
-    setReferralCode(upper);
-    if (upper.length === 0) { setReferralValid(null); return; }
-    setReferralValid(upper.startsWith("SIMFLY-") && upper.length >= 10);
+  // File Upload Helper
+  const fileToBase64 = (file: File): Promise<{ base64: string; mediaType: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const match = result.match(/^data:(.+);base64,(.+)$/);
+        if (!match) { reject(new Error("parse error")); return; }
+        resolve({ mediaType: match[1], base64: match[2] });
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const TOTAL_STEPS = 7;
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setSubmitError("Please select a valid image file for the logo.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSubmitError("Logo image must be under 2 MB.");
+      return;
+    }
+    setSubmitError(null);
+    setUploadingLogo(true);
+    try {
+      const { base64, mediaType } = await fileToBase64(file);
+      const formData = new FormData();
+      formData.append("imageBase64", base64);
+      formData.append("mediaType", mediaType);
+      const result = await callAction(uploadProductImageAction(formData));
+      setLogoUrl(result.url);
+    } catch (err) {
+      setSubmitError(isApiError(err) ? `Logo upload failed: ${err.detail}` : "Logo upload failed. Please try again.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleProductImageUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setSubmitError("Please select a valid image file for the product.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSubmitError("Product image must be under 5 MB.");
+      return;
+    }
+    setSubmitError(null);
+    setUploadingProductImage(true);
+    try {
+      const { base64, mediaType } = await fileToBase64(file);
+      setProductImagePreview(`data:${mediaType};base64,${base64}`);
+      const formData = new FormData();
+      formData.append("imageBase64", base64);
+      formData.append("mediaType", mediaType);
+      const result = await callAction(uploadProductImageAction(formData));
+      setProductImageUrl(result.url);
+    } catch (err) {
+      setSubmitError(isApiError(err) ? `Product image upload failed: ${err.detail}` : "Product image upload failed. Please try again.");
+      setProductImagePreview(null);
+    } finally {
+      setUploadingProductImage(false);
+    }
+  };
+
+  const validateReferral = (code: string) => {
+    const upper = code.toUpperCase().trim();
+    setReferralCode(upper);
+    setReferralValid(null);
+    setReferredMerchantName(null);
+  };
+
+  const handleApplyReferral = async () => {
+    if (!referralCode.trim()) return;
+    setIsValidatingReferral(true);
+    setReferralValid(null);
+    setReferredMerchantName(null);
+    try {
+      const res = await callAction(getPublicMerchantAction(referralCode.trim()));
+      if (res && res.id) {
+        setReferralValid(true);
+        setReferredMerchantName(res.display_name);
+      } else {
+        setReferralValid(false);
+      }
+    } catch (err) {
+      setReferralValid(false);
+    } finally {
+      setIsValidatingReferral(false);
+    }
+  };
+
+  const TOTAL_STEPS = 5;
 
   const stepLabels = [
     "Welcome",
     "Business",
     "Store",
-    "Catalog",
-    "Product",
     "Review",
     "Go Live",
   ];
@@ -111,37 +339,164 @@ export default function OnboardingPage() {
   };
 
   const handleNext = () => {
-    // If catalog choice is not "add", skip step 5 (First Product)
-    if (step === 4 && catalogChoice !== "add") {
-      setStep(6);
-    } else {
-      setStep(step + 1);
+    if (step === 2) {
+      if (!storeName.trim() || !mobileNumber.trim() || !city.trim() || !locality.trim() || !businessState.trim()) {
+        alert("Please fill in all required fields: Store Name, Mobile Number, Locality, City, and State.");
+        return;
+      }
+      if (!isMobileVerified) {
+        alert("Please verify your mobile number via OTP before continuing.");
+        return;
+      }
     }
+    setStep(step + 1);
   };
 
   const handleBack = () => {
-    // If on step 6 and catalog choice is not "add", go back to step 4
-    if (step === 6 && catalogChoice !== "add") {
-      setStep(4);
-    } else {
-      setStep(step - 1);
+    setStep(step - 1);
+  };
+
+  const handleOpenExitModal = () => {
+    setSubmitError(null);
+    setShowExitModal(true);
+  };
+
+  const handleSaveAndExit = async () => {
+    setSubmitError(null);
+    try {
+      if (!storeName.trim()) {
+        setSubmitError("Please enter a Store Name on Step 1 to save progress.");
+        return;
+      }
+
+      const settingsPayload = {
+        onboarding_completed: false,
+        onboarding_data: {
+          gst_number: gstNumber || undefined,
+          city: city || undefined,
+          locality: locality || undefined,
+          state: businessState || undefined,
+          website: website || undefined,
+          store_type: storeType === "__other" ? customStoreType : storeType,
+          categories: selectedCategories,
+          description: storeDescription || undefined,
+          catalog_choice: catalogChoice,
+          referral_code_entered: referralCode || undefined,
+        }
+      };
+
+      const merchantPayload: any = {
+        legal_name: legalName || storeName,
+        display_name: storeName,
+        country: "IN",
+        support_phone: mobileNumber || undefined,
+        logo_url: logoUrl || undefined,
+        settings: settingsPayload,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
+      };
+
+      if (existingMerchantId) {
+        await callAction(updateMerchantAction(existingMerchantId, merchantPayload));
+      } else {
+        merchantPayload.referred_by_code = referralCode || undefined;
+        await callAction(createMerchantAction(merchantPayload));
+      }
+
+      localStorage.setItem('sf_onboarding_step', String(step));
+      setExitSaved(true);
+      setTimeout(() => { window.location.href = '/merchant/dashboard'; }, 2000);
+    } catch (err) {
+      console.error("Failed to save progress on exit:", err);
+      if (isApiError(err)) {
+        setSubmitError(err.detail || "Failed to save progress. Please try again.");
+      } else {
+        setSubmitError("Failed to save progress. Please try again.");
+      }
     }
   };
 
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (completeKyc: boolean = true) => {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await createMerchantAction({
-        legal_name: storeName,
+      const settingsPayload = {
+        onboarding_completed: true,
+        onboarding_data: {
+          gst_number: gstNumber || undefined,
+          city: city || undefined,
+          locality: locality || undefined,
+          state: businessState || undefined,
+          website: website || undefined,
+          store_type: storeType === "__other" ? customStoreType : storeType,
+          categories: selectedCategories,
+          description: storeDescription || undefined,
+          catalog_choice: catalogChoice,
+          referral_code_entered: referralCode || undefined,
+        }
+      };
+
+      // 1. Create or Update the merchant
+      const merchantPayload: any = {
+        legal_name: legalName || storeName,
         display_name: storeName,
         country: "IN",
-        support_email: undefined,
-        support_phone: undefined,
-      });
+        support_phone: mobileNumber || undefined,
+        logo_url: logoUrl || undefined,
+        settings: settingsPayload,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
+      };
+
+      let merchant;
+      if (existingMerchantId) {
+        // Toggle KYC to complete so referral bonus is triggered
+        merchantPayload.is_kyc_completed = completeKyc;
+        merchant = await callAction(updateMerchantAction(existingMerchantId, merchantPayload));
+        await setActiveMerchantAction(merchant.id);
+      } else {
+        merchantPayload.referred_by_code = referralCode || undefined;
+        merchant = await callAction(createMerchantAction(merchantPayload));
+        await setActiveMerchantAction(merchant.id);
+        if (completeKyc) {
+          // Update the merchant to set KYC to completed and trigger the referral payout
+          merchant = await callAction(updateMerchantAction(merchant.id, { is_kyc_completed: true }));
+        }
+      }
+
+      // 2. Create the first product if requested
+      if (catalogChoice === "add" && productTitle.trim()) {
+        const generatedSku = `ONB-${storeName.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "")}-${productTitle.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        
+        await callAction(createProductAction({
+          sku: generatedSku,
+          title: productTitle,
+          description: storeDescription || "First product added during onboarding.",
+          category: productCategory || undefined,
+          primary_image_url: productImageUrl || undefined,
+          in_app_price: productPrice ? parseFloat(productPrice) : undefined,
+          in_app_stock: productStock ? parseInt(productStock) : undefined,
+          dimensions: {
+            width: productWidth ? parseFloat(productWidth) : undefined,
+            height: productHeight ? parseFloat(productHeight) : undefined,
+            depth: productLength ? parseFloat(productLength) : undefined,
+          },
+          materials: {
+            primary: productMaterial || undefined,
+          },
+          room_storytelling: {
+            placements: productRoomPlacement ? [productRoomPlacement] : [],
+            best_used_in: productRoomPlacement || undefined,
+          },
+          custom_metadata: {
+            style_tag: productStyleTag || ""
+          }
+        }));
+      }
+
       localStorage.removeItem("sf_onboarding_step");
-      setIsNavigating(true);   // <-- ADD THIS LINE
-      router.push("/merchant/dashboard");
+      setIsNavigating(true);
+      window.location.href = "/merchant/dashboard";
     } catch (err) {
       if (isApiError(err)) {
         setSubmitError(err.detail || "Could not create your store.");
@@ -156,11 +511,9 @@ export default function OnboardingPage() {
     switch (step) {
       case 1: return "Continue";
       case 2: return "Continue";
-      case 3: return "Continue";
-      case 4: return catalogChoice === "add" ? "Add first product" : "Continue to review";
-      case 5: return "Save and continue";
-      case 6: return "Review and publish";
-      case 7: return "Go to dashboard";
+      case 3: return "Continue to review";
+      case 4: return "Review and publish";
+      case 5: return "Go to dashboard";
       default: return "Continue";
     }
   };
@@ -171,13 +524,13 @@ export default function OnboardingPage() {
 
   // Readiness checklist items
   const checklist = [
-    { label: "Business details added", done: true },
-    { label: "Store profile complete", done: storeType !== "" },
-    { label: "First product added", done: catalogChoice === "add" },
-    { label: "Product image uploaded", done: false },
-    { label: "Price entered", done: catalogChoice === "add" },
+    { label: "Business details added", done: storeName.trim().length > 0 && mobileNumber.trim().length > 0 && city.trim().length > 0 },
+    { label: "Store profile complete", done: storeType !== "" && storeDescription.trim().length > 0 },
+    { label: "First product added", done: catalogChoice !== "add" || productTitle.trim().length > 0 },
+    { label: "Product image uploaded", done: catalogChoice !== "add" || !!productImageUrl },
+    { label: "Price entered", done: catalogChoice !== "add" || (productPrice.trim().length > 0 && !isNaN(parseFloat(productPrice))) },
     { label: "Category selected", done: selectedCategories.length > 0 },
-    { label: "Room placement chosen", done: catalogChoice === "add" },
+    { label: "Room placement chosen", done: catalogChoice !== "add" || productRoomPlacement !== "" },
   ];
   const readinessScore = Math.round((checklist.filter((c) => c.done).length / checklist.length) * 100);
 
@@ -193,7 +546,7 @@ export default function OnboardingPage() {
             <span className="font-display font-bold text-xl tracking-tight text-neutral-dark">SimulaFly</span>
           </div>
           <button
-            onClick={() => setShowExitModal(true)}
+            onClick={handleOpenExitModal}
             className="text-sm font-semibold text-gray-400 hover:text-neutral-dark transition-colors"
           >
             Save &amp; Exit
@@ -209,7 +562,6 @@ export default function OnboardingPage() {
               const num = i + 1;
               const isCompleted = step > num;
               const isCurrent = step === num;
-              const isSkipped = num === 5 && catalogChoice !== "add" && step > 5;
               return (
                 <div
                   key={num}
@@ -217,7 +569,7 @@ export default function OnboardingPage() {
                     isCompleted || isCurrent
                       ? "border-[#1FAF9A]"
                       : "border-transparent"
-                  } ${isSkipped ? "opacity-40" : ""}`}
+                  }`}
                 >
                   <span
                     className={`text-[9px] font-bold uppercase tracking-widest block mb-0.5 ${
@@ -291,17 +643,17 @@ export default function OnboardingPage() {
                           <div className="mt-3 space-y-1">
                             <p className="text-[12px] text-emerald-700 font-semibold flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                              Your referring partner earns 500 reward points when you go live
+                              Referred by: <span className="font-bold underline ml-1">{referredMerchantName}</span>
                             </p>
                             <p className="text-[12px] text-emerald-700 font-semibold flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                              You receive a welcome bonus credited to your account
+                              Both you and {referredMerchantName} will receive 500 INR in wallet balance upon completing KYC!
                             </p>
                           </div>
                         </div>
                         <button
                           type="button"
-                          onClick={() => { setReferralCode(""); setReferralValid(null); }}
+                          onClick={() => { setReferralCode(""); setReferralValid(null); setReferredMerchantName(null); }}
                           className="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-1"
                         >
                           Remove
@@ -326,14 +678,14 @@ export default function OnboardingPage() {
                           <p className="text-[11px] text-gray-400">Invited by another SimulaFly merchant · Enter their code to link accounts and earn rewards</p>
                         </div>
                       </div>
-
+ 
                       <div className="flex gap-3">
                         <div className="relative flex-1">
                           <input
                             type="text"
                             value={referralCode}
                             onChange={(e) => validateReferral(e.target.value)}
-                            placeholder="e.g. SIMFLY-STORE-2024"
+                            placeholder="e.g. SIMULA-ACME-2026"
                             className={`w-full bg-white border-2 rounded-xl px-4 py-3.5 text-base outline-none font-mono font-bold tracking-widest transition-colors placeholder:font-normal placeholder:tracking-normal placeholder:text-gray-300 ${
                               referralValid === false
                                 ? 'border-red-300 text-red-700'
@@ -343,13 +695,14 @@ export default function OnboardingPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => referralCode.length >= 10 && validateReferral(referralCode)}
-                          className="px-6 py-3.5 bg-[#1FAF9A] text-white text-sm font-bold rounded-xl hover:bg-[#189986] transition-colors whitespace-nowrap"
+                          onClick={handleApplyReferral}
+                          disabled={isValidatingReferral || !referralCode}
+                          className="px-6 py-3.5 bg-[#1FAF9A] text-white text-sm font-bold rounded-xl hover:bg-[#189986] disabled:opacity-50 transition-colors whitespace-nowrap flex items-center gap-1.5"
                         >
-                          Apply Code
+                          {isValidatingReferral ? <Spinner variant="inline" /> : "Apply Code"}
                         </button>
                       </div>
-
+ 
                       {referralValid === false && (
                         <p className="text-[11px] text-red-500 font-medium mt-2">
                           Code not recognised — double-check with your partner, or leave blank to continue.
@@ -363,11 +716,10 @@ export default function OnboardingPage() {
                 </div>
               </div>
             )}
-
-            {/* ════════════════════════════════════════ */}
-            {/* STEP 2: Business Details                */}
-            {/* ════════════════════════════════════════ */}
-            {step === 2 && (
+                {/* ════════════════════════════════════════ */}
+                {/* STEP 2: Business Details                */}
+                {/* ════════════════════════════════════════ */}
+                {step === 2 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-display font-bold text-neutral-dark tracking-tight mb-2">Business details</h2>
@@ -377,7 +729,13 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="sm:col-span-2">
                     <label className={labelCls}>Legal Business Name <span className="text-gray-300 normal-case font-medium">(if available)</span></label>
-                    <input type="text" placeholder="e.g. Acme Furniture Co." className={inputCls} />
+                    <input
+                      type="text"
+                      placeholder="e.g. Acme Furniture Co."
+                      className={inputCls}
+                      value={legalName}
+                      onChange={(e) => setLegalName(e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className={labelCls}>Store Name <span className="text-red-400">*</span></label>
@@ -392,74 +750,171 @@ export default function OnboardingPage() {
                   </div>
                   <div>
                     <label className={labelCls}>GST Number <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
-                    <input type="text" placeholder="e.g. 22AAAAA0000A1Z5" className={`${inputCls} uppercase`} />
+                    <input
+                      type="text"
+                      placeholder="e.g. 22AAAAA0000A1Z5"
+                      className={`${inputCls} uppercase`}
+                      value={gstNumber}
+                      onChange={(e) => setGstNumber(e.target.value)}
+                    />
                   </div>
+                  
+                  {/* Mobile OTP Verification */}
                   <div>
                     <label className={labelCls}>Mobile Number <span className="text-red-400">*</span></label>
-                    <input type="tel" required placeholder="+91 98765 43210" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>City <span className="text-red-400">*</span></label>
-                    <input type="text" required placeholder="e.g. Mumbai" className={inputCls} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelCls}>Website or Instagram <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
-                    <input type="text" placeholder="e.g. www.acmefurniture.co or @acmefurniture" className={inputCls} />
-                  </div>
-
-                  {/* ── Referral Code ── */}
-                  <div className="sm:col-span-2">
-                    <label className={labelCls}>
-                      Partner Referral Code
-                      <span className="text-gray-300 normal-case font-medium ml-1">(optional)</span>
-                    </label>
-                    {referralApplied ? (
-                      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-                        <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
-                          <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        </div>
-                        <div className="flex-1">
-                          <span className="font-mono text-sm font-bold text-emerald-800 tracking-widest">{referralCode}</span>
-                          <span className="text-[11px] text-emerald-600 ml-2">· Your partner earns 500 points when you go live</span>
-                        </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        required
+                        disabled={isMobileVerified}
+                        placeholder="+91 98765 43210"
+                        className={`${inputCls} flex-1`}
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
+                      />
+                      {!isMobileVerified && (
                         <button
                           type="button"
-                          onClick={() => { setReferralCode(""); setReferralValid(null); }}
-                          className="text-[10px] font-bold text-emerald-600 hover:text-red-500 transition-colors"
+                          onClick={handleSendMobileOtp}
+                          disabled={isSendingMobileOtp || !mobileNumber}
+                          className="px-4 py-2.5 bg-[#1FAF9A] text-white text-xs font-bold rounded-lg hover:bg-[#189986] transition-colors disabled:opacity-50 whitespace-nowrap"
                         >
-                          Remove
+                          {isSendingMobileOtp ? "Sending..." : mobileOtpSent ? "Resend OTP" : "Send OTP"}
                         </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
+                      )}
+                      {isMobileVerified && (
+                        <span className="px-4 py-2.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 flex items-center gap-1 select-none">
+                          <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          Verified
+                        </span>
+                      )}
+                    </div>
+
+                    {mobileOtpSent && !isMobileVerified && (
+                      <div className="mt-3 bg-gray-50 border border-gray-100 rounded-xl p-4 space-y-3">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Enter 6-digit Mobile OTP</label>
                         <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type="text"
-                              value={referralCode}
-                              onChange={(e) => validateReferral(e.target.value)}
-                              placeholder="e.g. SIMFLY-ACME-2024"
-                              className={`w-full bg-[#F8FAFB] border rounded-lg px-4 py-3 text-sm outline-none font-mono font-medium tracking-widest transition-colors pr-9 ${
-                                referralValid === false
-                                  ? 'border-red-300 focus:border-red-400'
-                                  : 'border-gray-200 focus:border-[#1FAF9A] focus:ring-2 focus:ring-[#1FAF9A]/20'
-                              }`}
-                            />
-                            {referralValid === false && (
-                              <svg className="w-4 h-4 text-red-400 absolute right-3 top-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                            )}
-                          </div>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="000000"
+                            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-center font-bold tracking-widest outline-none focus:border-[#1FAF9A] w-32"
+                            value={mobileOtp}
+                            onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, ""))}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerifyMobileOtp}
+                            disabled={isVerifyingMobileOtp || mobileOtp.length !== 6}
+                            className="px-4 py-2 bg-[#1FAF9A] text-white text-xs font-bold rounded-lg hover:bg-[#189986] transition-colors disabled:opacity-50"
+                          >
+                            {isVerifyingMobileOtp ? "Verifying..." : "Verify"}
+                          </button>
                         </div>
-                        {referralValid === false && (
-                          <p className="text-[11px] text-red-500">Code not recognised — leave blank to continue without one.</p>
-                        )}
-                        {referralValid === null && referralCode.length === 0 && (
-                          <p className="text-[10px] text-gray-400">Invited by another SimulaFly merchant? Enter their code to link accounts and earn rewards.</p>
+                        {devMobileOtp && (
+                          <p className="text-[11px] text-[#1FAF9A] font-semibold">
+                            Demo OTP: <span className="font-mono bg-white border border-gray-200 px-1 py-0.5 rounded">{devMobileOtp}</span>
+                          </p>
                         )}
                       </div>
                     )}
+                    
+                    {mobileOtpError && <p className="text-xs text-red-500 mt-1">{mobileOtpError}</p>}
+                    {mobileOtpSuccess && <p className="text-xs text-emerald-600 font-semibold mt-1">{mobileOtpSuccess}</p>}
                   </div>
 
+                  {/* Location Auto Detection */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className={labelCls}>Location <span className="text-red-400">*</span></label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!navigator.geolocation) {
+                            alert("Geolocation is not supported by your browser");
+                            return;
+                          }
+                          setIsDetectingLoc(true);
+                          navigator.geolocation.getCurrentPosition(
+                            async (position) => {
+                              const lat = position.coords.latitude;
+                              const lon = position.coords.longitude;
+                              setLatitude(lat);
+                              setLongitude(lon);
+                              try {
+                                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+                                const data = await res.json();
+                                if (data && data.address) {
+                                  const cityName = data.address.city || data.address.town || data.address.village || data.address.county || "";
+                                  const stateName = data.address.state || "";
+                                  const localityName = data.address.suburb || data.address.neighbourhood || data.address.residential || data.address.road || "";
+                                  
+                                  if (cityName) setCity(cityName);
+                                  if (stateName) setBusinessState(stateName);
+                                  if (localityName) setLocality(localityName);
+                                }
+                              } catch (err) {
+                                console.error("Error reverse geocoding:", err);
+                              } finally {
+                                setIsDetectingLoc(false);
+                              }
+                            },
+                            (error) => {
+                              console.error("Error getting geolocation:", error);
+                              alert("Failed to detect location. Please type manually.");
+                              setIsDetectingLoc(false);
+                            }
+                          );
+                        }}
+                        className="text-[11px] font-bold text-[#1FAF9A] hover:text-[#189986] transition-colors flex items-center gap-1"
+                        disabled={isDetectingLoc}
+                      >
+                        {isDetectingLoc ? "Detecting..." : (
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+                            Detect Location
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Locality (e.g. Bandra West)"
+                        className={inputCls}
+                        value={locality}
+                        onChange={(e) => setLocality(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        required
+                        placeholder="City (e.g. Mumbai)"
+                        className={inputCls}
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        required
+                        placeholder="State (e.g. Maharashtra)"
+                        className={inputCls}
+                        value={businessState}
+                        onChange={(e) => setBusinessState(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className={labelCls}>Website or Instagram <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. www.acmefurniture.co or @acmefurniture"
+                      className={inputCls}
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -569,272 +1024,256 @@ export default function OnboardingPage() {
                 {/* Logo Upload */}
                 <div>
                   <label className={labelCls}>Store Logo</label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-[#1FAF9A]/40 transition-colors cursor-pointer bg-[#F8FAFB]">
-                    <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <p className="text-xs font-bold text-gray-500">Click to upload or drag and drop</p>
-                    <p className="text-[10px] text-gray-400 mt-1">PNG, JPG up to 2MB</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={logoInputRef}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}
+                    className="sr-only"
+                  />
+                  <div
+                    onClick={() => logoInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-200 hover:border-[#1FAF9A]/40 rounded-xl p-6 text-center transition-colors cursor-pointer bg-[#F8FAFB]"
+                  >
+                    {logoUrl ? (
+                      <div className="flex flex-col items-center">
+                        <img src={resolveImageUrl(logoUrl)} alt="Logo preview" className="w-16 h-16 object-cover rounded-lg border border-gray-100 mb-2" />
+                        <p className="text-xs font-semibold text-emerald-600">Logo uploaded successfully</p>
+                        <p className="text-[10px] text-gray-400">Click to change</p>
+                      </div>
+                    ) : uploadingLogo ? (
+                      <div className="flex flex-col items-center py-2">
+                        <div className="w-6 h-6 border-2 border-[#1FAF9A] border-t-transparent rounded-full animate-spin mb-2" />
+                        <p className="text-xs font-bold text-gray-500">Uploading logo...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <p className="text-xs font-bold text-gray-500">Click to upload logo</p>
+                        <p className="text-[10px] text-gray-400 mt-1">PNG, JPG up to 2MB</p>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Short Description */}
                 <div>
-                  <label className={labelCls}>Short Store Description</label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className={labelCls}>Short Store Description</label>
+                    <span className={`text-[10px] font-bold ${
+                      storeDescription.trim().split(/\s+/).filter(Boolean).length > 250 ? "text-red-500" : "text-gray-400"
+                    }`}>
+                      {storeDescription.trim().split(/\s+/).filter(Boolean).length} / 250 words
+                    </span>
+                  </div>
                   <textarea
                     placeholder="Tell customers about your store in a few lines..."
                     rows={3}
                     className={`${inputCls} resize-none`}
+                    value={storeDescription}
+                    onChange={(e) => {
+                      const text = e.target.value;
+                      const words = text.trim().split(/\s+/).filter(Boolean);
+                      if (words.length <= 250 || text.endsWith(" ") || text.length < storeDescription.length) {
+                        setStoreDescription(text);
+                      } else {
+                        const truncated = text.split(/\s+/).slice(0, 250).join(" ");
+                        setStoreDescription(truncated);
+                      }
+                    }}
                   />
                 </div>
               </div>
             )}
 
             {/* ════════════════════════════════════════ */}
-            {/* STEP 4: Catalog Setup                   */}
+            {/* STEP 4: Review Stage                    */}
             {/* ════════════════════════════════════════ */}
             {step === 4 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display font-bold text-neutral-dark tracking-tight mb-2">How would you like to add products?</h2>
-                  <p className="text-sm text-gray-500">Start with what works for you. You can always add more later.</p>
+                  <h2 className="text-2xl font-display font-bold text-neutral-dark tracking-tight mb-2">Review your store details</h2>
+                  <p className="text-sm text-gray-500">Please review all the completed stages of account creation before moving forward to the last step of KYC completion.</p>
                 </div>
 
-                <div className="space-y-3">
-                  {/* Option 1: Add first product (recommended) */}
-                  <button
-                    onClick={() => setCatalogChoice("add")}
-                    className={`w-full p-5 rounded-xl border-2 text-left transition-all group ${
-                      catalogChoice === "add"
-                        ? "border-[#1FAF9A] bg-[#1FAF9A]/5"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                        catalogChoice === "add" ? "bg-[#1FAF9A] text-white" : "bg-gray-100 text-gray-400"
-                      }`}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-bold text-neutral-dark">Add your first product</h4>
-                          <span className="text-[9px] font-bold bg-[#1FAF9A] text-white px-1.5 py-0.5 rounded uppercase tracking-wider">Recommended</span>
-                        </div>
-                        <p className="text-xs text-gray-500">Upload one product now to see your showroom come to life.</p>
-                      </div>
+                <div className="space-y-6">
+                  {/* Business Details Card */}
+                  <div className="bg-[#F8FAFB] border border-gray-200 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-gray-100">
+                      <svg className="w-4 h-4 text-[#1FAF9A]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-10.5h16.5M2.25 9h19.5M4.5 21V9m15 12V9m-11.25 12V12m3 9V12M15 21V12m-9-6h12a1.5 1.5 0 0 1 1.5 1.5V9H4.5V7.5A1.5 1.5 0 0 1 6 6Z"/></svg>
+                      <h3 className="text-xs font-bold text-neutral-dark uppercase tracking-wider">01. Business Details</h3>
                     </div>
-                  </button>
-
-                  {/* Option 2: Spreadsheet */}
-                  <button
-                    onClick={() => setCatalogChoice("spreadsheet")}
-                    className={`w-full p-5 rounded-xl border-2 text-left transition-all ${
-                      catalogChoice === "spreadsheet"
-                        ? "border-[#1FAF9A] bg-[#1FAF9A]/5"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                        catalogChoice === "spreadsheet" ? "bg-[#1FAF9A] text-white" : "bg-gray-100 text-gray-400"
-                      }`}>
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                        </svg>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Legal Business Name</p>
+                        <p className="font-semibold text-neutral-dark">{legalName || "—"}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-neutral-dark mb-1">Upload a spreadsheet later</h4>
-                        <p className="text-xs text-gray-500">I have a product list in Excel or CSV format.</p>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Store Name</p>
+                        <p className="font-semibold text-neutral-dark">{storeName || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">GST Number</p>
+                        <p className="font-semibold text-neutral-dark uppercase">{gstNumber || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Mobile Number</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-neutral-dark">{mobileNumber || "—"}</p>
+                          {isMobileVerified ? (
+                            <span className="bg-emerald-50 text-emerald-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-emerald-200 select-none">Verified</span>
+                          ) : (
+                            <span className="bg-amber-50 text-amber-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-amber-200 select-none">Pending</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Website / Instagram</p>
+                        <p className="font-semibold text-neutral-dark">{website || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Location</p>
+                        <p className="font-semibold text-neutral-dark">
+                          {locality ? `${locality}, ` : ""}{city ? `${city}, ` : ""}{businessState || "—"}
+                        </p>
                       </div>
                     </div>
-                  </button>
+                  </div>
+
+                  {/* Store Profile Card */}
+                  <div className="bg-[#F8FAFB] border border-gray-200 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-gray-100">
+                      <svg className="w-4 h-4 text-[#1FAF9A]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.015a2.993 2.993 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/></svg>
+                      <h3 className="text-xs font-bold text-neutral-dark uppercase tracking-wider">02. Store Profile</h3>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-5 text-xs">
+                      <div className="shrink-0">
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-1">Logo</p>
+                        {logoUrl ? (
+                          <img src={resolveImageUrl(logoUrl)} alt="Store Logo" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200 text-gray-300 font-bold text-xs uppercase">No Logo</div>
+                        )}
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Store Type</p>
+                          <p className="font-semibold text-neutral-dark">{storeType === "__other" ? customStoreType : storeType || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Product Categories</p>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {selectedCategories.map((cat) => (
+                              <span key={cat} className="bg-gray-100 text-gray-700 text-[9px] font-semibold px-2 py-0.5 rounded-full">{cat}</span>
+                            ))}
+                            {selectedCategories.length === 0 && <span className="font-semibold text-neutral-dark">—</span>}
+                          </div>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Store Description</p>
+                          <p className="font-medium text-gray-600 leading-relaxed whitespace-pre-line">{storeDescription || "—"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
 
             {/* ════════════════════════════════════════ */}
-            {/* STEP 5: First Product                   */}
+            {/* STEP 7: Complete your KYC               */}
             {/* ════════════════════════════════════════ */}
             {step === 5 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-display font-bold text-neutral-dark tracking-tight mb-2">Add your first product</h2>
-                  <p className="text-sm text-gray-500">Start with one product you want customers to see first.</p>
-                </div>
-
-                {/* Image Upload */}
-                <div>
-                  <label className={labelCls}>Product Images</label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#1FAF9A]/40 transition-colors cursor-pointer bg-[#F8FAFB]">
-                    <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <p className="text-xs font-bold text-gray-500">Drop product photos here or click to upload</p>
-                    <p className="text-[10px] text-gray-400 mt-1">PNG, JPG up to 5MB each · Up to 6 images</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="sm:col-span-2">
-                    <label className={labelCls}>Product Title</label>
-                    <input type="text" placeholder="e.g. Nordic Lounge Chair" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Category</label>
-                    <select className={`${inputCls} appearance-none`}>
-                      <option>Select category...</option>
-                      {PRODUCT_CATEGORIES.map((cat) => (
-                        <option key={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Price (₹)</label>
-                    <input type="number" placeholder="12,500" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Stock Quantity</label>
-                    <input type="number" placeholder="25" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Material</label>
-                    <input type="text" placeholder="e.g. Solid teak wood" className={inputCls} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={labelCls}>Dimensions (L × W × H in cm)</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      <input type="number" placeholder="Length" className={inputCls} />
-                      <input type="number" placeholder="Width" className={inputCls} />
-                      <input type="number" placeholder="Height" className={inputCls} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Room Placement</label>
-                    <select className={`${inputCls} appearance-none`}>
-                      <option>Select room...</option>
-                      {ROOM_OPTIONS.map((room) => (
-                        <option key={room}>{room}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Style Tag</label>
-                    <select className={`${inputCls} appearance-none`}>
-                      <option>Select style...</option>
-                      {STYLE_TAGS.map((tag) => (
-                        <option key={tag}>{tag}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ════════════════════════════════════════ */}
-            {/* STEP 6: Publish Readiness               */}
-            {/* ════════════════════════════════════════ */}
-            {step === 6 && (
-              <div className="space-y-8">
+              <div className="py-4 space-y-8">
                 <div className="text-center">
-                  <h2 className="text-2xl font-display font-bold text-neutral-dark tracking-tight mb-2">Your showroom is almost ready</h2>
-                  <p className="text-sm text-gray-500">Here's a quick check before you go live.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-8">
-                  {/* Score ring */}
-                  <div className="shrink-0 relative">
-                    <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                      <circle cx="60" cy="60" r="50" fill="none" stroke="#F1F3F5" strokeWidth="8" />
-                      <circle
-                        cx="60" cy="60" r="50"
-                        fill="none"
-                        stroke="#1FAF9A"
-                        strokeWidth="8"
-                        strokeLinecap="round"
-                        strokeDasharray={`${(readinessScore / 100) * 314} 314`}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-neutral-dark">{readinessScore}%</span>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Ready</span>
-                    </div>
-                  </div>
-
-                  {/* Checklist */}
-                  <div className="flex-1 w-full space-y-3">
-                    {checklist.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        {item.done ? (
-                          <div className="w-6 h-6 rounded-full bg-[#1FAF9A] flex items-center justify-center shrink-0">
-                            <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full border-2 border-gray-200 shrink-0" />
-                        )}
-                        <span className={`text-sm font-medium ${item.done ? "text-neutral-dark" : "text-gray-400"}`}>
-                          {item.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ════════════════════════════════════════ */}
-            {/* STEP 7: Go Live                         */}
-            {/* ════════════════════════════════════════ */}
-            {step === 7 && (
-              <div className="text-center py-8 space-y-6">
-                {/* Success animation */}
-                <div className="relative mx-auto w-24 h-24">
-                  <div className="absolute inset-0 bg-[#1FAF9A]/10 rounded-full animate-ping" style={{ animationDuration: "2s" }} />
-                  <div className="relative w-24 h-24 bg-[#1FAF9A]/10 rounded-full flex items-center justify-center">
-                    <svg className="w-12 h-12 text-[#1FAF9A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
+                  <div className="w-16 h-16 bg-[#1FAF9A]/10 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <svg className="w-8 h-8 text-[#1FAF9A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                   </div>
-                </div>
-
-                <div>
-                  <h2 className="text-3xl font-display font-bold text-neutral-dark tracking-tight mb-3">Your store is now online</h2>
-                  <p className="text-sm text-gray-500 max-w-sm mx-auto">
-                    Customers can now discover your products in SimulaFly. Head to your dashboard to manage your showroom.
+                  <h2 className="text-3xl font-display font-bold text-neutral-dark tracking-tight mb-2">
+                    Complete your KYC
+                  </h2>
+                  <p className="text-sm text-gray-500 max-w-md mx-auto">
+                    Activate your SimulaFly showroom and unlock referral bonuses by completing KYC verification.
                   </p>
                 </div>
 
-                {submitError && (
-                  <div className="px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg my-3">
-                    {submitError}
+                {/* Referral bonus callout if a code was applied */}
+                {referralApplied && (
+                  <div className="max-w-md mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-5 flex gap-4">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">Referral Code Connected ({referralCode})</p>
+                      <p className="text-[12px] text-amber-700 leading-relaxed font-semibold">
+                        Once KYC is complete, both you and <span className="font-bold underline text-amber-900">{referredMerchantName}</span> will receive <strong className="text-emerald-700 font-bold">500 INR</strong> wallet balance instantly!
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                {/* KYC Action Box */}
+                <div className="max-w-md mx-auto bg-white border border-gray-150 shadow-sm rounded-2xl p-6 space-y-5">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-dark">Instant KYC verification</h4>
+                      <p className="text-[11px] text-gray-400">Verifies business ownership and profile completeness</p>
+                    </div>
+                    <span className="bg-[#1FAF9A]/10 text-[#1FAF9A] text-[10px] font-bold px-2 py-0.5 rounded-full select-none">Fastest</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span className="text-xs font-medium text-gray-600">Publishes your store immediately to the marketplace</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span className="text-xs font-medium text-gray-600">Unlocks standard 500 INR wallet reward</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span className="text-xs font-medium text-gray-600">Enables interactive 3D product uploads</span>
+                    </div>
+                  </div>
+
+                  {submitError && (
+                    <div className="px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                      {submitError}
+                    </div>
+                  )}
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => handleFinalSubmit(true)}
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 bg-[#1FAF9A] text-white text-sm font-bold rounded-xl hover:bg-[#189986] transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                    >
+                      {isSubmitting && (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      Verify KYC &amp; Go Live
+                    </button>
+                  </div>
+                </div>
+
+                {/* Shortcut to Skip / Toggle to Dashboard */}
+                <div className="text-center pt-2">
                   <button
-                    onClick={handleFinalSubmit}
+                    onClick={() => handleFinalSubmit(false)}
                     disabled={isSubmitting}
-                    className="px-8 py-3 bg-neutral-dark text-white text-sm font-bold rounded-lg hover:bg-black transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="text-xs font-bold text-gray-400 hover:text-neutral-dark transition-colors inline-flex items-center gap-1"
                   >
-                    {isSubmitting && (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
-                    )}
-                    Go to dashboard
+                    Skip KYC for now &amp; go to dashboard
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  <Link
-                    href="/merchant/products"
-                    className="px-8 py-3 bg-white border border-gray-200 text-neutral-dark text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-                  >
-                    Add more products
-                  </Link>
                 </div>
               </div>
             )}
@@ -842,7 +1281,7 @@ export default function OnboardingPage() {
           </div>
 
           {/* ─── Footer Actions ─── */}
-          {step < 7 && (
+          {step < 5 && (
             <div className="bg-[#F8FAFB] px-8 py-5 border-t border-gray-100 flex justify-between items-center">
               {step > 1 ? (
                 <button
@@ -885,24 +1324,25 @@ export default function OnboardingPage() {
                   </div>
                   <h3 className="text-[17px] font-bold text-gray-900 mb-1">Save progress and exit?</h3>
                   <p className="text-[13px] text-gray-500">
-                    We'll save where you left off — <strong>Step {step} of 7</strong>. A reminder email will be sent to help you complete your setup.
+                    We'll save where you left off — <strong>Step {step} of 5</strong>. You can resume your setup anytime from the dashboard.
                   </p>
                 </div>
                 <div className="p-6 space-y-3">
+                  {submitError && (
+                    <div className="px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+                      {submitError}
+                    </div>
+                  )}
                   <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
                     <svg className="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    <p className="text-[12px] text-gray-600 font-medium">A completion reminder will be sent to your registered email.</p>
+                    <p className="text-[12px] text-gray-600 font-medium">Your progress is securely saved to your merchant profile.</p>
                   </div>
                   <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
                     <svg className="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <p className="text-[12px] text-gray-600 font-medium">Sign back in anytime to resume exactly from Step {step}.</p>
+                    <p className="text-[12px] text-gray-600 font-medium">Return anytime to resume exactly from Step {step}.</p>
                   </div>
                   <button
-                    onClick={() => {
-                      localStorage.setItem('sf_onboarding_step', String(step));
-                      setExitSaved(true);
-                      setTimeout(() => { window.location.href = '/merchant/sign_in'; }, 2000);
-                    }}
+                    onClick={handleSaveAndExit}
                     className="w-full py-3 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-black transition-colors"
                   >
                     Save &amp; Exit
@@ -922,8 +1362,8 @@ export default function OnboardingPage() {
                   <svg className="w-7 h-7 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <h3 className="text-[16px] font-bold text-gray-900 mb-2">Progress saved!</h3>
-                <p className="text-[12px] text-gray-500 mb-1">Check your email for a link to resume setup.</p>
-                <p className="text-[11px] text-gray-400">Redirecting you to sign in…</p>
+                <p className="text-[12px] text-gray-500 mb-1">You can resume your setup anytime from the dashboard.</p>
+                <p className="text-[11px] text-gray-400">Redirecting to the dashboard…</p>
                 <div className="flex justify-center mt-4">
                   <div className="w-5 h-5 border-2 border-[#1FAF9A] border-t-transparent rounded-full animate-spin" />
                 </div>
