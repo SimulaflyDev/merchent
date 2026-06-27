@@ -678,7 +678,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
         </section>
 
         {/* Sticky Actions Footer */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-[#E2E4E8] py-4 px-6 z-40 flex items-center justify-between shadow-lg">
+        <div className="fixed bottom-0 left-0 md:left-[var(--sidebar-width)] right-0 bg-white/95 backdrop-blur border-t border-[#E2E4E8] py-4 px-6 z-40 flex items-center justify-between shadow-lg transition-all duration-300">
           <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
             <span className="text-xs text-gray-400 hidden sm:inline">
               Make sure to save changes before leaving the page.

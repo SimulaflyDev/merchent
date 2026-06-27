@@ -11,6 +11,7 @@ import type { MerchantOut } from "@/lib/types/merchant";
 import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
 import { resolveImageUrl } from "@/lib/api/image-utils";
+import NotificationDropdown from "./components/NotificationDropdown";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -170,6 +171,11 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
     ),
+    Support: (
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
   };
 
   const mainNav = [
@@ -262,7 +268,10 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
 
   return (
     <MerchantProvider activeMerchantId={activeMerchantId} initialMerchant={initialMerchant} initialWallet={initialWallet}>
-      <div className="min-h-screen bg-[#EDEEF0] flex font-sans">
+      <div 
+        className="min-h-screen bg-[#EDEEF0] flex font-sans"
+        style={{ "--sidebar-width": collapsed ? "72px" : "264px" } as React.CSSProperties}
+      >
         {/* ─── Sidebar ─── */}
         <aside className={`${collapsed ? 'w-[72px]' : 'w-[264px]'} bg-white border-r border-[#E2E4E8] flex-col hidden md:flex sticky top-0 h-screen shrink-0 transition-all duration-300 ease-in-out`}>
 
@@ -313,6 +322,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             {!collapsed && <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 px-3.5">System</p>}
             <nav className="space-y-1">
               {renderNavItem({ name: "Settings", href: "/merchant/settings" })}
+              {renderNavItem({ name: "Support", href: "/merchant/support" })}
             </nav>
           </div>
 
@@ -407,13 +417,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
 
             <div className="flex items-center gap-3">
               {/* Notification bell */}
-              <button className="w-9 h-9 rounded-lg bg-[#F5F5F7] flex items-center justify-center text-gray-400 hover:text-[#111827] hover:bg-gray-200 transition-colors relative">
-                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0E9F88] rounded-full border border-white"></span>
-              </button>
+              <NotificationDropdown />
 
               {/* Balance widget — top right (real wallet data) */}
               <Link href="/merchant/billing" className="flex items-center gap-2.5 pl-3 border-l border-[#F1F3F5] group">

@@ -10,19 +10,7 @@ import type { MerchantOut } from "@/lib/types/merchant";
 import { srvAction, type ActionResult } from "@/lib/api/action-utils";
 import { ApiError } from "@/lib/api/errors";
 
-const ONE_DAY = 60 * 60 * 24;
-const ACCESS_TTL = ONE_DAY;       // backend access token lifetime
-const REFRESH_TTL = ONE_DAY * 30; // backend refresh token lifetime
-
-function cookieOpts(maxAge: number) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge,
-  };
-}
+import { cookieOpts, ACCESS_TTL, REFRESH_TTL } from "./jwt";
 
 export async function loginAction(email: string, password: string): Promise<ActionResult<void>> {
   return srvAction(async () => {
