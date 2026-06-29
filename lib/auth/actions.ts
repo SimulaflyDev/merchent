@@ -31,13 +31,7 @@ export async function loginAction(email: string, password: string): Promise<Acti
       // No merchant yet → onboarding will handle org creation.
       redirect("/merchant/onboarding");
     }
-    if (merchants.length === 1) {
-      c.set("active_merchant_id", merchants[0].id, cookieOpts(REFRESH_TTL));
-      redirect("/merchant/dashboard");
-    }
-    // Multi-merchant: store first as active; sidebar switcher (future) can change it.
-    c.set("active_merchant_id", merchants[0].id, cookieOpts(REFRESH_TTL));
-    redirect("/merchant/dashboard");
+    redirect("/merchant/select_shop");
   });
 }
 

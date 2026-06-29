@@ -64,22 +64,6 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
   const merchantInitials = initialMerchant.display_name.slice(0, 2).toUpperCase();
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          callAction(updateMerchantAction(initialMerchant.id, {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })).catch((err) => console.error("Failed to update merchant location:", err));
-        },
-        (error) => {
-          console.warn("Geolocation failed or denied:", error);
-        }
-      );
-    }
-  }, [initialMerchant.id]);
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
       if (
@@ -176,6 +160,23 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
     ),
+    "My Shops": (
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+        <line x1="12" y1="2" x2="12" y2="5"/>
+        <circle cx="19" cy="8" r="3"/>
+        <line x1="19" y1="6" x2="19" y2="10"/>
+        <line x1="17" y1="8" x2="21" y2="8"/>
+      </svg>
+    ),
+    "Switch Shop": (
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <circle cx="12" cy="10" r="3"/>
+        <path d="M7 17c0-3 3-3 5-3s5 0 5 3"/>
+      </svg>
+    ),
   };
 
   const mainNav = [
@@ -183,6 +184,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
     { name: "Products", href: "/merchant/products" },
     { name: "Analytics", href: "/merchant/analytics", badge: "Beta" },
     { name: "Orders", href: "/merchant/orders" },
+    { name: "My Shops", href: "/merchant/shops" },
   ];
 
   const commerceNav = [
@@ -280,6 +282,37 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             <Logo />
           </div>
 
+          {/* Shop identity badge — shows current shop_id + partner_id */}
+          {!collapsed && (
+            <div className="px-4 pb-2">
+              <div className="bg-[#F5F5F7] rounded-xl px-3 py-2 flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-md bg-[#0E9F88]/10 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Active Shop</p>
+                  <p className="text-[11px] font-bold text-[#111827] truncate">{initialMerchant.display_name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {initialMerchant.shop_id && (
+                      <span className="text-[9px] font-bold text-[#0E9F88] bg-[#0E9F88]/10 px-1.5 py-0.5 rounded font-mono">{initialMerchant.shop_id}</span>
+                    )}
+                    {initialMerchant.partner_id && (
+                      <span className="text-[9px] font-medium text-gray-400 font-mono">{initialMerchant.partner_id}</span>
+                    )}
+                  </div>
+                </div>
+                <Link href="/merchant/shops" title="Manage shops" className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-[#111827] transition-colors shrink-0">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Hamburger toggle — between logo and nav */}
           <div className={`shrink-0 flex ${collapsed ? 'justify-center py-4' : 'px-4 pt-5 pb-1'}`}>
             <button
@@ -321,6 +354,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             {/* Section: System */}
             {!collapsed && <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 px-3.5">System</p>}
             <nav className="space-y-1">
+              {renderNavItem({ name: "Switch Shop", href: "/merchant/select_shop" })}
               {renderNavItem({ name: "Settings", href: "/merchant/settings" })}
               {renderNavItem({ name: "Support", href: "/merchant/support" })}
             </nav>

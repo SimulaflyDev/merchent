@@ -122,6 +122,7 @@ export interface MerchantProductCreatePayload {
   has_simulafly_listing?: boolean;
   in_app_price?: number;
   in_app_stock?: number;
+  shop_ids?: string[];
 }
 
 export interface MerchantProductUpdatePayload {

@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { createProductAction, uploadProductImageAction } from "@/lib/auth/product-actions";
+import { getMyMerchantsAction } from "@/lib/auth/merchant-actions";
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
 import ProductPreviewModal from "../ProductPreviewModal";
 import type { MerchantProductOut } from "@/lib/types/product";
+import type { MerchantOut } from "@/lib/types/merchant";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import { useMerchant } from "@/app/merchant/context/MerchantContext";
 
@@ -70,6 +72,26 @@ export default function AddProductPage() {
   const [dragOver, setDragOver] = useState(false);
   const [statusToSubmit, setStatusToSubmit] = useState<"draft" | "published">("draft");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [shops, setShops] = useState<MerchantOut[]>([]);
+  const [selectedShops, setSelectedShops] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function loadShops() {
+      try {
+        const res = await callAction(getMyMerchantsAction());
+        if (Array.isArray(res)) {
+          setShops(res);
+        }
+        if (merchant?.id) {
+          setSelectedShops([merchant.id]);
+        }
+      } catch (err) {
+        console.error("Failed to load user shops:", err);
+      }
+    }
+    loadShops();
+  }, [merchant?.id]);
 
   if (!onboardingCompleted) {
     return (
@@ -317,6 +339,7 @@ export default function AddProductPage() {
         in_app_stock: data.stock ? parseInt(data.stock) : undefined,
         custom_metadata: customMetadata,
         status: statusToSubmit,
+        shop_ids: selectedShops,
       }));
       router.push("/merchant/products");
     } catch (err) {
@@ -581,6 +604,62 @@ export default function AddProductPage() {
 
         {/* Right Column - 35% width (col-span-4) */}
         <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-8">
+          {/* ── Section: Shop Association ── */}
+          <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#F1F3F5]">
+              <h2 className="text-[13px] font-semibold text-[#111827]">Shop Association</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">Select which of your shops will sell this product.</p>
+            </div>
+            <div className="p-6">
+              {shops.length === 0 ? (
+                <div className="flex items-center gap-2 py-2">
+                  <div className="w-4 h-4 border-2 border-[#0E9F88] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[12px] text-gray-500">Loading your shops...</span>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {shops.map((s) => {
+                    const isChecked = selectedShops.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                          isChecked
+                            ? "border-[#0E9F88] bg-[#0E9F88]/5"
+                            : "border-gray-100 hover:border-gray-200"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedShops([...selectedShops, s.id]);
+                            } else {
+                              // Prevent unchecking all shops — at least one shop must be selected
+                              if (selectedShops.length > 1) {
+                                setSelectedShops(selectedShops.filter((id) => id !== s.id));
+                              }
+                            }
+                          }}
+                          className="w-4 h-4 text-[#0E9F88] focus:ring-[#0E9F88]/30 rounded border-gray-300"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-gray-700 leading-tight truncate">
+                            {s.display_name}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {s.shop_id || s.partner_id}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* ── Section: Product Image ── */}
           <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-[#F1F3F5]">

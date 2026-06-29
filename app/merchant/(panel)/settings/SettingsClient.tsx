@@ -57,11 +57,8 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   const [storeDescription, setStoreDescription] = useState(
     (merchant.settings?.onboarding_data as any)?.description ?? ""
   );
-  const [latitude, setLatitude] = useState(
-    merchant.latitude !== null && merchant.latitude !== undefined ? String(merchant.latitude) : ""
-  );
-  const [longitude, setLongitude] = useState(
-    merchant.longitude !== null && merchant.longitude !== undefined ? String(merchant.longitude) : ""
+  const [rangeKm, setRangeKm] = useState(
+    merchant.range_km !== null && merchant.range_km !== undefined ? String(merchant.range_km) : "10"
   );
 
   // Group 3: Read-Only snapshot from DB/Onboarding
@@ -76,7 +73,6 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
 
   // Other UI States
   const [customCategory, setCustomCategory] = useState("");
-  const [isDetectingLoc, setIsDetectingLoc] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -207,10 +203,9 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   const saveChanges = async () => {
     startTransition(async () => {
       try {
-        const latVal = latitude.trim() !== "" ? parseFloat(latitude) : null;
-        const lonVal = longitude.trim() !== "" ? parseFloat(longitude) : null;
-        if ((latVal !== null && isNaN(latVal)) || (lonVal !== null && isNaN(lonVal))) {
-          throw new Error("Latitude and Longitude must be valid numbers");
+        const rangeVal = rangeKm.trim() !== "" ? parseFloat(rangeKm) : null;
+        if (rangeKm.trim() !== "" && (isNaN(rangeVal!) || rangeVal! < 0)) {
+          throw new Error("Service Range must be a positive number (0 or greater)");
         }
 
         const currentOnboardingData = (merchant.settings?.onboarding_data as any) || {};
@@ -230,8 +225,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
             support_email: supportEmail.trim() || undefined,
             support_phone: supportPhone.trim() || undefined,
             logo_url: logoUrl || undefined,
-            latitude: latVal,
-            longitude: lonVal,
+            range_km: rangeVal,
             settings: settingsPayload,
           })
         );
@@ -546,68 +540,24 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
               )}
             </div>
 
-            {/* Store Coordinates */}
-            <div className="border-t border-[#F1F3F5] pt-4">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  Store Coordinates
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!navigator.geolocation) {
-                      alert("Geolocation is not supported by your browser");
-                      return;
-                    }
-                    setIsDetectingLoc(true);
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        setLatitude(String(position.coords.latitude));
-                        setLongitude(String(position.coords.longitude));
-                        setIsDetectingLoc(false);
-                      },
-                      (error) => {
-                        console.error("Error getting geolocation:", error);
-                        alert("Failed to detect location. Please input coordinates manually.");
-                        setIsDetectingLoc(false);
-                      }
-                    );
-                  }}
-                  disabled={isDetectingLoc}
-                  className="text-xs font-semibold text-[#0E9F88] hover:text-[#0B7A69] disabled:opacity-50 flex items-center gap-1 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
-                  </svg>
-                  {isDetectingLoc ? "Detecting..." : "Detect store coordinates"}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    className={inputCls}
-                    placeholder="e.g. 12.9716"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    className={inputCls}
-                    placeholder="e.g. 77.5946"
-                  />
-                </div>
-              </div>
+            {/* Service Range */}
+            <div>
+              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Service/Delivery Range (km)
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={rangeKm}
+                onChange={(e) => setRangeKm(e.target.value)}
+                className={inputCls}
+                placeholder="e.g. 10"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                Configure the delivery radius of your shop. Users outside this range cannot view or buy products.
+              </p>
             </div>
+
           </div>
         </section>
 
@@ -671,6 +621,38 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold block mb-1">State</span>
                   <input type="text" readOnly value={businessState || "—"} className={readOnlyInputCls} />
+                </div>
+              </div>
+            </div>
+
+            {/* Shop Location — set once at creation, locked */}
+            <div className="md:col-span-2">
+              <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/60 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-bold text-amber-800 mb-0.5">Shop Location <span className="text-[9px] font-bold uppercase tracking-wider border border-amber-300 text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full ml-1">Set Once · Locked</span></p>
+                    <p className="text-[11px] text-amber-700 mb-2">Location can only be set once during shop creation and cannot be changed here. To update your shop location, email <span className="font-semibold">support@simulafly.com</span>.</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold block mb-1">Address</span>
+                        <input type="text" readOnly value={merchant.address || "Not provided"} className={readOnlyInputCls} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block mb-1">Latitude</span>
+                          <input type="text" readOnly value={merchant.latitude !== null && merchant.latitude !== undefined ? String(merchant.latitude) : "Not set"} className={readOnlyInputCls} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block mb-1">Longitude</span>
+                          <input type="text" readOnly value={merchant.longitude !== null && merchant.longitude !== undefined ? String(merchant.longitude) : "Not set"} className={readOnlyInputCls} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
