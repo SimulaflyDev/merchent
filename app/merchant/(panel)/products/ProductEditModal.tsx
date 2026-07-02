@@ -46,6 +46,20 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
     setSaveError(null);
     setSaving(true);
 
+    const parseNumber = (val: any) => {
+      if (val === null || val === undefined || String(val).trim() === "") return undefined;
+      const parsed = parseFloat(String(val));
+      return isNaN(parsed) ? undefined : parsed;
+    };
+
+    const parsedDimensions: Dimensions = {
+      ...dimensions,
+      width: parseNumber(dimensions.width),
+      height: parseNumber(dimensions.height),
+      depth: parseNumber(dimensions.depth),
+      weight: parseNumber(dimensions.weight),
+    };
+
     const payload: MerchantProductUpdatePayload = {
       title,
       description: description || null,
@@ -55,7 +69,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
       in_app_price: inAppPrice ? parseFloat(inAppPrice) : null,
       in_app_stock: inAppStock ? parseInt(inAppStock, 10) : null,
       has_simulafly_listing: hasSimulaflyListing,
-      dimensions,
+      dimensions: parsedDimensions,
       materials,
       room_storytelling: roomStorytelling,
     };
@@ -111,8 +125,8 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
             </label>
             {hasSimulaflyListing && (
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Price (₹)" value={inAppPrice} onChange={setInAppPrice} />
-                <Field label="Stock" value={inAppStock} onChange={setInAppStock} />
+                <Field label="Price (₹)" type="number" step="any" min="0" value={inAppPrice} onChange={setInAppPrice} />
+                <Field label="Stock" type="number" step="1" min="0" value={inAppStock} onChange={setInAppStock} />
               </div>
             )}
           </section>
@@ -122,21 +136,33 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
             <div className="grid grid-cols-3 gap-3">
               <Field
                 label="Width"
+                type="number"
+                step="any"
+                min="0"
                 value={String(dimensions.width ?? "")}
                 onChange={(v) => setDimensions({ ...dimensions, width: v })}
               />
               <Field
                 label="Height"
+                type="number"
+                step="any"
+                min="0"
                 value={String(dimensions.height ?? "")}
                 onChange={(v) => setDimensions({ ...dimensions, height: v })}
               />
               <Field
                 label="Depth"
+                type="number"
+                step="any"
+                min="0"
                 value={String(dimensions.depth ?? "")}
                 onChange={(v) => setDimensions({ ...dimensions, depth: v })}
               />
               <Field
                 label="Weight"
+                type="number"
+                step="any"
+                min="0"
                 value={String(dimensions.weight ?? "")}
                 onChange={(v) => setDimensions({ ...dimensions, weight: v })}
               />
@@ -211,15 +237,30 @@ function Field({
   label,
   value,
   onChange,
+  type = "text",
+  step,
+  min,
+  required,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  type?: string;
+  step?: string;
+  min?: string;
+  required?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input
+        type={type}
+        step={step}
+        min={min}
+        required={required}
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg"

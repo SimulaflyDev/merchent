@@ -21,7 +21,7 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await callAction(loginAction(email, password));
+      await callAction(loginAction(email.trim().toLowerCase(), password));
       // loginAction redirects on success; if we reach here, something unexpected happened.
     } catch (err) {
       if (isApiError(err)) {
@@ -55,7 +55,7 @@ export default function SignInPage() {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.toLowerCase().replace(/\s/g, ""))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E9F88]"
               autoComplete="email"
             />

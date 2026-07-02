@@ -410,6 +410,9 @@ export default function AddProductPage() {
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Price (₹) <span className="text-red-400">*</span></label>
                   <input
+                    type="number"
+                    step="any"
+                    min="0"
                     {...register("price")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="15000"
@@ -449,6 +452,9 @@ export default function AddProductPage() {
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Stock Quantity <span className="text-red-400">*</span></label>
                   <input
+                    type="number"
+                    step="1"
+                    min="0"
                     {...register("stock")}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="50"

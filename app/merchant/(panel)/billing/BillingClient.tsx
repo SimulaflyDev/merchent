@@ -1112,40 +1112,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
         </div>
 
-        {/* Developer simulated actions footer panel */}
-        <div className="border-t border-gray-200 pt-8 mt-12 bg-white rounded-2xl border p-6">
-          <div className="flex items-start gap-3 mb-4">
-            <span className="text-lg">🛠️</span>
-            <div>
-              <h3 className="font-extrabold text-gray-900 text-sm">Developer Testing Suite</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Simulate events and credit balances without payment gateway interactions.</p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => handleSimulatedTopup(1000)}
-              disabled={busy}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
-            >
-              Add ₹1,000
-            </button>
-            <button
-              onClick={() => handleSimulatedTopup(5000)}
-              disabled={busy}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
-            >
-              Add ₹5,000
-            </button>
-            <button
-              onClick={() => handleSimulatedTopup(10000)}
-              disabled={busy}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
-            >
-              Add ₹10,000
-            </button>
-          </div>
-        </div>
+
 
       </div>
 

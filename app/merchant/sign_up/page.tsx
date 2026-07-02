@@ -21,6 +21,13 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     
     if (password !== rePassword) {
       setError("Passwords do not match.");
@@ -34,7 +41,7 @@ export default function SignUpPage() {
 
     setIsSubmitting(true);
     try {
-      await callAction(registerAction(email, password, fullName));
+      await callAction(registerAction(trimmedEmail, password, fullName.trim()));
     } catch (err) {
       if (isApiError(err)) {
         setError(
@@ -83,7 +90,7 @@ export default function SignUpPage() {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.toLowerCase().replace(/\s/g, ""))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E9F88]"
               autoComplete="email"
               placeholder="e.g. name@company.com"

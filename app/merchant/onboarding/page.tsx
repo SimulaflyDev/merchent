@@ -89,6 +89,11 @@ export default function OnboardingPage() {
       setMobileOtpError("Please enter a valid mobile number.");
       return;
     }
+    const digitsOnly = mobileNumber.replace(/\D/g, "");
+    if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+      setMobileOtpError("Please enter a valid mobile number (10 to 15 digits).");
+      return;
+    }
     setMobileOtpError(null);
     setMobileOtpSuccess(null);
     setIsSendingMobileOtp(true);
@@ -347,6 +352,22 @@ export default function OnboardingPage() {
       if (!isMobileVerified) {
         alert("Please verify your mobile number via OTP before continuing.");
         return;
+      }
+      if (gstNumber.trim()) {
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (!gstRegex.test(gstNumber.trim().toUpperCase())) {
+          alert("Please enter a valid GST number (15-character format, e.g. 22AAAAA0000A1Z5).");
+          return;
+        }
+      }
+      if (website.trim()) {
+        const webVal = website.trim();
+        const isInstagramHandle = webVal.startsWith("@");
+        const looksLikeUrl = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(webVal);
+        if (!isInstagramHandle && !looksLikeUrl) {
+          alert("Please enter a valid Website URL (e.g. www.store.com) or Instagram handle (e.g. @store).");
+          return;
+        }
       }
     }
     setStep(step + 1);
@@ -752,10 +773,11 @@ export default function OnboardingPage() {
                     <label className={labelCls}>GST Number <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
                     <input
                       type="text"
+                      maxLength={15}
                       placeholder="e.g. 22AAAAA0000A1Z5"
                       className={`${inputCls} uppercase`}
                       value={gstNumber}
-                      onChange={(e) => setGstNumber(e.target.value)}
+                      onChange={(e) => setGstNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                     />
                   </div>
                   
@@ -770,7 +792,11 @@ export default function OnboardingPage() {
                         placeholder="+91 98765 43210"
                         className={`${inputCls} flex-1`}
                         value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const sanitized = val.replace(/(?!^\+)\+|[^\d+]/g, "");
+                          setMobileNumber(sanitized);
+                        }}
                       />
                       {!isMobileVerified && (
                         <button
@@ -912,7 +938,7 @@ export default function OnboardingPage() {
                       placeholder="e.g. www.acmefurniture.co or @acmefurniture"
                       className={inputCls}
                       value={website}
-                      onChange={(e) => setWebsite(e.target.value)}
+                      onChange={(e) => setWebsite(e.target.value.replace(/\s/g, ""))}
                     />
                   </div>
                 </div>
