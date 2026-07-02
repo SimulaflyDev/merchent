@@ -897,10 +897,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
                         </p>
                         <div className="flex flex-wrap gap-2 pt-2 justify-center md:justify-start">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/20 rounded-full text-xs font-semibold">
-                            👤 Customer = 500 pts
+                            👤 Customer = 50 pts
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/20 rounded-full text-xs font-semibold">
-                            🏢 Partner = 5000 pts
+                            🏢 Partner = ₹500
                           </span>
                         </div>
                       </div>
