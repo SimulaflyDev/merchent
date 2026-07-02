@@ -8,7 +8,7 @@ const PUBLIC_PATHS = [
   '/merchant/sign_up',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Exclude public static files and API routes we shouldn't intercept
