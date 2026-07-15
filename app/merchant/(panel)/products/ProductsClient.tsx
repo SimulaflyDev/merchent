@@ -18,6 +18,12 @@ interface Props {
   initialData: PaginatedProducts;
   initialStatus: string;
   initialSearch: string;
+  counts: {
+    all: number;
+    draft: number;
+    published: number;
+    archived: number;
+  };
 }
 
 const STATUS_OPTIONS = [
@@ -59,7 +65,7 @@ function gradientFor(sku: string) {
   return GRADIENTS[h % GRADIENTS.length];
 }
 
-export default function ProductsClient({ initialData, initialStatus, initialSearch }: Props) {
+export default function ProductsClient({ initialData, initialStatus, initialSearch, counts }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -216,7 +222,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
       {/* Status tabs */}
       <div className="flex items-center gap-1 mb-5">
         {STATUS_OPTIONS.map((opt) => {
-          const count = opt.value === "all" ? initialData.total : (statusCounts[opt.value] ?? 0);
+          const count = opt.value === "all" ? counts.all : (counts[opt.value as keyof typeof counts] ?? 0);
           const active = statusFilter === opt.value;
           return (
             <button

@@ -100,7 +100,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
   // Invoices (wallet top-ups/deposits) State
   const [allInvoiceTxs, setAllInvoiceTxs] = useState<BalanceHistoryItem[]>([]);
-  const [invoiceFilter, setInvoiceFilter] = useState<"all" | "topups" | "order_confirmation" | "external_redirect" | "buyer_intel_unlock">("all");
+  const [invoiceFilter, setInvoiceFilter] = useState<"all" | "topups" | "order_confirmation" | "buyer_intel_unlock">("all");
   const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<BalanceHistoryItem | null>(null);
 
@@ -173,9 +173,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
     if (invoiceFilter === "order_confirmation") {
       return tx.reason === "order_confirmation";
     }
-    if (invoiceFilter === "external_redirect") {
-      return tx.reason === "external_redirect" || tx.reason === "click";
-    }
+
     if (invoiceFilter === "buyer_intel_unlock") {
       return tx.reason === "buyer_intel_unlock";
     }
@@ -1023,7 +1021,6 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           <option value="all">All Invoices</option>
                           <option value="topups">Wallet Recharge</option>
                           <option value="order_confirmation">Post Order Confirmation</option>
-                          <option value="external_redirect">Clicks on Third Party Link</option>
                           <option value="buyer_intel_unlock">Buyer Intel Purchase</option>
                         </select>
                       </div>

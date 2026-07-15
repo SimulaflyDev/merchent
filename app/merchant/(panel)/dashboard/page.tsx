@@ -60,7 +60,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       analyticsSnapshot={{
-        external_redirects: summary.external_redirects,
+        external_redirects: 0,
         ai_mentions: summary.ai_mentions,
         ai_image_generations: summary.ai_image_generations,
         impressions: summary.impressions,

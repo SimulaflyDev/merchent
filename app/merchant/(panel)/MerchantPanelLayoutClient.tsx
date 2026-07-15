@@ -282,36 +282,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             <Logo />
           </div>
 
-          {/* Shop identity badge — shows current shop_id + partner_id */}
-          {!collapsed && (
-            <div className="px-4 pb-2">
-              <div className="bg-[#F5F5F7] rounded-xl px-3 py-2 flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-md bg-[#0E9F88]/10 flex items-center justify-center shrink-0">
-                  <svg className="w-3.5 h-3.5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Active Shop</p>
-                  <p className="text-[11px] font-bold text-[#111827] truncate">{initialMerchant.display_name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {initialMerchant.shop_id && (
-                      <span className="text-[9px] font-bold text-[#0E9F88] bg-[#0E9F88]/10 px-1.5 py-0.5 rounded font-mono">{initialMerchant.shop_id}</span>
-                    )}
-                    {initialMerchant.partner_id && (
-                      <span className="text-[9px] font-medium text-gray-400 font-mono">{initialMerchant.partner_id}</span>
-                    )}
-                  </div>
-                </div>
-                <Link href="/merchant/shops" title="Manage shops" className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-[#111827] transition-colors shrink-0">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          )}
+
 
           {/* Hamburger toggle — between logo and nav */}
           <div className={`shrink-0 flex ${collapsed ? 'justify-center py-4' : 'px-4 pt-5 pb-1'}`}>
@@ -450,8 +421,43 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Active Shop identity badge */}
+              <div className="bg-[#F5F5F7] rounded-xl px-3 py-1.5 flex items-center gap-2.5 border border-[#EAECEF] shadow-sm">
+                <div className="w-6 h-6 rounded-md bg-[#0E9F88]/10 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  </svg>
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Active Shop</p>
+                  <p className="text-[11px] font-bold text-[#111827] truncate max-w-[120px]">{initialMerchant.display_name}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {initialMerchant.shop_id && (
+                    <span className="text-[9px] font-bold text-[#0E9F88] bg-[#0E9F88]/10 px-1.5 py-0.5 rounded font-mono">{initialMerchant.shop_id}</span>
+                  )}
+                </div>
+                <Link href="/merchant/shops" title="Manage shops" className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-[#111827] transition-colors shrink-0">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </Link>
+              </div>
+
               {/* Notification bell */}
               <NotificationDropdown />
+
+              {/* Support button */}
+              <Link
+                href="/merchant/support"
+                className="w-9 h-9 rounded-lg bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-gray-500 hover:text-[#0E9F88] hover:bg-white transition-all shadow-sm shrink-0"
+                title="Support Center"
+              >
+                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </Link>
 
               {/* Balance widget — top right (real wallet data) */}
               <Link href="/merchant/billing" className="flex items-center gap-2.5 pl-3 border-l border-[#F1F3F5] group">

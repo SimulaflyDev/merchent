@@ -467,8 +467,7 @@ export default function ShopsClient({ shops: initialShops, activeMerchantId }: P
     setSwitchError(null);
     try {
       await setActiveMerchantAction(shopId);
-      router.refresh();
-      router.push("/merchant/dashboard");
+      window.location.href = "/merchant/dashboard";
     } catch (err: any) {
       setSwitchError(isApiError(err) ? err.detail : "Failed to switch shop.");
     } finally {

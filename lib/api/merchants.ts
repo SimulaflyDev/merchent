@@ -54,3 +54,7 @@ export async function changeMemberRole(
 export async function removeMember(merchantId: string, userId: string): Promise<void> {
   return api(`/merchants/${merchantId}/members/${userId}`, { method: "DELETE" });
 }
+
+export async function listReferredMerchants(merchantId: string): Promise<MerchantOut[]> {
+  return api(`/merchants/${merchantId}/referrals`);
+}

@@ -48,10 +48,10 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
           `WhatsApp sent to ${lead?.customer.name ?? "customer"}: "Hi, SimulaFly Merchant confirmed. We'll connect shortly."`
         );
       } else if (newStatus === "Converted") {
-        showToast("Lead marked as Payment Received. Fulfillment process started.");
+        showToast("Order marked as Payment Received. Fulfillment process started.");
       }
     } catch {
-      showToast("Failed to update lead status. Please try again.");
+      showToast("Failed to update order status. Please try again.");
     }
   };
 
@@ -76,7 +76,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
   );
 
   const counts = {
-    all: modeFilteredLeads.length,
+    all: modeFilteredLeads.filter((l) => l.status !== "Cancelled Orders").length,
     "new-lead": modeFilteredLeads.filter((l) => l.status === "New Order").length,
     synced: modeFilteredLeads.filter((l) => l.status === "Order Confirmed").length,
     converted: modeFilteredLeads.filter((l) => l.status === "Converted").length,
@@ -86,7 +86,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
   const filteredLeads = modeFilteredLeads.filter((lead) => {
     const q = searchQuery.toLowerCase();
     const matchesStatus =
-      activeTab === "all" ||
+      (activeTab === "all" && lead.status !== "Cancelled Orders") ||
       (activeTab === "new-lead" && lead.status === "New Order") ||
       (activeTab === "synced" && lead.status === "Order Confirmed") ||
       (activeTab === "converted" && lead.status === "Converted") ||
@@ -216,69 +216,74 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
 
           <div className="flex-1 bg-white border border-gray-100 rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                {/* Table header */}
-                <div className="bg-[#F8FAFB] border-b border-gray-100 px-6 py-4 grid grid-cols-12 gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest items-center">
-                  <div
-                    className="col-span-2 cursor-pointer flex items-center gap-1 hover:text-gray-600 transition-colors"
-                    onClick={() =>
-                      setSortConfig((c) => ({
-                        key: "date",
-                        direction:
-                          c?.key === "date" && c.direction === "desc"
-                            ? "asc"
-                            : "desc",
-                      }))
-                    }
-                  >
-                    Lead ID & Date
-                    {sortConfig?.key === "date" &&
-                      (sortConfig.direction === "desc" ? " ↓" : " ↑")}
-                  </div>
-                  <div className="col-span-2">Customer</div>
-                  <div className="col-span-2">Lead Type</div>
-                  <div
-                    className="col-span-2 text-right cursor-pointer flex items-center justify-end gap-1 hover:text-gray-600 transition-colors"
-                    onClick={() =>
-                      setSortConfig((c) => ({
-                        key: "value",
-                        direction:
-                          c?.key === "value" && c.direction === "desc"
-                            ? "asc"
-                            : "desc",
-                      }))
-                    }
-                  >
-                    Potential Value
-                    {sortConfig?.key === "value" &&
-                      (sortConfig.direction === "desc" ? " ↓" : " ↑")}
-                  </div>
-                  <div className="col-span-2 text-center">Shopper Interactions</div>
-                  <div className="col-span-2 text-right">Status</div>
-                </div>
-
-                {/* Table body */}
-                <div className="divide-y divide-gray-50">
+              <table className="w-full table-fixed min-w-[800px] border-collapse text-left">
+                <thead>
+                  <tr className="bg-[#F8FAFB] border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <th
+                      className="w-[18%] px-6 py-4 cursor-pointer hover:text-gray-600 transition-colors"
+                      onClick={() =>
+                        setSortConfig((c) => ({
+                          key: "date",
+                          direction:
+                            c?.key === "date" && c.direction === "desc"
+                              ? "asc"
+                              : "desc",
+                        }))
+                      }
+                    >
+                      <div className="flex items-center gap-1">
+                        Order ID & Date
+                        {sortConfig?.key === "date" &&
+                          (sortConfig.direction === "desc" ? " ↓" : " ↑")}
+                      </div>
+                    </th>
+                    <th className="w-[18%] px-6 py-4">Customer</th>
+                    <th className="w-[18%] px-6 py-4">Order Type</th>
+                    <th
+                      className="w-[16%] px-6 py-4 cursor-pointer hover:text-gray-600 transition-colors"
+                      onClick={() =>
+                        setSortConfig((c) => ({
+                          key: "value",
+                          direction:
+                            c?.key === "value" && c.direction === "desc"
+                              ? "asc"
+                              : "desc",
+                        }))
+                      }
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Order Value
+                        {sortConfig?.key === "value" &&
+                          (sortConfig.direction === "desc" ? " ↓" : " ↑")}
+                      </div>
+                    </th>
+                    <th className="w-[15%] px-6 py-4 text-center">Shopper Interactions</th>
+                    <th className="w-[15%] px-6 py-4 text-right pr-9">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
                   {sortedLeads.length === 0 ? (
-                    <div className="px-6 py-12 text-center text-sm text-gray-500">
-                      No leads found for this filter.
-                    </div>
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                        No orders found for this filter.
+                      </td>
+                    </tr>
                   ) : (
                     sortedLeads.map((lead) => (
-                      <div
+                      <tr
                         key={lead.id}
                         onClick={() => setSelectedLeadId(lead.id)}
-                        className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-gray-50/50 transition-colors group cursor-pointer"
+                        className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       >
-                        <div className="col-span-2">
+                        <td className="px-6 py-4">
                           <p className="text-sm font-bold text-neutral-dark group-hover:text-[#1FAF9A] transition-colors">
                             {lead.id}
                           </p>
                           <p className="text-[11px] font-medium text-gray-500">
                             {lead.date}
                           </p>
-                        </div>
-                        <div className="col-span-2">
+                        </td>
+                        <td className="px-6 py-4">
                           <p className="text-sm font-bold text-neutral-dark truncate">
                             {lead.status === "New Order"
                               ? "Protected Customer"
@@ -287,72 +292,67 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                           <p className="text-[11px] font-medium text-gray-500 truncate">
                             {lead.customer.city}, India
                           </p>
-                        </div>
-                        <div className="col-span-2 text-sm font-medium text-gray-600">
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-600">
                           {lead.type === "direct_purchase"
                             ? "Purchase Intent"
                             : lead.type === "cart_abandonment"
                               ? "Abandoned Cart"
                               : "High Intent View"}
-                        </div>
-                        <div className="col-span-2 text-sm font-bold text-neutral-dark text-right tabular-nums">
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-neutral-dark text-right tabular-nums">
                           ₹{lead.total.toLocaleString("en-IN")}
-                        </div>
-                        <div className="col-span-2 flex justify-center">
-                          <span className="inline-flex items-center gap-1 bg-[#1FAF9A]/10 text-[#1FAF9A] px-2 py-1 rounded text-xs font-bold">
-                            <svg
-                              className="w-3 h-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            >
-                              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                            </svg>
-                            {lead.aiInteractions}
-                          </span>
-                        </div>
-                        <div className="col-span-2 flex items-center justify-end gap-3">
-                          <span className="text-xs font-bold flex items-center gap-1.5">
-                            {lead.status === "Converted" ? (
-                              <span className="text-emerald-600 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                {lead.status}
-                              </span>
-                            ) : lead.status === "Cancelled Orders" ? (
-                              <span className="text-gray-400 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                                {lead.status}
-                              </span>
-                            ) : lead.status === "Order Confirmed" ? (
-                              <span className="text-amber-600 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                {lead.status}
-                              </span>
-                            ) : (
-                              <span className="text-blue-600 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                {lead.status}
-                              </span>
-                            )}
-                          </span>
-                          <button className="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-neutral-dark transition-colors">
-                            <svg
-                              className="w-4 h-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            >
-                              <polyline points="9 18 15 12 9 6" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center">
+                            <span className="inline-flex items-center bg-[#1FAF9A]/10 text-[#1FAF9A] px-2 py-1 rounded text-xs font-bold">
+                              {lead.aiInteractions}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-3">
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              {lead.status === "Converted" ? (
+                                <span className="text-emerald-600 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  {lead.status}
+                                </span>
+                              ) : lead.status === "Cancelled Orders" ? (
+                                <span className="text-gray-400 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                  {lead.status}
+                                </span>
+                              ) : lead.status === "Order Confirmed" ? (
+                                <span className="text-amber-600 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                  {lead.status}
+                                </span>
+                              ) : (
+                                <span className="text-blue-600 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                  {lead.status}
+                                </span>
+                              )}
+                            </span>
+                            <button className="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-neutral-dark transition-colors">
+                              <svg
+                                className="w-4 h-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <polyline points="9 18 15 12 9 6" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))
                   )}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

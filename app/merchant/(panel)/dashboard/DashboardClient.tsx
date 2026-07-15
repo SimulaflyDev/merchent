@@ -289,20 +289,7 @@ export default function DashboardClient({
       </div>
 
       {/* ── Platform Engagement Strip (real data) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-medium text-gray-400 mb-1">External Redirects</p>
-            <p className="text-[22px] font-bold text-[#111827] tabular-nums leading-none">{fmt(s.external_redirects)}</p>
-            <p className="text-[10px] text-gray-400 mt-1">Buyers sent to your store</p>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-[#EAECEF] rounded-xl p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
             <svg className="w-5 h-5 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -342,6 +329,7 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+
 
       {/* ── Dynamic Chart ── */}
       <div className="bg-white rounded-xl border border-[#EAECEF] overflow-hidden">

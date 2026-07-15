@@ -471,8 +471,7 @@ export function LeadDrawer({
                 <line x1="9" y1="9" x2="15" y2="15" />
               </svg>
               <p className="text-sm text-red-800">
-                <strong className="font-bold">Order Cancelled.</strong>{" "}
-                Customer details are hidden to protect privacy.
+                <strong className="font-bold">Order Cancelled.</strong>
               </p>
             </div>
           )}
@@ -522,20 +521,6 @@ export function LeadDrawer({
                         .join(", ")}
                       {lead.customer.city ? ", India" : ""}
                     </p>
-                    <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-bold rounded-lg border border-rose-200 shadow-sm w-fit">
-                      <svg
-                        className="w-3.5 h-3.5 text-rose-500"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                      >
-                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      GPS: {(lead.customer.latitude ?? 28.58782).toFixed(6)},{" "}
-                      {(lead.customer.longitude ?? 77.408092).toFixed(6)}
-                    </div>
                   </div>
                 )}
               </div>
@@ -615,95 +600,10 @@ export function LeadDrawer({
               )}
             </div>
           </div>
-
-          <hr className="border-gray-200" />
-
-          {/* Shopper Insights */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-[#1FAF9A]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                Shopper Insights &amp; CRM
-              </h3>
-              <span className="text-xs font-mono bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-md shadow-sm">
-                ID: {customerId}
-              </span>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-              Customer interacted with SimulaFly Commerce visualizations{" "}
-              <strong className="text-gray-900">
-                {lead.aiInteractions} times
-              </strong>{" "}
-              before converting to a lead.
-            </p>
-
-            {lead.aiGeneratedImage && (
-              <div className="mb-6">
-                {hidePii ? (
-                  <div className="w-full h-48 bg-gray-100 rounded-xl border border-gray-200 border-dashed flex flex-col items-center justify-center text-center p-6">
-                    <svg
-                      className="w-8 h-8 text-gray-400 mb-3"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <p className="text-sm font-medium text-gray-600">
-                      Shopper Visual Context Locked
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {isNewLead
-                        ? "Accept order to see the exact scene they generated."
-                        : "Not available for cancelled orders."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="relative w-full h-64 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-                    <img
-                      src={lead.aiGeneratedImage}
-                      alt="Shopper generated visualization"
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl pointer-events-none" />
-                    <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] text-white font-bold tracking-wider flex items-center gap-1.5 shadow-lg">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                      </svg>
-                      SimulaFly Commerce
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!hidePii && (
-              <button className="text-sm font-bold text-[#1FAF9A] hover:text-[#189986] transition-colors inline-flex items-center gap-1">
-                Offer Extra Discount &rarr;
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Footer actions */}
-        <div className="p-6 bg-white border-t border-gray-100 flex gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
+        <div className="p-6 bg-white border-t border-gray-100 flex flex-wrap gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
           {lead.status === "New Order" && (
             <button
               onClick={() => handleUpdate("Order Confirmed")}
@@ -721,12 +621,28 @@ export function LeadDrawer({
             </button>
           )}
           {!hidePii && (
-            <a
-              href={`tel:${lead.customer.phone}`}
-              className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-all text-center block shadow-sm"
-            >
-              Call Customer
-            </a>
+            <>
+              <a
+                href={`tel:${lead.customer.phone}`}
+                className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-all text-center block shadow-sm"
+              >
+                Call Customer
+              </a>
+              <a
+                href={`https://wa.me/${(() => {
+                  const cleaned = lead.customer.phone.replace(/[^0-9]/g, "");
+                  return cleaned.length === 10 ? `91${cleaned}` : cleaned;
+                })()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-3 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 2.12.551 4.111 1.517 5.856L.078 23.505a.498.498 0 0 0 .618.618l5.35-1.439a11.968 11.968 0 0 0 5.954 1.613c6.63 0 12-5.373 12-12s-5.37-12-12-12zm0 22.029c-1.896 0-3.754-.486-5.385-1.408a.5.5 0 0 0-.486-.048l-3.325.895.895-3.325a.5.5 0 0 0-.048-.486C2.525 15.754 2.039 13.896 2.039 12c0-5.511 4.45-9.961 9.961-9.961 5.511 0 9.961 4.45 9.961 9.961s-4.45 9.961-9.961 9.961zm5.221-7.141c-.287-.144-1.696-.837-1.958-.933-.262-.096-.453-.144-.643.144-.19.287-.738.933-.905 1.124-.167.19-.334.215-.621.071-.287-.144-1.21-.446-2.304-1.423-.852-.76-1.427-1.699-1.594-1.986-.167-.287-.018-.442.125-.584.129-.128.287-.334.43-.502.144-.167.191-.287.287-.478.096-.191.048-.358-.024-.502-.072-.144-.643-1.55-.881-2.123-.232-.559-.469-.483-.643-.492-.167-.008-.358-.008-.55-.008-.19 0-.502.072-.764.358-.262.287-1.002 1.002-1.002 2.438 0 1.436 1.043 2.822 1.187 3.013.144.191 2.052 3.134 4.972 4.394.695.3 1.238.48 1.66.613.722.23 1.378.188 1.898.11.58-.086 1.696-.693 1.935-1.362.24-.669.24-1.242.168-1.362-.072-.12-.263-.191-.55-.335z"/>
+                </svg>
+                WhatsApp
+              </a>
+            </>
           )}
           {(lead.status === "New Order" || lead.status === "Order Confirmed") && (
             <button
@@ -736,6 +652,15 @@ export function LeadDrawer({
               Cancel Order
             </button>
           )}
+          <a
+            href={`/merchant/support?reason=orders_leads&orderId=${lead.id}`}
+            className="px-6 py-3 bg-white border border-gray-200 text-[#1FAF9A] hover:bg-[#1FAF9A]/5 font-bold text-sm rounded-xl transition-all shadow-sm text-center flex items-center justify-center gap-1.5"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Support
+          </a>
         </div>
       </div>
     </>

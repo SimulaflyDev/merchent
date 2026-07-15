@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 
 // ─── Reason Categories ────────────────────────────────────────────────────────
 const REASON_CATEGORIES = [
@@ -193,12 +193,22 @@ interface ProductOption {
   sku: string;
 }
 
+// ─── Order type ───────────────────────────────────────────────────────────────
+export interface OrderOption {
+  id: string;
+  displayId: string;
+  customerName: string;
+  total: number;
+  date: string;
+}
+
 // ─── Submitted ticket ─────────────────────────────────────────────────────────
 interface SubmittedTicket {
   ticketId: string;
   reason: string;
   subReason: string;
   productTitle: string | null;
+  orderTitle: string | null;
   createdAt: string;
 }
 
@@ -323,16 +333,136 @@ function ProductCombobox({
   );
 }
 
+// ─── Order Combobox ───────────────────────────────────────────────────────────
+function OrderCombobox({
+  orders,
+  value,
+  onChange,
+}: {
+  orders: OrderOption[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return orders.slice(0, 50);
+    const q = query.toLowerCase();
+    return orders.filter(
+      (o) =>
+        o.displayId.toLowerCase().includes(q) ||
+        o.customerName.toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [query, orders]);
+
+  const selected = orders.find((o) => o.id === value);
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Trigger / search input */}
+      <div
+        className={`w-full flex items-center bg-[#F8F9FB] border rounded-xl px-4 py-3 gap-2 transition-all ${open ? "border-[#0E9F88] ring-2 ring-[#0E9F88]/20" : "border-[#E2E4E8]"}`}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 text-gray-400">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+        <input
+          id="support-order"
+          type="text"
+          value={open ? query : (selected ? `${selected.displayId} — ${selected.customerName} (${selected.date})` : "")}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => { setQuery(""); setOpen(true); }}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Search orders by ID or customer name…"
+          className="flex-1 bg-transparent text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none min-w-0"
+        />
+        {value && (
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); setQuery(""); }}
+            className="shrink-0 text-gray-400 hover:text-red-400 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        )}
+        {!value && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 text-gray-300">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        )}
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E2E4E8] rounded-xl shadow-xl overflow-hidden">
+          {/* None option */}
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); setQuery(""); setOpen(false); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-[#F5F5F7] transition-colors border-b border-[#F1F3F5]"
+          >
+            <span className="text-[12px] text-gray-400 italic">No order</span>
+          </button>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-[12px] text-gray-400 text-center">No orders match your search</p>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); onChange(o.id); setOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F0FDF9] transition-colors ${value === o.id ? "bg-[#F0FDF9]" : ""}`}
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[12.5px] font-medium text-[#111827] truncate">
+                      {o.displayId} — {o.customerName}
+                    </span>
+                    <span className="block text-[10.5px] text-gray-400 font-mono">
+                      ₹{o.total.toLocaleString("en-IN")} • {o.date}
+                    </span>
+                  </span>
+                  {value === o.id && (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5 text-[#0E9F88] shrink-0">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 interface Props {
   products: ProductOption[];
+  orders: OrderOption[];
+  initialReason?: string;
+  initialOrderId?: string;
+  initialProductId?: string;
 }
 
-export default function SupportClient({ products }: Props) {
+export default function SupportClient({
+  products,
+  orders,
+  initialReason = "",
+  initialOrderId = "",
+  initialProductId = "",
+}: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState(initialReason);
   const [subReason, setSubReason] = useState("");
-  const [productId, setProductId] = useState("");
+  const [productId, setProductId] = useState(initialProductId);
+  const [orderId, setOrderId] = useState(initialOrderId);
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -342,6 +472,14 @@ export default function SupportClient({ products }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (reason === "orders_leads") {
+      setProductId("");
+    } else {
+      setOrderId("");
+    }
+  }, [reason]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("support@simulafly.com");
@@ -375,12 +513,20 @@ export default function SupportClient({ products }: Props) {
     setError(null);
 
     try {
+      let finalDescription = description.trim();
+      if (orderId && reason === "orders_leads") {
+        const order = orders.find((o) => o.id === orderId);
+        if (order) {
+          finalDescription += `\n\n--- Related Order ---\nOrder ID: ${order.displayId} (${order.id})\nCustomer: ${order.customerName}\nTotal Value: ₹${order.total.toLocaleString("en-IN")}\nDate: ${order.date}`;
+        }
+      }
+
       // Build payload — send to our Next.js API route which proxies to backend
       const payload = {
         reason,
         sub_reason: subReason,
-        description: description.trim(),
-        merchant_product_id: productId || null,
+        description: finalDescription,
+        merchant_product_id: (reason !== "orders_leads" && productId) ? productId : null,
         attachment_url: null as string | null,
       };
 
@@ -409,13 +555,15 @@ export default function SupportClient({ products }: Props) {
       const ticket = await res.json();
       const reasonName = REASON_CATEGORIES.find((c) => c.slug === reason)?.name ?? reason;
       const subReasonName = subReasons.find((s) => s.slug === subReason)?.name ?? subReason;
-      const product = products.find((p) => p.id === productId);
+      const product = reason !== "orders_leads" ? products.find((p) => p.id === productId) : null;
+      const order = reason === "orders_leads" ? orders.find((o) => o.id === orderId) : null;
 
       setSubmitted({
         ticketId: ticket.id,
         reason: reasonName,
         subReason: subReasonName,
         productTitle: product ? `${product.title} (${product.sku})` : null,
+        orderTitle: order ? `${order.displayId} — ${order.customerName}` : null,
         createdAt: new Date(ticket.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
       });
     } catch (err: unknown) {
@@ -426,7 +574,7 @@ export default function SupportClient({ products }: Props) {
   };
 
   const resetForm = () => {
-    setReason(""); setSubReason(""); setProductId(""); setDescription("");
+    setReason(""); setSubReason(""); setProductId(""); setOrderId(""); setDescription("");
     setImageFile(null); setImagePreview(null); setSubmitted(null); setError(null);
   };
 
@@ -513,6 +661,7 @@ export default function SupportClient({ products }: Props) {
                   <div className="flex justify-between gap-3"><span className="text-gray-400 shrink-0">Reason</span><span className="text-[#111827] font-medium text-right">{submitted.reason}</span></div>
                   <div className="flex justify-between gap-3"><span className="text-gray-400 shrink-0">Sub-Reason</span><span className="text-[#111827] font-medium text-right">{submitted.subReason}</span></div>
                   {submitted.productTitle && <div className="flex justify-between gap-3"><span className="text-gray-400 shrink-0">Product</span><span className="text-[#111827] font-medium text-right">{submitted.productTitle}</span></div>}
+                  {submitted.orderTitle && <div className="flex justify-between gap-3"><span className="text-gray-400 shrink-0">Order</span><span className="text-[#111827] font-medium text-right">{submitted.orderTitle}</span></div>}
                   <div className="flex justify-between gap-3"><span className="text-gray-400 shrink-0">Submitted</span><span className="text-[#111827] font-medium">{submitted.createdAt}</span></div>
                 </div>
               </div>
@@ -592,24 +741,48 @@ export default function SupportClient({ products }: Props) {
                 </div>
 
                 {/* Related Product — searchable combobox */}
-                <div>
-                  <label className="block text-[11.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Related Product <span className="text-[10px] normal-case font-normal text-gray-400">(optional)</span>
-                  </label>
-                  {products.length === 0 ? (
-                    <div className="flex items-center gap-2 px-4 py-3 bg-[#F8F9FB] border border-[#E2E4E8] rounded-xl text-[12.5px] text-gray-400 italic">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                      </svg>
-                      No products in your catalog yet
-                    </div>
-                  ) : (
-                    <ProductCombobox products={products} value={productId} onChange={setProductId} />
-                  )}
-                  {products.length > 0 && (
-                    <p className="mt-1.5 text-[11px] text-gray-400">{products.length} product{products.length !== 1 ? "s" : ""} in your catalog</p>
-                  )}
-                </div>
+                {reason !== "orders_leads" && (
+                  <div>
+                    <label className="block text-[11.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Related Product <span className="text-[10px] normal-case font-normal text-gray-400">(optional)</span>
+                    </label>
+                    {products.length === 0 ? (
+                      <div className="flex items-center gap-2 px-4 py-3 bg-[#F8F9FB] border border-[#E2E4E8] rounded-xl text-[12.5px] text-gray-400 italic">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        </svg>
+                        No products in your catalog yet
+                      </div>
+                    ) : (
+                      <ProductCombobox products={products} value={productId} onChange={setProductId} />
+                    )}
+                    {products.length > 0 && (
+                      <p className="mt-1.5 text-[11px] text-gray-400">{products.length} product{products.length !== 1 ? "s" : ""} in your catalog</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Related Order — searchable combobox */}
+                {reason === "orders_leads" && (
+                  <div>
+                    <label className="block text-[11.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Related Order <span className="text-[10px] normal-case font-normal text-gray-400">(optional)</span>
+                    </label>
+                    {orders.length === 0 ? (
+                      <div className="flex items-center gap-2 px-4 py-3 bg-[#F8F9FB] border border-[#E2E4E8] rounded-xl text-[12.5px] text-gray-400 italic">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                          <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                        </svg>
+                        No orders placed yet
+                      </div>
+                    ) : (
+                      <OrderCombobox orders={orders} value={orderId} onChange={setOrderId} />
+                    )}
+                    {orders.length > 0 && (
+                      <p className="mt-1.5 text-[11px] text-gray-400">{orders.length} order{orders.length !== 1 ? "s" : ""} in your store</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Image Upload */}
                 <div>

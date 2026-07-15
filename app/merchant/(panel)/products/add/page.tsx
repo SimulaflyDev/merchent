@@ -12,7 +12,7 @@ import { getMyMerchantsAction } from "@/lib/auth/merchant-actions";
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
 import ProductPreviewModal from "../ProductPreviewModal";
-import type { MerchantProductOut } from "@/lib/types/product";
+import type { MerchantProductOut, Dimensions, Materials, RoomStorytelling } from "@/lib/types/product";
 import type { MerchantOut } from "@/lib/types/merchant";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import { useMerchant } from "@/app/merchant/context/MerchantContext";
@@ -31,10 +31,6 @@ const schema = z.object({
   stock:       z.string().optional().refine(
     (v) => !v || (!isNaN(parseInt(v)) && parseInt(v) >= 0),
     { message: "Must be a positive integer" }
-  ),
-  productUrl:  z.string().optional().refine(
-    (v) => !v || /^https?:\/\/.+/.test(v),
-    { message: "Enter a valid URL" }
   ),
   metadata: z.array(z.object({ key: z.string(), value: z.string() })),
 });
@@ -75,6 +71,11 @@ export default function AddProductPage() {
 
   const [shops, setShops] = useState<MerchantOut[]>([]);
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
+
+  // ── Extra fields matching Edit modal ──────────────────────────────────────
+  const [dimensions, setDimensions] = useState<Dimensions>({});
+  const [materials, setMaterials] = useState<Materials>({});
+  const [roomStorytelling, setRoomStorytelling] = useState<RoomStorytelling>({});
 
   useEffect(() => {
     async function loadShops() {
@@ -166,7 +167,7 @@ export default function AddProductPage() {
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", sku: "", category: "", subcategory: "", brand: "", description: "", price: "", stock: "", productUrl: "", metadata: [] },
+    defaultValues: { title: "", sku: "", category: "", subcategory: "", brand: "", description: "", price: "", stock: "", metadata: [] },
     mode: "onChange",
   });
   const { fields, append, remove } = useFieldArray({ control, name: "metadata" });
@@ -179,7 +180,6 @@ export default function AddProductPage() {
   const watchDescription = watch("description");
   const watchPrice = watch("price");
   const watchStock = watch("stock");
-  const watchProductUrl = watch("productUrl");
   const watchMetadata = watch("metadata");
 
   // Format dimensions, materials, and colors from metadata if present
@@ -229,19 +229,6 @@ export default function AddProductPage() {
     ai_relevance_score: watchDescription && watchDescription.length >= 30 ? 95 : 65,
     health_score: watchDescription && watchDescription.length >= 30 ? "good" : "review",
     health_reason: "This is a real-time storefront preview of your product.",
-    external_links: watchProductUrl ? [
-      {
-        id: "temp-link-id",
-        merchant_product_id: "temp-preview-id",
-        platform: "brand_site",
-        url: watchProductUrl,
-        label: "Store Link",
-        last_seen_price: watchPrice ? parseFloat(watchPrice) : null,
-        is_primary: true,
-        position: 0,
-        created_at: new Date().toISOString(),
-      }
-    ] : [],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -324,7 +311,20 @@ export default function AddProductPage() {
     for (const row of data.metadata) {
       if (row.key.trim()) customMetadata[row.key.trim()] = row.value;
     }
-    if (data.productUrl) customMetadata.legacy_product_url = data.productUrl;
+
+
+    const parseNumber = (val: unknown) => {
+      if (val === null || val === undefined || String(val).trim() === "") return undefined;
+      const parsed = parseFloat(String(val));
+      return isNaN(parsed) ? undefined : parsed;
+    };
+    const parsedDimensions: Dimensions = {
+      ...dimensions,
+      width: parseNumber(dimensions.width),
+      height: parseNumber(dimensions.height),
+      depth: parseNumber(dimensions.depth),
+      weight: parseNumber(dimensions.weight),
+    };
 
     try {
       await callAction(createProductAction({
@@ -340,6 +340,9 @@ export default function AddProductPage() {
         custom_metadata: customMetadata,
         status: statusToSubmit,
         shop_ids: selectedShops,
+        dimensions: parsedDimensions,
+        materials,
+        room_storytelling: roomStorytelling,
       }));
       router.push("/merchant/products");
     } catch (err) {
@@ -539,19 +542,59 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* ── Section: External Link ── */}
+
+          {/* ── Section: Dimensions ── */}
           <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#F1F3F5]">
-              <h2 className="text-[13px] font-semibold text-[#111827]">External Link</h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">Optional — your product page on Amazon, Shopify, or your website.</p>
+            <div className="px-6 py-4 border-b border-[#F1F3F5] flex justify-between items-center">
+              <div>
+                <h2 className="text-[13px] font-semibold text-[#111827]">Dimensions</h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">Physical size of the product in cm/inches.</p>
+              </div>
+              <select
+                value={(dimensions.unit as string) || "cm"}
+                onChange={(e) => setDimensions({ ...dimensions, unit: e.target.value })}
+                className="px-2.5 py-1.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-lg text-[12px] font-medium text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#0E9F88]"
+              >
+                <option value="cm">cm</option>
+                <option value="inches">inches</option>
+              </select>
             </div>
             <div className="p-6">
-              <input
-                {...register("productUrl")}
-                className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
-                placeholder="https://www.amazon.in/dp/..."
-              />
-              {errors.productUrl && <p className="text-red-500 text-[11px] mt-1">{errors.productUrl.message}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                <DimField label="Width" value={String(dimensions.width ?? "")} onChange={(v) => setDimensions({ ...dimensions, width: v })} />
+                <DimField label="Height" value={String(dimensions.height ?? "")} onChange={(v) => setDimensions({ ...dimensions, height: v })} />
+                <DimField label="Depth" value={String(dimensions.depth ?? "")} onChange={(v) => setDimensions({ ...dimensions, depth: v })} />
+                <DimField label="Weight" value={String(dimensions.weight ?? "")} onChange={(v) => setDimensions({ ...dimensions, weight: v })} />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Materials ── */}
+          <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#F1F3F5]">
+              <h2 className="text-[13px] font-semibold text-[#111827]">Materials</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">Material composition helps AI understand your product.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <MatField label="Primary Material" value={materials.primary ?? ""} onChange={(v) => setMaterials({ ...materials, primary: v })} placeholder="e.g. Solid Oak" />
+              <MatField label="Finish" value={materials.finish ?? ""} onChange={(v) => setMaterials({ ...materials, finish: v })} placeholder="e.g. Matte lacquer" />
+              <MatField label="Upholstery" value={materials.upholstery_type ?? ""} onChange={(v) => setMaterials({ ...materials, upholstery_type: v })} placeholder="e.g. Full-grain leather" />
+            </div>
+          </div>
+
+          {/* ── Section: Room Storytelling ── */}
+          <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#F1F3F5]">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[13px] font-semibold text-[#111827]">Room Storytelling</h2>
+                <span className="text-[9px] font-bold bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Helps AI matching</span>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-0.5">Describe how and where this product fits in a room.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <MatField label="Best used in" value={roomStorytelling.best_used_in ?? ""} onChange={(v) => setRoomStorytelling({ ...roomStorytelling, best_used_in: v })} placeholder="e.g. Living room, dining area" />
+              <MatField label="Pairs well with" value={roomStorytelling.pairs_well_with ?? ""} onChange={(v) => setRoomStorytelling({ ...roomStorytelling, pairs_well_with: v })} placeholder="e.g. Upholstered chairs, area rug" />
+              <MatField label="Mood" value={roomStorytelling.mood ?? ""} onChange={(v) => setRoomStorytelling({ ...roomStorytelling, mood: v })} placeholder="e.g. Scandinavian minimalist" />
             </div>
           </div>
 
@@ -856,6 +899,43 @@ export default function AddProductPage() {
           </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ── Helper field components for Dimensions / Materials / Room Storytelling ────
+
+function DimField({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <input
+        type="number"
+        step="any"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
+      />
+    </div>
+  );
+}
+
+function MatField({
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
+      />
     </div>
   );
 }

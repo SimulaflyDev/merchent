@@ -17,14 +17,6 @@ const HEALTH_CONFIG: Record<string, { label: string; cls: string; bar: string; i
   paused:   { label: "Paused",   cls: "text-gray-500 bg-gray-50 border-gray-100", bar: "bg-gray-300", icon: "‖" },
 };
 
-const PLATFORM_LABELS: Record<string, string> = {
-  amazon: "Amazon",
-  shopify: "Shopify",
-  brand_site: "Brand Site",
-  whatsapp: "WhatsApp",
-  other: "Other",
-};
-
 export default function ProductPreviewModal({ product, onClose }: Props) {
   const [tab, setTab] = useState<"preview" | "details" | "ai">("preview");
   const health = HEALTH_CONFIG[product.health_score] ?? HEALTH_CONFIG.review;
@@ -137,20 +129,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
                       Buy on SimulaFly
                     </div>
                   )}
-                  {product.external_links.slice(0, 2).map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[12px] font-medium text-[#111827] hover:bg-gray-100 transition-colors"
-                    >
-                      <span>{link.label ?? PLATFORM_LABELS[link.platform] ?? link.platform}</span>
-                      {link.last_seen_price != null && (
-                        <span className="text-gray-400">₹{link.last_seen_price.toLocaleString("en-IN")}</span>
-                      )}
-                    </a>
-                  ))}
+
                 </div>
               </div>
             </div>
@@ -205,26 +184,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
                 </div>
               )}
 
-              {product.external_links.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">External Links</p>
-                  <div className="space-y-2">
-                    {product.external_links.map((l) => (
-                      <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div>
-                          <p className="text-[12px] font-medium text-[#111827]">{l.label ?? PLATFORM_LABELS[l.platform]}</p>
-                          <p className="text-[10px] text-gray-400 font-mono truncate max-w-xs">{l.url}</p>
-                        </div>
-                        {l.last_seen_price != null && (
-                          <span className="text-[12px] font-semibold text-gray-600">
-                            ₹{l.last_seen_price.toLocaleString("en-IN")}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           )}
 

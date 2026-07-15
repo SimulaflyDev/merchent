@@ -160,18 +160,6 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
           <h1 className="text-[20px] font-bold text-gray-900 tracking-tight">Buyer Intelligence</h1>
           <p className="text-[12px] text-gray-400 mt-0.5">Shopper intent signals, room engagement, and conversion opportunities.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <div className="text-right">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Wallet Balance</p>
-            <p className="text-lg font-bold text-gray-900">₹{credits}</p>
-          </div>
-          <Link
-            href="/merchant/wallet"
-            className="px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-lg hover:bg-black transition-colors whitespace-nowrap"
-          >
-            Add Funds
-          </Link>
-        </div>
       </div>
 
       {/* ── KPI Strip ── */}
@@ -336,10 +324,6 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
             <div className="mt-2 text-[10px] text-gray-400 space-y-1">
               <div>• 10% - 80% score: ₹15</div>
               <div>• 81% - 99% score: ₹30</div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Your Balance</p>
-              <p className={`text-[15px] font-bold ${credits >= 15 ? "text-[#1FAF9A]" : "text-red-500"}`}>₹{credits}</p>
             </div>
           </div>
         </div>

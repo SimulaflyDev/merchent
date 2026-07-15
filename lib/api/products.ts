@@ -5,10 +5,8 @@ import type {
   MerchantProductCreatePayload,
   MerchantProductUpdatePayload,
   PaginatedProducts,
-  ExternalLinkOut,
-  ExternalLinkCreatePayload,
-  ExternalLinkUpdatePayload,
   ProductStatus,
+
 } from "@/lib/types/product";
 
 export interface ListProductsParams {
@@ -59,32 +57,4 @@ export async function publishProduct(id: string): Promise<MerchantProductOut> {
   return api<MerchantProductOut>(`/merchant/products/${id}/publish`, { method: "POST" });
 }
 
-export async function addExternalLink(
-  productId: string,
-  payload: ExternalLinkCreatePayload,
-): Promise<ExternalLinkOut> {
-  return api<ExternalLinkOut>(`/merchant/products/${productId}/external-links/`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
 
-export async function updateExternalLink(
-  productId: string,
-  linkId: string,
-  payload: ExternalLinkUpdatePayload,
-): Promise<ExternalLinkOut> {
-  return api<ExternalLinkOut>(`/merchant/products/${productId}/external-links/${linkId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function deleteExternalLink(
-  productId: string,
-  linkId: string,
-): Promise<void> {
-  return api<void>(`/merchant/products/${productId}/external-links/${linkId}`, {
-    method: "DELETE",
-  });
-}

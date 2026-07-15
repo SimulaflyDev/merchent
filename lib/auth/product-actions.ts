@@ -8,19 +8,14 @@ import {
   updateProduct as apiUpdate,
   archiveProduct as apiArchive,
   publishProduct as apiPublish,
-  addExternalLink as apiAddLink,
-  updateExternalLink as apiUpdateLink,
-  deleteExternalLink as apiDeleteLink,
   listProducts as apiList,
+
 } from "@/lib/api/products";
 import { ApiError } from "@/lib/api/errors";
 import type {
   MerchantProductCreatePayload,
   MerchantProductOut,
   MerchantProductUpdatePayload,
-  ExternalLinkOut,
-  ExternalLinkCreatePayload,
-  ExternalLinkUpdatePayload,
   PaginatedProducts,
 } from "@/lib/types/product";
 
@@ -62,38 +57,7 @@ export async function publishProductAction(id: string): Promise<ActionResult<Mer
   });
 }
 
-export async function addExternalLinkAction(
-  productId: string,
-  payload: ExternalLinkCreatePayload,
-): Promise<ActionResult<ExternalLinkOut>> {
-  return srvAction(async () => {
-    const link = await apiAddLink(productId, payload);
-    revalidatePath("/merchant/products");
-    return link;
-  });
-}
 
-export async function updateExternalLinkAction(
-  productId: string,
-  linkId: string,
-  payload: ExternalLinkUpdatePayload,
-): Promise<ActionResult<ExternalLinkOut>> {
-  return srvAction(async () => {
-    const link = await apiUpdateLink(productId, linkId, payload);
-    revalidatePath("/merchant/products");
-    return link;
-  });
-}
-
-export async function deleteExternalLinkAction(
-  productId: string,
-  linkId: string,
-): Promise<ActionResult<void>> {
-  return srvAction(async () => {
-    await apiDeleteLink(productId, linkId);
-    revalidatePath("/merchant/products");
-  });
-}
 
 /**
  * Upload a product image to the backend's base64-JSON upload endpoint.

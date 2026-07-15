@@ -7,7 +7,9 @@ import {
   changeMemberRole as apiChangeRole,
   removeMember as apiRemove,
   listMyMerchants as apiList,
+  listReferredMerchants as apiListReferrals,
 } from "@/lib/api/merchants";
+
 import { setActiveMerchantAction } from "@/lib/auth/actions";
 import type {
   MerchantCreatePayload,
@@ -75,3 +77,10 @@ export async function getPublicMerchantAction(
     return api(`/merchants/public/${lookup}`, { skipAuth: true });
   });
 }
+
+export async function getReferredMerchantsAction(
+  merchantId: string,
+): Promise<ActionResult<MerchantOut[]>> {
+  return srvAction(() => apiListReferrals(merchantId));
+}
+

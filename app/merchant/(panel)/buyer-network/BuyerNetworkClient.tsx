@@ -585,19 +585,6 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        {[
-          { icon: "↑", text: "Import your customers for free" },
-          { icon: "🛋️", text: "Invite them to visualize products" },
-          { icon: "✦", text: "Earn invite balance when customers join" },
-        ].map((item) => (
-          <div key={item.text} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md transition-all">
-            <span className="text-[13px]">{item.icon}</span>
-            <span className="text-[11px] font-semibold text-gray-700">{item.text}</span>
-          </div>
-        ))}
-      </div>
-
       {!hasCustomers && (
         <div className="bg-white border border-gray-200 border-dashed rounded-2xl py-20 text-center px-6">
           <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-gray-100">

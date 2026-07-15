@@ -28,8 +28,7 @@ export default function SelectShopClient({ shops, activeMerchantId }: Props) {
     setSelecting(shopId);
     try {
       await setActiveMerchantAction(shopId);
-      router.push("/merchant/dashboard");
-      router.refresh();
+      window.location.href = "/merchant/dashboard";
     } catch (err) {
       console.error("Failed to select shop:", err);
       setSelecting(null);

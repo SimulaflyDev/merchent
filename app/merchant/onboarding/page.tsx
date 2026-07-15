@@ -65,6 +65,7 @@ export default function OnboardingPage() {
   // Step 2: Business Details
   const [legalName, setLegalName] = useState("");
   const [gstNumber, setGstNumber] = useState("");
+  const [companyType, setCompanyType] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [city, setCity] = useState("");
   const [locality, setLocality] = useState("");
@@ -191,6 +192,7 @@ export default function OnboardingPage() {
 
           const onboardData = (m.settings?.onboarding_data as any) || {};
           setGstNumber(onboardData.gst_number || "");
+          setCompanyType(onboardData.company_type || "");
           setCity(onboardData.city || "");
           setLocality(onboardData.locality || "");
           setBusinessState(onboardData.state || "");
@@ -345,20 +347,22 @@ export default function OnboardingPage() {
 
   const handleNext = () => {
     if (step === 2) {
-      if (!storeName.trim() || !mobileNumber.trim() || !city.trim() || !locality.trim() || !businessState.trim()) {
-        alert("Please fill in all required fields: Store Name, Mobile Number, Locality, City, and State.");
+      if (!storeName.trim() || !companyType || !mobileNumber.trim() || !city.trim() || !locality.trim() || !businessState.trim()) {
+        alert("Please fill in all required fields: Store Name, Company Type, Mobile Number, Locality, City, and State.");
         return;
       }
       if (!isMobileVerified) {
         alert("Please verify your mobile number via OTP before continuing.");
         return;
       }
-      if (gstNumber.trim()) {
-        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-        if (!gstRegex.test(gstNumber.trim().toUpperCase())) {
-          alert("Please enter a valid GST number (15-character format, e.g. 22AAAAA0000A1Z5).");
-          return;
-        }
+      if (!gstNumber.trim()) {
+        alert("Please enter your GST number.");
+        return;
+      }
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstRegex.test(gstNumber.trim().toUpperCase())) {
+        alert("Please enter a valid GST number (15-character format, e.g. 22AAAAA0000A1Z5).");
+        return;
       }
       if (website.trim()) {
         const webVal = website.trim();
@@ -394,6 +398,7 @@ export default function OnboardingPage() {
         onboarding_completed: false,
         onboarding_data: {
           gst_number: gstNumber || undefined,
+          company_type: companyType || undefined,
           city: city || undefined,
           locality: locality || undefined,
           state: businessState || undefined,
@@ -445,6 +450,7 @@ export default function OnboardingPage() {
         onboarding_completed: true,
         onboarding_data: {
           gst_number: gstNumber || undefined,
+          company_type: companyType || undefined,
           city: city || undefined,
           locality: locality || undefined,
           state: businessState || undefined,
@@ -770,9 +776,28 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>GST Number <span className="text-gray-300 normal-case font-medium">(optional)</span></label>
+                    <label className={labelCls}>Company Type <span className="text-red-400">*</span></label>
+                    <select
+                      required
+                      className={`${inputCls} appearance-none bg-no-repeat bg-[right_1rem_center]`}
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                      value={companyType}
+                      onChange={(e) => setCompanyType(e.target.value)}
+                    >
+                      <option value="" disabled>Select company type</option>
+                      <option value="Sole Proprietorship">Sole Proprietorship</option>
+                      <option value="Partnership">Partnership</option>
+                      <option value="LLP">Limited Liability Partnership (LLP)</option>
+                      <option value="Private Limited">Private Limited Company</option>
+                      <option value="Public Limited">Public Limited Company</option>
+                      <option value="One Person Company">One Person Company (OPC)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>GST Number <span className="text-red-400">*</span></label>
                     <input
                       type="text"
+                      required
                       maxLength={15}
                       placeholder="e.g. 22AAAAA0000A1Z5"
                       className={`${inputCls} uppercase`}
@@ -1145,6 +1170,10 @@ export default function OnboardingPage() {
                       <div>
                         <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">GST Number</p>
                         <p className="font-semibold text-neutral-dark uppercase">{gstNumber || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Company Type</p>
+                        <p className="font-semibold text-neutral-dark">{companyType || "—"}</p>
                       </div>
                       <div>
                         <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-0.5">Mobile Number</p>

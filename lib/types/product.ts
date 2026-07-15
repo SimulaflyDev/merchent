@@ -4,42 +4,6 @@ export type ProductStatus =
   | "paused_insufficient_funds"
   | "archived";
 
-export type ExternalLinkPlatform =
-  | "amazon"
-  | "shopify"
-  | "brand_site"
-  | "whatsapp"
-  | "other";
-
-export interface ExternalLinkOut {
-  id: string;
-  merchant_product_id: string;
-  platform: ExternalLinkPlatform;
-  url: string;
-  label: string | null;
-  last_seen_price: number | null;
-  is_primary: boolean;
-  position: number;
-  created_at: string;
-}
-
-export interface ExternalLinkCreatePayload {
-  platform: ExternalLinkPlatform;
-  url: string;
-  label?: string;
-  last_seen_price?: number;
-  is_primary?: boolean;
-  position?: number;
-}
-
-export interface ExternalLinkUpdatePayload {
-  platform?: ExternalLinkPlatform;
-  url?: string;
-  label?: string | null;
-  last_seen_price?: number | null;
-  is_primary?: boolean;
-  position?: number;
-}
 
 export interface Dimensions {
   width?: number | string;
@@ -98,7 +62,7 @@ export interface MerchantProductOut {
   health_score: string;
   health_reason: string | null;
 
-  external_links: ExternalLinkOut[];
+
 
   created_at: string;
   updated_at: string;
