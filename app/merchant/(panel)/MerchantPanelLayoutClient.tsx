@@ -12,7 +12,7 @@ import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import NotificationDropdown from "./components/NotificationDropdown";
-import ConsumerSupportPopup from "./components/ConsumerSupportPopup";
+import Script from "next/script";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -84,6 +84,51 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Configure Zendesk to hide the default launcher button
+    (window as any).zESettings = {
+      webWidget: {
+        launcher: {
+          show: false
+        }
+      },
+      messenger: {
+        launcher: {
+          show: false
+        }
+      }
+    };
+
+    const handleZendeskEvents = () => {
+      const zE = (window as any).zE;
+      if (!zE) return;
+
+      try {
+        zE('webWidget:on', 'open', () => setConsumerSupportOpen(true));
+        zE('webWidget:on', 'close', () => setConsumerSupportOpen(false));
+      } catch (e) {}
+
+      try {
+        zE('messenger:on', 'open', () => setConsumerSupportOpen(true));
+        zE('messenger:on', 'close', () => setConsumerSupportOpen(false));
+      } catch (e) {}
+    };
+
+    if ((window as any).zE) {
+      handleZendeskEvents();
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).zE) {
+          handleZendeskEvents();
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   const iconSize = "w-5 h-5"; // 20px icons
 
@@ -452,7 +497,24 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
               {/* Support button */}
               <button
                 type="button"
-                onClick={() => setConsumerSupportOpen(!consumerSupportOpen)}
+                onClick={() => {
+                  const nextState = !consumerSupportOpen;
+                  if (typeof window !== "undefined" && (window as any).zE) {
+                    try {
+                      const zE = (window as any).zE;
+                      if (nextState) {
+                        zE('messenger', 'open');
+                        zE('webWidget', 'open');
+                      } else {
+                        zE('messenger', 'close');
+                        zE('webWidget', 'close');
+                      }
+                    } catch (err) {
+                      console.warn("Zendesk action error:", err);
+                    }
+                  }
+                  setConsumerSupportOpen(nextState);
+                }}
                 className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all shadow-sm shrink-0 ${
                   consumerSupportOpen
                     ? "bg-[#0E9F88] border-[#0E9F88] text-white hover:bg-[#0c8a76]"
@@ -487,9 +549,11 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
           </main>
         </div>
         <ToastRenderer />
-        {consumerSupportOpen && (
-          <ConsumerSupportPopup onClose={() => setConsumerSupportOpen(false)} />
-        )}
+        <Script
+          id="ze-snippet"
+          src="https://static.zdassets.com/ekr/snippet.js?key=b3746f37-7caa-49f9-883b-1a9bbf81201a"
+          strategy="afterInteractive"
+        />
       </div>
     </MerchantProvider>
   );
