@@ -12,6 +12,7 @@ import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import NotificationDropdown from "./components/NotificationDropdown";
+import ConsumerSupportPopup from "./components/ConsumerSupportPopup";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -57,6 +58,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [consumerSupportOpen, setConsumerSupportOpen] = useState(false);
 
   const walletBalance = Number(initialWallet.balance);
   const walletLow = walletBalance < initialWallet.low_balance_threshold;
@@ -422,22 +424,21 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
 
             <div className="flex items-center gap-3">
               {/* Active Shop identity badge */}
-              <div className="bg-[#F5F5F7] rounded-xl px-3 py-1.5 flex items-center gap-2.5 border border-[#EAECEF] shadow-sm">
+              <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-[#0E9F88]/10 flex items-center justify-center shrink-0">
                   <svg className="w-3.5 h-3.5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                   </svg>
                 </div>
                 <div className="text-left min-w-0">
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Active Shop</p>
-                  <p className="text-[11px] font-bold text-[#111827] truncate max-w-[120px]">{initialMerchant.display_name}</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">Active Shop</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {initialMerchant.shop_id && (
                     <span className="text-[9px] font-bold text-[#0E9F88] bg-[#0E9F88]/10 px-1.5 py-0.5 rounded font-mono">{initialMerchant.shop_id}</span>
                   )}
                 </div>
-                <Link href="/merchant/shops" title="Manage shops" className="w-6 h-6 rounded-md hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-[#111827] transition-colors shrink-0">
+                <Link href="/merchant/shops" title="Manage shops" className="w-6 h-6 rounded-md hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-[#111827] transition-colors shrink-0">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
@@ -449,15 +450,21 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
               <NotificationDropdown />
 
               {/* Support button */}
-              <Link
-                href="/merchant/support"
-                className="w-9 h-9 rounded-lg bg-[#F5F5F7] border border-[#EAECEF] flex items-center justify-center text-gray-500 hover:text-[#0E9F88] hover:bg-white transition-all shadow-sm shrink-0"
-                title="Support Center"
+              <button
+                type="button"
+                onClick={() => setConsumerSupportOpen(!consumerSupportOpen)}
+                className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all shadow-sm shrink-0 ${
+                  consumerSupportOpen
+                    ? "bg-[#0E9F88] border-[#0E9F88] text-white hover:bg-[#0c8a76]"
+                    : "bg-[#F5F5F7] border-[#EAECEF] text-gray-500 hover:text-[#0E9F88] hover:bg-white"
+                }`}
+                title="Consumer Support Chat"
               >
                 <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
                 </svg>
-              </Link>
+              </button>
 
               {/* Balance widget — top right (real wallet data) */}
               <Link href="/merchant/billing" className="flex items-center gap-2.5 pl-3 border-l border-[#F1F3F5] group">
@@ -480,6 +487,9 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
           </main>
         </div>
         <ToastRenderer />
+        {consumerSupportOpen && (
+          <ConsumerSupportPopup onClose={() => setConsumerSupportOpen(false)} />
+        )}
       </div>
     </MerchantProvider>
   );

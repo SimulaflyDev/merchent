@@ -486,7 +486,7 @@ export function LeadDrawer({
                 {hidePii ? (
                   <div className="space-y-3">
                     <p className="font-bold text-xl text-gray-400 select-none">
-                      Protected Customer
+                      {lead.customer.name}
                     </p>
                     <p className="text-gray-900 font-medium">
                       Location: {lead.customer.city}, India

@@ -285,9 +285,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm font-bold text-neutral-dark truncate">
-                            {lead.status === "New Order"
-                              ? "Protected Customer"
-                              : lead.customer.name}
+                            {lead.customer.name}
                           </p>
                           <p className="text-[11px] font-medium text-gray-500 truncate">
                             {lead.customer.city}, India

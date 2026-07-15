@@ -377,7 +377,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   const labelCls = "block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5";
 
   const tabs = [
-    { id: "profile", label: "Business Profile", desc: "Branding, contact info & legal credentials", icon: (
+    { id: "profile", label: "Merchant Profile", desc: "Branding, contact info & legal credentials", icon: (
       <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
       </svg>
@@ -483,7 +483,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
 
           <form onSubmit={handleSaveSubmit} className="space-y-6">
             
-            {/* 1. BUSINESS PROFILE TAB */}
+            {/* 1. MERCHANT PROFILE TAB */}
             {activeTab === "profile" && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl border border-[#E2E4E8] p-6 shadow-sm relative overflow-hidden">

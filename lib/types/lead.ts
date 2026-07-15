@@ -146,7 +146,11 @@ export function adaptLead(raw: BuyerLeadOut): Lead {
     status: mapLeadStatus(raw.status),
     type: raw.lead_type,
     customer: {
-      name: raw.customer.name ?? "Protected Customer",
+      name: raw.status === "new"
+        ? "New Order"
+        : raw.status === "lost"
+          ? "canceled user"
+          : (raw.customer.name ?? "Protected Customer"),
       email: raw.customer.email ?? "",
       phone: raw.customer.phone ?? "",
       city: raw.customer.city ?? "",
