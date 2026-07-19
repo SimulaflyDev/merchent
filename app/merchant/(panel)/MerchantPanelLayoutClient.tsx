@@ -12,7 +12,6 @@ import type { WalletOut } from "@/lib/types/wallet";
 import LowBalanceBanner from "./components/LowBalanceBanner";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import NotificationDropdown from "./components/NotificationDropdown";
-import Script from "next/script";
 
 function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
@@ -549,11 +548,6 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
           </main>
         </div>
         <ToastRenderer />
-        <Script
-          id="ze-snippet"
-          src="https://static.zdassets.com/ekr/snippet.js?key=b3746f37-7caa-49f9-883b-1a9bbf81201a"
-          strategy="afterInteractive"
-        />
       </div>
     </MerchantProvider>
   );
