@@ -30,11 +30,13 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        {/* Start of simulatechnologyllp Zendesk Widget script */}
         <Script
           id="ze-snippet"
-          src="https://static.zdassets.com/ekr/snippet.js?key=e81e2ff2-0269-4a2c-a2d5-3b60d56e9062"
+          src="https://static.zdassets.com/ekr/snippet.js?key=b3746f37-7caa-49f9-883b-1a9bbf81201a"
           strategy="afterInteractive"
         />
+        {/* End of simulatechnologyllp Zendesk Widget script */}
       </body>
     </html>
   );
