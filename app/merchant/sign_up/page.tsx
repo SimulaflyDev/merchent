@@ -15,6 +15,7 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState("");
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptMerchantAgreement, setAcceptMerchantAgreement] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,14 +35,20 @@ export default function SignUpPage() {
       return;
     }
     
-    if (!acceptPrivacy || !acceptTerms) {
-      setError("You must read and accept both the Privacy Policy and Terms of Services to register.");
+    if (!acceptPrivacy || !acceptTerms || !acceptMerchantAgreement) {
+      setError("Accept the Terms, Privacy Policy, and Merchant Agreement to register.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await callAction(registerAction(trimmedEmail, password, fullName.trim()));
+      await callAction(
+        registerAction(trimmedEmail, password, fullName.trim(), {
+          terms: acceptTerms,
+          privacy: acceptPrivacy,
+          merchant: acceptMerchantAgreement,
+        }),
+      );
     } catch (err) {
       if (isApiError(err)) {
         setError(
@@ -149,6 +156,19 @@ export default function SignUpPage() {
 
             <div className="flex items-start gap-2.5">
               <input
+                id="acceptMerchantAgreement"
+                type="checkbox"
+                checked={acceptMerchantAgreement}
+                onChange={(e) => setAcceptMerchantAgreement(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-[#0E9F88] focus:ring-[#0E9F88]"
+              />
+              <label htmlFor="acceptMerchantAgreement" className="text-xs text-gray-600">
+                I accept the SimulaFly Merchant Agreement and marketplace obligations.
+              </label>
+            </div>
+
+            <div className="flex items-start gap-2.5">
+              <input
                 id="acceptTerms"
                 type="checkbox"
                 checked={acceptTerms}
@@ -172,7 +192,7 @@ export default function SignUpPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting || !acceptPrivacy || !acceptTerms}
+            disabled={isSubmitting || !acceptPrivacy || !acceptTerms || !acceptMerchantAgreement}
             className="w-full py-2.5 bg-[#0E9F88] text-white font-medium rounded-lg hover:bg-[#0B7A69] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {isSubmitting ? <Spinner variant="inline" /> : "Create account"}

@@ -9,9 +9,238 @@ interface ShareCatalogModalProps {
   onClose: () => void;
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+    img.src = src;
+  });
+}
+
+async function generateStorefrontCardBlob(
+  merchant: MerchantOut,
+  deepLink: string,
+  webLink: string
+): Promise<Blob> {
+  const width = 1000;
+  const height = 1380;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not get 2D context");
+
+  const drawRoundedRect = (x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  };
+
+  // 1. Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  bgGrad.addColorStop(0, "#0B0F17");
+  bgGrad.addColorStop(0.5, "#121824");
+  bgGrad.addColorStop(1, "#0B0F17");
+  drawRoundedRect(0, 0, width, height, 48);
+  ctx.fillStyle = bgGrad;
+  ctx.fill();
+
+  // Subtle ambient glow at the top
+  const topGlow = ctx.createRadialGradient(width / 2, 220, 20, width / 2, 220, 480);
+  topGlow.addColorStop(0, "rgba(14, 159, 136, 0.22)");
+  topGlow.addColorStop(1, "rgba(14, 159, 136, 0)");
+  ctx.fillStyle = topGlow;
+  ctx.fillRect(0, 0, width, height);
+
+  // Outer border
+  drawRoundedRect(4, 4, width - 8, height - 8, 44);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 2. Pill Badge: STOREFRONT CATALOG
+  const badgeText = "STOREFRONT CATALOG";
+  const badgeW = 240;
+  const badgeH = 40;
+  const badgeX = (width - badgeW) / 2;
+  const badgeY = 65;
+  drawRoundedRect(badgeX, badgeY, badgeW, badgeH, 20);
+  ctx.fillStyle = "#F0FDF4";
+  ctx.fill();
+  ctx.fillStyle = "#0E9F88";
+  ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(badgeText, width / 2, badgeY + badgeH / 2);
+
+  // 3. Store Name
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 44px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  let displayName = merchant.display_name;
+  if (displayName.length > 26) {
+    displayName = displayName.substring(0, 24) + "...";
+  }
+  ctx.fillText(displayName, width / 2, 150);
+
+  // 4. Subtitle
+  ctx.fillStyle = "#94A3B8";
+  ctx.font = "18px system-ui, -apple-system, sans-serif";
+  ctx.fillText("Let customers view and preview your catalog inside the app", width / 2, 195);
+
+  // 5. Inner Card Mockup
+  const cardX = 80;
+  const cardY = 245;
+  const cardW = width - 160;
+  const cardH = 750;
+  drawRoundedRect(cardX, cardY, cardW, cardH, 36);
+  const cardBg = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+  cardBg.addColorStop(0, "rgba(255, 255, 255, 0.04)");
+  cardBg.addColorStop(1, "rgba(255, 255, 255, 0.02)");
+  ctx.fillStyle = cardBg;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 6. Logo Badge
+  const logoSize = 90;
+  const logoX = width / 2;
+  const logoY = cardY + 80;
+
+  let logoDrawn = false;
+  if (merchant.logo_url) {
+    try {
+      const resolvedLogo = resolveImageUrl(merchant.logo_url);
+      const res = await fetch(resolvedLogo);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const img = await loadImage(objUrl);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(logoX, logoY, logoSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, logoX - logoSize / 2, logoY - logoSize / 2, logoSize, logoSize);
+      ctx.restore();
+      URL.revokeObjectURL(objUrl);
+      logoDrawn = true;
+    } catch {
+      logoDrawn = false;
+    }
+  }
+
+  if (!logoDrawn) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(logoX, logoY, logoSize / 2, 0, Math.PI * 2);
+    const grad = ctx.createLinearGradient(logoX - 45, logoY - 45, logoX + 45, logoY + 45);
+    grad.addColorStop(0, "#0E9F88");
+    grad.addColorStop(1, "#2DD4BF");
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(merchant.display_name.charAt(0).toUpperCase(), logoX, logoY);
+    ctx.restore();
+  }
+
+  // Logo Border
+  ctx.beginPath();
+  ctx.arc(logoX, logoY, logoSize / 2, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+
+  // 7. QR Code White Box
+  const qrBoxSize = 450;
+  const qrBoxX = (width - qrBoxSize) / 2;
+  const qrBoxY = cardY + 160;
+  drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 28);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+  ctx.shadowBlur = 30;
+  ctx.shadowOffsetY = 12;
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+
+  // QR Code Image (High Res 500x500)
+  const qrUrlHighRes = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(deepLink)}&color=111827&margin=10`;
+  const qrResponse = await fetch(qrUrlHighRes);
+  const qrBlob = await qrResponse.blob();
+  const qrObjUrl = URL.createObjectURL(qrBlob);
+  const qrImg = await loadImage(qrObjUrl);
+  const qrPad = 28;
+  ctx.drawImage(qrImg, qrBoxX + qrPad, qrBoxY + qrPad, qrBoxSize - qrPad * 2, qrBoxSize - qrPad * 2);
+  URL.revokeObjectURL(qrObjUrl);
+
+  // 8. Referral Code
+  const refCode = merchant.referral_code || `SL-${merchant.slug.toUpperCase()}`;
+  ctx.fillStyle = "#94A3B8";
+  ctx.font = "bold 20px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(refCode, width / 2, cardY + cardH - 50);
+
+  // 9. Shareable Web Link Box
+  const linkBoxW = width - 160;
+  const linkBoxH = 76;
+  const linkBoxX = 80;
+  const linkBoxY = 1035;
+
+  // Label above link box
+  ctx.fillStyle = "#64748B";
+  ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("SHAREABLE WEB LINK", linkBoxX, linkBoxY - 14);
+
+  // Link Container
+  drawRoundedRect(linkBoxX, linkBoxY, linkBoxW, linkBoxH, 18);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Link text
+  ctx.fillStyle = "#E2E8F0";
+  ctx.font = "500 18px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(webLink, width / 2, linkBoxY + linkBoxH / 2);
+
+  // 10. Footer Branding
+  ctx.fillStyle = "#475569";
+  ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("POWERED BY SIMULAFLY • SMART 3D & AR CATALOG", width / 2, height - 65);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Canvas toBlob failed"));
+    }, "image/png");
+  });
+}
+
 export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogModalProps) {
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingCard, setDownloadingCard] = useState(false);
+  const [downloadingQr, setDownloadingQr] = useState(false);
 
   // Generate deep link and web sharing URLs
   const deepLink = `simulafly://merchant/${merchant.referral_code || merchant.slug || merchant.id}`;
@@ -28,8 +257,27 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
     }
   };
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  const handleDownloadCard = async () => {
+    setDownloadingCard(true);
+    try {
+      const blob = await generateStorefrontCardBlob(merchant, deepLink, webLink);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${merchant.slug || "merchant"}_storefront_card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Card download failed", err);
+    } finally {
+      setDownloadingCard(false);
+    }
+  };
+
+  const handleDownloadQrOnly = async () => {
+    setDownloadingQr(true);
     try {
       const response = await fetch(qrCodeUrl);
       const blob = await response.blob();
@@ -44,7 +292,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
     } catch (err) {
       console.error("QR Code download failed", err);
     } finally {
-      setDownloading(false);
+      setDownloadingQr(false);
     }
   };
 
@@ -150,30 +398,47 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
           </div>
         </div>
 
-        {/* Download & Social actions */}
-        <div className="grid grid-cols-2 gap-3 mt-2">
+        {/* Download & Actions */}
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleDownloadCard}
+              disabled={downloadingCard || downloadingQr}
+              className="flex items-center justify-center gap-2 h-10 bg-[#0E9F88] hover:bg-[#0c8c77] text-white text-[12px] font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50"
+            >
+              {downloadingCard ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              )}
+              Download Card
+            </button>
+            
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center h-10 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-[12px] font-semibold rounded-xl transition-all"
+            >
+              Close
+            </button>
+          </div>
+
           <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center justify-center gap-2 h-10 border border-[#EAECEF] dark:border-white/5 hover:border-gray-300 dark:hover:border-white/20 text-gray-700 dark:text-gray-200 text-[12px] font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all disabled:opacity-50"
+            onClick={handleDownloadQrOnly}
+            disabled={downloadingCard || downloadingQr}
+            className="flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
           >
-            {downloading ? (
-              <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            {downloadingQr ? (
+              <span className="inline-flex items-center gap-1">
+                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                Downloading QR...
+              </span>
             ) : (
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
+              "Download raw QR image only"
             )}
-            Download QR
-          </button>
-          
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center h-10 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-[12px] font-semibold rounded-xl transition-all"
-          >
-            Close
           </button>
         </div>
 

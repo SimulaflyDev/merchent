@@ -39,9 +39,17 @@ export async function registerAction(
   email: string,
   password: string,
   fullName: string,
+  agreements: { terms: boolean; privacy: boolean; merchant: boolean },
 ): Promise<ActionResult<void>> {
   return srvAction(async () => {
-    await registerApi({ email, password, full_name: fullName });
+    await registerApi({
+      email,
+      password,
+      full_name: fullName,
+      terms_accepted: agreements.terms,
+      privacy_policy_accepted: agreements.privacy,
+      merchant_agreement_accepted: agreements.merchant,
+    });
     // Auto-login after register.
     const loginRes = await loginAction(email, password);
     if (!loginRes.success) {
@@ -69,9 +77,9 @@ export async function sendEmailOtpAction(): Promise<ActionResult<{ message: stri
   });
 }
 
-export async function verifyEmailOtpAction(otp: string): Promise<ActionResult<{ message: string; user: any }>> {
+export async function verifyEmailOtpAction(otp: string): Promise<ActionResult<{ message: string; user: CurrentUserSummary }>> {
   return srvAction(async () => {
-    return api<{ message: string; user: any }>("/auth/verify-otp", {
+    return api<{ message: string; user: CurrentUserSummary }>("/auth/verify-otp", {
       method: "POST",
       body: JSON.stringify({ otp }),
     });
@@ -94,4 +102,15 @@ export async function verifyMobileOtpAction(phone: string, otp: string): Promise
       body: JSON.stringify({ phone, otp }),
     });
   });
+}
+
+export interface CurrentUserSummary {
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  is_email_verified: boolean;
+}
+
+export async function getCurrentUserAction(): Promise<ActionResult<CurrentUserSummary>> {
+  return srvAction(() => api<CurrentUserSummary>("/users/me"));
 }

@@ -18,6 +18,9 @@ export async function register(payload: {
   email: string;
   password: string;
   full_name?: string;
+  terms_accepted?: boolean;
+  privacy_policy_accepted?: boolean;
+  merchant_agreement_accepted?: boolean;
 }): Promise<{ id: string; email: string; full_name: string | null }> {
   return api("/auth/register", {
     method: "POST",

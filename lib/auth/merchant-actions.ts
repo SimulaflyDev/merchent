@@ -8,6 +8,7 @@ import {
   removeMember as apiRemove,
   listMyMerchants as apiList,
   listReferredMerchants as apiListReferrals,
+  submitMerchantOnboarding as apiSubmitOnboarding,
 } from "@/lib/api/merchants";
 
 import { setActiveMerchantAction } from "@/lib/auth/actions";
@@ -19,8 +20,10 @@ import type {
   MerchantOut,
   MemberRole,
 } from "@/lib/types/merchant";
+import type { MerchantOnboardingSubmission } from "@/lib/types/onboarding";
 
 import { srvAction, type ActionResult } from "@/lib/api/action-utils";
+import { api } from "@/lib/api/client";
 
 export async function getMyMerchantsAction(): Promise<ActionResult<MerchantOut[]>> {
   return srvAction(() => apiList());
@@ -73,7 +76,6 @@ export async function getPublicMerchantAction(
   lookup: string,
 ): Promise<ActionResult<MerchantOut>> {
   return srvAction(() => {
-    const { api } = require("@/lib/api/client");
     return api(`/merchants/public/${lookup}`, { skipAuth: true });
   });
 }
@@ -82,5 +84,12 @@ export async function getReferredMerchantsAction(
   merchantId: string,
 ): Promise<ActionResult<MerchantOut[]>> {
   return srvAction(() => apiListReferrals(merchantId));
+}
+
+export async function submitMerchantOnboardingAction(
+  merchantId: string,
+  payload: MerchantOnboardingSubmission,
+): Promise<ActionResult<MerchantOut>> {
+  return srvAction(() => apiSubmitOnboarding(merchantId, payload));
 }
 

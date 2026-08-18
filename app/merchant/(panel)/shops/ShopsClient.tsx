@@ -89,21 +89,49 @@ function ShopCard({
 
         {/* IDs grid */}
         <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="bg-[#F8FAFB] rounded-lg px-3 py-2">
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-              Shop ID
-            </p>
-            <p className="text-[12px] font-bold text-[#0E9F88] font-mono">
-              {shop.shop_id ?? "—"}
-            </p>
+          <div className="bg-[#F8FAFB] rounded-lg px-3 py-2 border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                Shop ID (MPSUID)
+              </p>
+              <p className="text-[11px] font-bold text-[#0E9F88] font-mono tracking-tight">
+                {shop.shop_id ?? "—"}
+              </p>
+            </div>
+            {shop.shop_id && (
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(shop.shop_id!)}
+                title="Copy Shop ID"
+                className="text-gray-400 hover:text-[#0E9F88] transition-colors p-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
           </div>
-          <div className="bg-[#F8FAFB] rounded-lg px-3 py-2">
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
-              Partner ID
-            </p>
-            <p className="text-[12px] font-bold text-gray-600 font-mono">
-              {shop.partner_id ?? "—"}
-            </p>
+          <div className="bg-[#F8FAFB] rounded-lg px-3 py-2 border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                Partner ID (MPUID)
+              </p>
+              <p className="text-[11px] font-bold text-gray-600 font-mono tracking-tight">
+                {shop.partner_id ?? "—"}
+              </p>
+            </div>
+            {shop.partner_id && (
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(shop.partner_id!)}
+                title="Copy Partner ID"
+                className="text-gray-400 hover:text-gray-700 transition-colors p-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -183,6 +211,8 @@ function CreateShopModal({
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [rangeKm, setRangeKm] = useState("10");
+  const [stateCode, setStateCode] = useState("DL");
+  const [cityCode, setCityCode] = useState("N");
   const [referredByCode, setReferredByCode] = useState("");
 
   const inputCls =
@@ -223,6 +253,8 @@ function CreateShopModal({
             latitude: latVal,
             longitude: lonVal,
             range_km: rangeVal,
+            state_code: stateCode.trim().toUpperCase() || "DL",
+            city_code: cityCode.trim().toUpperCase() || "N",
             referred_by_code: referredByCode.trim() || undefined,
           })
         );
@@ -385,6 +417,37 @@ function CreateShopModal({
             </div>
           </div>
 
+          {/* Section: Regional Routing & ID Specs */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">
+              Regional Routing & ID Generation
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>State Code (2-letter)</label>
+                <input
+                  type="text"
+                  maxLength={2}
+                  value={stateCode}
+                  onChange={(e) => setStateCode(e.target.value.toUpperCase())}
+                  className={inputCls}
+                  placeholder="e.g. MH, DL, KA, BR, UP"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>City Code (1-character)</label>
+                <input
+                  type="text"
+                  maxLength={1}
+                  value={cityCode}
+                  onChange={(e) => setCityCode(e.target.value.toUpperCase())}
+                  className={inputCls}
+                  placeholder="e.g. M (Mumbai), N (Noida), P (Patna)"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Section: Optional */}
           <div className="space-y-4">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">
@@ -410,11 +473,10 @@ function CreateShopModal({
               </svg>
             </div>
             <div>
-              <p className="text-[11px] font-bold text-[#111827]">Auto-Generated IDs</p>
+              <p className="text-[11px] font-bold text-[#111827]">Auto-Generated MPUID & MPSUID Architecture</p>
               <p className="text-[10px] text-gray-500 mt-0.5">
-                A <span className="font-mono font-bold text-[#0E9F88]">Shop ID</span> (SXXX) and{" "}
-                <span className="font-mono font-bold text-gray-500">Partner ID</span> (mXXXXXXX) will be
-                automatically assigned to your new shop.
+                <span className="font-mono font-bold text-[#0E9F88]">Shop ID</span> (MPSUID: SIM-S-{stateCode ? "000142" : "000142"}-01-{cityCode || "N"}) and{" "}
+                <span className="font-mono font-bold text-gray-500">Partner ID</span> (MPUID: SIM-M-{stateCode || "DL"}-000142-{cityCode || "N"}) will be auto-generated.
               </p>
             </div>
           </div>

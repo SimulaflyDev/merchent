@@ -1,11 +1,22 @@
 export type MemberRole = "owner" | "admin" | "staff";
 export type MerchantStatus = "active" | "suspended" | "trial";
 
+export interface MerchantStorefrontSettings {
+  tagline?: string;
+  description?: string;
+  hero_image_url?: string;
+  featured_categories?: string[];
+}
+
+export interface MerchantSettings extends Record<string, unknown> {
+  storefront?: MerchantStorefrontSettings;
+}
+
 export interface MerchantOut {
   id: string;
-  /** Human-readable partner identifier e.g. "m1234567" */
+  /** Human-readable Merchant Partner Unique Identification Number (MPUID) e.g. "SIM-M-MH-000142-M" */
   partner_id: string | null;
-  /** Short shop identifier e.g. "S123" */
+  /** Human-readable Merchant Partner Shop Unique Identification Number (MPSUID) e.g. "SIM-S-000142-01-M" */
   shop_id: string | null;
   slug: string;
   legal_name: string;
@@ -16,7 +27,7 @@ export interface MerchantOut {
   country: string;
   status: MerchantStatus;
   referral_code: string;
-  settings: Record<string, unknown>;
+  settings: MerchantSettings;
   /** Free-text address set once at creation — immutable thereafter */
   address: string | null;
   latitude: number | null;
@@ -50,6 +61,10 @@ export interface MerchantCreatePayload {
   latitude?: number | null;
   longitude?: number | null;
   range_km?: number | null;
+  /** 2-letter State Code for MPUID generation e.g. "MH", "DL" */
+  state_code?: string;
+  /** 1-character City Code for regional routing e.g. "M", "N" */
+  city_code?: string;
   referred_by_code?: string;
 }
 
@@ -61,7 +76,6 @@ export interface MerchantUpdatePayload {
   support_phone?: string;
   settings?: Record<string, unknown>;
   range_km?: number | null;
-  is_kyc_completed?: boolean;
   // NOTE: address, latitude, longitude are intentionally omitted —
   // location is set once at creation and cannot be changed via PATCH.
   // Merchants must contact support@simulafly.com for location changes.

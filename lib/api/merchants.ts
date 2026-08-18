@@ -6,6 +6,7 @@ import type {
   MerchantUpdatePayload,
   MemberInvitePayload,
 } from "@/lib/types/merchant";
+import type { MerchantOnboardingSubmission } from "@/lib/types/onboarding";
 
 export async function createMerchant(p: MerchantCreatePayload): Promise<MerchantOut> {
   return api("/merchants/", { method: "POST", body: JSON.stringify(p) });
@@ -57,4 +58,14 @@ export async function removeMember(merchantId: string, userId: string): Promise<
 
 export async function listReferredMerchants(merchantId: string): Promise<MerchantOut[]> {
   return api(`/merchants/${merchantId}/referrals`);
+}
+
+export async function submitMerchantOnboarding(
+  merchantId: string,
+  payload: MerchantOnboardingSubmission,
+): Promise<MerchantOut> {
+  return api(`/merchants/${merchantId}/onboarding/submit`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { MerchantProductOut } from "@/lib/types/product";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 
@@ -19,8 +20,12 @@ const HEALTH_CONFIG: Record<string, { label: string; cls: string; bar: string; i
 
 export default function ProductPreviewModal({ product, onClose }: Props) {
   const [tab, setTab] = useState<"preview" | "details" | "ai">("preview");
+  const [activeImage, setActiveImage] = useState(0);
   const health = HEALTH_CONFIG[product.health_score] ?? HEALTH_CONFIG.review;
   const aiScore = product.ai_relevance_score != null ? Math.round(product.ai_relevance_score) : null;
+  const gallery = [product.primary_image_url, ...(product.additional_images ?? [])]
+    .filter((image): image is string => Boolean(image))
+    .slice(0, 5);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -61,13 +66,40 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
           {tab === "preview" && (
             <div className="flex flex-col md:flex-row h-full">
               {/* Left: image */}
-              <div className="md:w-2/5 shrink-0 bg-[#F8FAFB] flex items-center justify-center p-6">
-                {product.primary_image_url ? (
-                  <img
-                    src={resolveImageUrl(product.primary_image_url)}
-                    alt={product.title}
-                    className="max-w-full max-h-72 object-contain rounded-xl shadow-sm"
-                  />
+              <div className="md:w-2/5 shrink-0 bg-[#F8FAFB] flex flex-col items-center justify-center gap-3 p-6">
+                {gallery.length > 0 ? (
+                  <>
+                    <Image
+                      src={resolveImageUrl(gallery[activeImage] ?? gallery[0])}
+                      alt={`${product.title} image ${activeImage + 1}`}
+                      width={720}
+                      height={720}
+                      unoptimized
+                      className="max-w-full max-h-72 object-contain rounded-xl shadow-sm"
+                    />
+                    {gallery.length > 1 && (
+                      <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+                        {gallery.map((image, index) => (
+                          <button
+                            key={image}
+                            type="button"
+                            onClick={() => setActiveImage(index)}
+                            className={`h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${index === activeImage ? "border-[#0E9F88]" : "border-transparent"}`}
+                          >
+                            <Image
+                              src={resolveImageUrl(image)}
+                              alt={`${product.title} thumbnail ${index + 1}`}
+                              width={96}
+                              height={96}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-[#0E9F88]">Image 1 is used for AI visualisation</p>
+                  </>
                 ) : (
                   <div className={`w-full max-w-[240px] aspect-square rounded-2xl bg-gradient-to-br ${gradientFor(product.sku)} flex items-center justify-center`}>
                     <svg className="w-16 h-16 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">

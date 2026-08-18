@@ -1,21 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { createProductAction, uploadProductImageAction } from "@/lib/auth/product-actions";
+import { createProductAction } from "@/lib/auth/product-actions";
 import { getMyMerchantsAction } from "@/lib/auth/merchant-actions";
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
-import ProductPreviewModal from "../ProductPreviewModal";
 import type { MerchantProductOut, Dimensions, Materials, RoomStorytelling } from "@/lib/types/product";
 import type { MerchantOut } from "@/lib/types/merchant";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import { useMerchant } from "@/app/merchant/context/MerchantContext";
+import ProductImagesField from "../ProductImagesField";
 
 const schema = z.object({
   title:       z.string().min(1, "Title is required").max(500),
@@ -36,20 +37,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const match = result.match(/^data:(.+);base64,(.+)$/);
-      if (!match) { reject(new Error("parse error")); return; }
-      resolve({ mediaType: match[1], base64: match[2] });
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 const CATEGORY_SUGGESTIONS = [
   "Sofa", "Dining Table", "Bed", "Wardrobe", "Chair", "Bookshelf",
   "Coffee Table", "Side Table", "Lighting", "Decor", "Rug", "Curtain",
@@ -60,14 +47,11 @@ export default function AddProductPage() {
   const { merchant } = useMerchant();
   const onboardingCompleted = merchant?.settings?.onboarding_completed === true;
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [productImages, setProductImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
   const [statusToSubmit, setStatusToSubmit] = useState<"draft" | "published">("draft");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [shops, setShops] = useState<MerchantOut[]>([]);
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
@@ -76,6 +60,26 @@ export default function AddProductPage() {
   const [dimensions, setDimensions] = useState<Dimensions>({});
   const [materials, setMaterials] = useState<Materials>({});
   const [roomStorytelling, setRoomStorytelling] = useState<RoomStorytelling>({});
+
+  const {
+    register, control, handleSubmit, watch, setError,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { title: "", sku: "", category: "", subcategory: "", brand: "", description: "", price: "", stock: "", metadata: [] },
+    mode: "onChange",
+  });
+  const { fields, append, remove } = useFieldArray({ control, name: "metadata" });
+
+  const watchTitle = watch("title");
+  const watchSku = watch("sku");
+  const watchCategory = watch("category");
+  const watchSubcategory = watch("subcategory");
+  const watchBrand = watch("brand");
+  const watchDescription = watch("description");
+  const watchPrice = watch("price");
+  const watchStock = watch("stock");
+  const watchMetadata = watch("metadata");
 
   useEffect(() => {
     async function loadShops() {
@@ -162,26 +166,6 @@ export default function AddProductPage() {
     );
   }
 
-  const {
-    register, control, handleSubmit, watch, setError,
-    formState: { errors, isValid },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { title: "", sku: "", category: "", subcategory: "", brand: "", description: "", price: "", stock: "", metadata: [] },
-    mode: "onChange",
-  });
-  const { fields, append, remove } = useFieldArray({ control, name: "metadata" });
-
-  const watchTitle = watch("title");
-  const watchSku = watch("sku");
-  const watchCategory = watch("category");
-  const watchSubcategory = watch("subcategory");
-  const watchBrand = watch("brand");
-  const watchDescription = watch("description");
-  const watchPrice = watch("price");
-  const watchStock = watch("stock");
-  const watchMetadata = watch("metadata");
-
   // Format dimensions, materials, and colors from metadata if present
   const dimensionsObj: Record<string, string> = {};
   const materialsObj: Record<string, string> = {};
@@ -213,8 +197,8 @@ export default function AddProductPage() {
     subcategory: watchSubcategory || null,
     brand: watchBrand || null,
     status: "draft",
-    primary_image_url: imagePreview || uploadedImageUrl || null,
-    additional_images: [],
+    primary_image_url: productImages[0] ?? null,
+    additional_images: productImages.slice(1),
     dimensions: dimensionsObj,
     materials: materialsObj,
     colors: colorsObj,
@@ -231,33 +215,6 @@ export default function AddProductPage() {
     health_reason: "This is a real-time storefront preview of your product.",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  };
-
-  const handleFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setSubmitError("Please select a JPEG, PNG, or WebP image.");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setSubmitError("Image must be under 8 MB.");
-      return;
-    }
-    setSubmitError(null);
-    setUploadingImage(true);
-    try {
-      const { base64, mediaType } = await fileToBase64(file);
-      setImagePreview(`data:${mediaType};base64,${base64}`);
-      const formData = new FormData();
-      formData.append("imageBase64", base64);
-      formData.append("mediaType", mediaType);
-      const result = await callAction(uploadProductImageAction(formData));
-      setUploadedImageUrl(result.url);
-    } catch (err) {
-      setSubmitError(isApiError(err) ? `Image upload failed: ${err.detail}` : "Image upload failed. Please try again.");
-      setImagePreview(null);
-    } finally {
-      setUploadingImage(false);
-    }
   };
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -282,7 +239,7 @@ export default function AddProductPage() {
       checkRequired("stock", "Stock Quantity");
       checkRequired("description", "Description");
 
-      if (!uploadedImageUrl) {
+      if (productImages.length === 0) {
         setSubmitError("Product Image is required to publish.");
         hasError = true;
       }
@@ -334,7 +291,8 @@ export default function AddProductPage() {
         category: data.category || undefined,
         subcategory: data.subcategory || undefined,
         brand: data.brand || undefined,
-        primary_image_url: uploadedImageUrl || undefined,
+        primary_image_url: productImages[0] || undefined,
+        additional_images: productImages.slice(1),
         in_app_price: data.price ? parseFloat(data.price) : undefined,
         in_app_stock: data.stock ? parseInt(data.stock) : undefined,
         custom_metadata: customMetadata,
@@ -709,74 +667,24 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* ── Section: Product Image ── */}
+          {/* ── Section: Product Images ── */}
           <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-[#F1F3F5]">
-              <h2 className="text-[13px] font-semibold text-[#111827]">Product Image <span className="text-red-400">*</span></h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">Drag & drop or select your primary product image.</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-[13px] font-semibold text-[#111827]">Product Images <span className="text-red-400">*</span></h2>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Add up to 5 ordered storefront images.</p>
+                </div>
+                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#0E9F88]">Image 1 powers AI</span>
+              </div>
             </div>
-            <div className="p-6 space-y-3">
-              {/* Drag-and-drop zone */}
-              <div
-                className={`relative border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${
-                  dragOver ? "border-[#0E9F88] bg-[#F0FDF4]" : "border-[#EAECEF] hover:border-gray-300"
-                }`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault(); setDragOver(false);
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleFile(file);
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {/* Hidden input triggered by click / drop */}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  ref={fileInputRef}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                  className="sr-only"
-                />
-
-                {imagePreview ? (
-                  <div className="p-4 flex items-center gap-4">
-                    <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-[#EAECEF]" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-[#111827]">
-                        {uploadingImage ? "Uploading…" : uploadedImageUrl ? "✓ Uploaded successfully" : "Processing…"}
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Click or drag to replace</p>
-                    </div>
-                    {uploadingImage && (
-                      <svg className="animate-spin w-5 h-5 text-[#0E9F88] shrink-0" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-10 flex flex-col items-center gap-2 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-1">
-                      <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                      </svg>
-                    </div>
-                    <p className="text-[12px] font-medium text-gray-600">Drag & drop or click</p>
-                    <p className="text-[11px] text-gray-400">Max 8 MB</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Fallback visible file input */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                  className="text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:text-[10px] file:font-semibold file:rounded-lg file:border file:border-[#EAECEF] file:bg-white file:text-[#111827] hover:file:bg-gray-50 cursor-pointer w-full"
-                />
-              </div>
+            <div className="p-6">
+              <ProductImagesField
+                images={productImages}
+                onChange={setProductImages}
+                onUploadingChange={setUploadingImage}
+                onError={setSubmitError}
+              />
             </div>
           </div>
 
@@ -791,10 +699,13 @@ export default function AddProductPage() {
                 {/* Thumbnail Area */}
                 <div className="relative aspect-[4/3] bg-[#FAFBFC] flex items-center justify-center overflow-hidden">
                   {previewProductData.primary_image_url ? (
-                    <img
+                    <Image
                       src={resolveImageUrl(previewProductData.primary_image_url)}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 520px"
+                      unoptimized
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
@@ -856,12 +767,12 @@ export default function AddProductPage() {
                         {previewProductData.subcategory}
                       </span>
                     )}
-                    {Object.entries(previewProductData.colors).map(([k, v]) => typeof v === "string" && v && (
+                    {Object.entries(previewProductData.colors).map(([, v]) => typeof v === "string" && v && (
                       <span key={v} className="text-[9px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                         {v}
                       </span>
                     ))}
-                    {Object.entries(previewProductData.materials).map(([k, v]) => typeof v === "string" && v && (
+                    {Object.entries(previewProductData.materials).map(([, v]) => typeof v === "string" && v && (
                       <span key={v} className="text-[9px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                         {v}
                       </span>

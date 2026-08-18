@@ -259,7 +259,7 @@ export default function AddShopClient() {
             },
           })
         );
-        router.push("/merchant/select_shop");
+        router.push("/merchant/verification?returnTo=%2Fmerchant%2Fselect_shop");
         router.refresh();
       } catch (err: any) {
         setError(isApiError(err) ? err.detail : err.message || "Failed to create shop.");
@@ -301,16 +301,16 @@ export default function AddShopClient() {
             </h1>
             <p className="text-sm text-gray-500 leading-relaxed mb-6">
               To add a new shop, you need to complete your identity verification (KYC) for your
-              primary account first. This only needs to be done once — all future shops will be
-              automatically verified.
+              primary account first. Your PAN is verified once at account level; each shop then
+              verifies its own GSTIN.
             </p>
 
             {/* Steps illustration */}
             <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 mb-6 space-y-3">
               {[
                 { icon: "🏪", title: "Complete Onboarding", desc: "Set up your first shop with full KYC" },
-                { icon: "✅", title: "KYC Verified Once", desc: "Your identity is linked to your account" },
-                { icon: "➕", title: "Add More Shops Easily", desc: "Future shops skip KYC automatically" },
+                { icon: "✅", title: "PAN Verified Once", desc: "Your identity is linked to your account" },
+                { icon: "➕", title: "Verify Each Shop", desc: "Every shop confirms its own GSTIN" },
               ].map((item) => (
                 <div key={item.title} className="flex items-start gap-3">
                   <span className="text-lg leading-none mt-0.5">{item.icon}</span>
@@ -357,7 +357,7 @@ export default function AddShopClient() {
           </Link>
           <div>
             <h1 className="text-xl font-extrabold text-[#111827] tracking-tight">Add New Shop</h1>
-            <p className="text-xs text-gray-400 font-medium">Your identity is already verified — just fill in the shop details</p>
+            <p className="text-xs text-gray-400 font-medium">Your PAN is already verified — add details, then verify this shop&apos;s GSTIN</p>
           </div>
         </div>
 
@@ -369,7 +369,7 @@ export default function AddShopClient() {
             </svg>
           </div>
           <p className="text-[12px] font-semibold text-emerald-800">
-            KYC verified — no re-verification needed for additional shops
+            Merchant PAN verified — this new shop will verify its GSTIN after creation
           </p>
         </div>
 

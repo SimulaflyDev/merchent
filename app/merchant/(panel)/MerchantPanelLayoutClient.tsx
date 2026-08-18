@@ -206,6 +206,12 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
     ),
+    Verification: (
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <polyline points="9 12 11 14 15 10"/>
+      </svg>
+    ),
     "My Shops": (
       <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -372,6 +378,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             {!collapsed && <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3 px-3.5">System</p>}
             <nav className="space-y-1">
               {renderNavItem({ name: "Switch Shop", href: "/merchant/select_shop" })}
+              {renderNavItem({ name: "Verification", href: "/merchant/verification" })}
               {renderNavItem({ name: "Settings", href: "/merchant/settings" })}
               {renderNavItem({ name: "Support", href: "/merchant/support" })}
             </nav>

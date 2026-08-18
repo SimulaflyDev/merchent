@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
+import Image from "next/image";
 import { updateMerchantAction, getReferredMerchantsAction } from "@/lib/auth/merchant-actions";
 import { uploadProductImageAction } from "@/lib/auth/product-actions";
 import {
@@ -12,10 +13,7 @@ import {
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
 import { resolveImageUrl } from "@/lib/api/image-utils";
-import Spinner from "@/app/merchant/components/Spinner";
 import type { MerchantOut } from "@/lib/types/merchant";
-
-const STORE_TYPES = ["Manufacturer", "Whole Seller", "Retailors"];
 
 const PRODUCT_CATEGORIES = [
   "Sofas & Seating",
@@ -49,6 +47,14 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   const [supportPhone, setSupportPhone] = useState(merchant.support_phone ?? "");
   const [logoUrl, setLogoUrl] = useState(merchant.logo_url ?? "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const initialStorefront = merchant.settings?.storefront ?? {};
+  const [storefrontTagline, setStorefrontTagline] = useState(
+    typeof initialStorefront.tagline === "string" ? initialStorefront.tagline : ""
+  );
+  const [storefrontHeroUrl, setStorefrontHeroUrl] = useState(
+    typeof initialStorefront.hero_image_url === "string" ? initialStorefront.hero_image_url : ""
+  );
+  const [uploadingStorefrontHero, setUploadingStorefrontHero] = useState(false);
 
   // Group 1: Directly Saveable
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
@@ -76,6 +82,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const storefrontHeroInputRef = useRef<HTMLInputElement>(null);
 
   // --- OTP Modal States ---
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -199,6 +206,35 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
     }
   };
 
+  const handleStorefrontHeroUpload = async (file: File) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setProfileError("Store cover must be a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setProfileError("Store cover image must be under 8 MB.");
+      return;
+    }
+    setProfileError(null);
+    setUploadingStorefrontHero(true);
+    try {
+      const { base64, mediaType } = await fileToBase64(file);
+      const formData = new FormData();
+      formData.append("imageBase64", base64);
+      formData.append("mediaType", mediaType);
+      const result = await callAction(uploadProductImageAction(formData));
+      setStorefrontHeroUrl(result.url);
+    } catch (err: unknown) {
+      setProfileError(
+        isApiError(err)
+          ? `Store cover upload failed: ${err.detail}`
+          : "Store cover upload failed. Please try again."
+      );
+    } finally {
+      setUploadingStorefrontHero(false);
+    }
+  };
+
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
       setSelectedCategories(selectedCategories.filter((c) => c !== cat));
@@ -261,6 +297,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
         }
 
         const currentOnboardingData = (merchant.settings?.onboarding_data as any) || {};
+        const currentStorefront = merchant.settings?.storefront ?? {};
         const settingsPayload = {
           ...merchant.settings,
           onboarding_completed: true,
@@ -268,6 +305,15 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
             ...currentOnboardingData,
             categories: selectedCategories,
             description: storeDescription || undefined,
+          },
+          storefront: {
+            ...currentStorefront,
+            tagline: storefrontTagline.trim() || undefined,
+            hero_image_url: storefrontHeroUrl || undefined,
+            featured_categories: selectedCategories
+              .map((category) => category.trim())
+              .filter((category) => category.length > 0 && category.length <= 80)
+              .slice(0, 3),
           },
           notifications: {
             email_new_order: emailNewOrder,
@@ -519,9 +565,12 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                       >
                         {logoUrl ? (
                           <div className="flex flex-col items-center">
-                            <img
+                            <Image
                               src={resolveImageUrl(logoUrl)}
                               alt="Logo preview"
+                              width={80}
+                              height={80}
+                              unoptimized
                               className="w-20 h-20 object-cover rounded-lg border border-gray-100 mb-2 shadow-sm"
                             />
                             <p className="text-[11px] font-semibold text-emerald-600">Logo Uploaded</p>
@@ -580,6 +629,107 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                             className={inputCls}
                             placeholder="+91 9876543210"
                           />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-[#E2E4E8] p-6 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-[#0E9F88]" />
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-lg font-bold text-[#111827]">Buyer Storefront</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">Controls the branded profile shoppers open from Nearby Stores.</p>
+                    </div>
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Public Profile
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className={labelCls}>Store Cover Image</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        ref={storefrontHeroInputRef}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) handleStorefrontHeroUpload(file);
+                          event.target.value = "";
+                        }}
+                        className="sr-only"
+                      />
+                      <button
+                        type="button"
+                        disabled={uploadingStorefrontHero}
+                        onClick={() => storefrontHeroInputRef.current?.click()}
+                        className="relative w-full aspect-[16/9] overflow-hidden rounded-xl border-2 border-dashed border-gray-200 hover:border-[#0E9F88]/50 bg-[#F8FAFB] transition-colors"
+                      >
+                        {storefrontHeroUrl ? (
+                          <Image
+                            src={resolveImageUrl(storefrontHeroUrl)}
+                            alt="Storefront cover preview"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 440px"
+                            unoptimized
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                            <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <rect x="3" y="3" width="18" height="18" rx="3" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <path d="m21 15-5-5L5 21" />
+                            </svg>
+                            <span className="text-xs font-semibold">Upload storefront cover</span>
+                            <span className="text-[9px] mt-1">16:9 recommended · max 8 MB</span>
+                          </div>
+                        )}
+                        {uploadingStorefrontHero && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                            <div className="w-7 h-7 border-2 border-[#0E9F88] border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                        {storefrontHeroUrl && !uploadingStorefrontHero && (
+                          <span className="absolute bottom-2 right-2 rounded-full bg-black/65 px-2.5 py-1 text-[9px] font-bold text-white">
+                            Click to replace
+                          </span>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Store Tagline</label>
+                          <span className="text-[10px] text-gray-400">{storefrontTagline.length}/120</span>
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={120}
+                          value={storefrontTagline}
+                          onChange={(event) => setStorefrontTagline(event.target.value)}
+                          className={inputCls}
+                          placeholder="e.g. Live better. Every day."
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">Shown under your store name and over the cover image.</p>
+                      </div>
+
+                      <div className="rounded-xl bg-[#F0FDF4] border border-[#D1FAF0] p-4">
+                        <p className="text-[11px] font-bold text-[#0E7C69]">Featured Collections</p>
+                        <p className="text-[10px] leading-relaxed text-[#3B756B] mt-1">
+                          The first three categories selected in Store Setup become storefront collection cards. Product photos are filled automatically from your published catalog.
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {selectedCategories.slice(0, 3).length > 0 ? selectedCategories.slice(0, 3).map((category) => (
+                            <span key={category} className="rounded-full bg-white border border-emerald-100 px-2.5 py-1 text-[9px] font-semibold text-emerald-700">
+                              {category}
+                            </span>
+                          )) : (
+                            <span className="text-[10px] italic text-emerald-700/70">Select categories in Store Setup.</span>
+                          )}
                         </div>
                       </div>
                     </div>

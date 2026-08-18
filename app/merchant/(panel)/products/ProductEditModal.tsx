@@ -3,10 +3,9 @@
 import { useState } from "react";
 
 import { updateProductAction } from "@/lib/auth/product-actions";
-import { uploadProductImageAction } from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
-import { resolveImageUrl } from "@/lib/api/image-utils";
+import ProductImagesField from "./ProductImagesField";
 import type {
   MerchantProductOut,
   MerchantProductUpdatePayload,
@@ -26,20 +25,6 @@ function metadataToRows(meta: Record<string, unknown>): { key: string; value: st
   return Object.entries(meta ?? {}).filter(([k]) => k !== "legacy_product_url").map(([k, v]) => ({ key: k, value: String(v ?? "") }));
 }
 
-function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const match = result.match(/^data:(.+);base64,(.+)$/);
-      if (!match) { reject(new Error("parse error")); return; }
-      resolve({ mediaType: match[1], base64: match[2] });
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function ProductEditModal({ product, onClose, onSaved }: Props) {
   // ── Basic Info ──────────────────────────────────────────────────────────────
   const [title, setTitle] = useState(product.title);
@@ -55,15 +40,13 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
   );
   const [hasSimulaflyListing, setHasSimulaflyListing] = useState(product.has_simulafly_listing);
 
-  // ── Image ───────────────────────────────────────────────────────────────────
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    product.primary_image_url ? resolveImageUrl(product.primary_image_url) : null,
-  );
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(
-    product.primary_image_url ?? null,
+  // ── Ordered image gallery (first image is the AI reference) ─────────────────
+  const [productImages, setProductImages] = useState<string[]>(
+    [product.primary_image_url, ...(product.additional_images ?? [])].filter(
+      (image): image is string => Boolean(image),
+    ).slice(0, 5),
   );
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
 
   // ── AI Attributes (custom_metadata) ─────────────────────────────────────────
   const [metadata, setMetadata] = useState<{ key: string; value: string }[]>(
@@ -82,34 +65,12 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // ── Image upload handler ─────────────────────────────────────────────────────
-  const handleFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) { setSaveError("Please select a JPEG, PNG, or WebP image."); return; }
-    if (file.size > 8 * 1024 * 1024) { setSaveError("Image must be under 8 MB."); return; }
-    setSaveError(null);
-    setUploadingImage(true);
-    try {
-      const { base64, mediaType } = await fileToBase64(file);
-      setImagePreview(`data:${mediaType};base64,${base64}`);
-      const formData = new FormData();
-      formData.append("imageBase64", base64);
-      formData.append("mediaType", mediaType);
-      const result = await callAction(uploadProductImageAction(formData));
-      setUploadedImageUrl(result.url);
-    } catch (err) {
-      setSaveError(isApiError(err) ? `Image upload failed: ${err.detail}` : "Image upload failed.");
-      setImagePreview(null);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   // ── Save ─────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     setSaveError(null);
     setSaving(true);
 
-    const parseNumber = (val: any) => {
+    const parseNumber = (val: unknown) => {
       if (val === null || val === undefined || String(val).trim() === "") return undefined;
       const parsed = parseFloat(String(val));
       return isNaN(parsed) ? undefined : parsed;
@@ -139,7 +100,8 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
       in_app_price: inAppPrice ? parseFloat(inAppPrice) : null,
       in_app_stock: inAppStock ? parseInt(inAppStock, 10) : null,
       has_simulafly_listing: hasSimulaflyListing,
-      primary_image_url: uploadedImageUrl || null,
+      primary_image_url: productImages[0] || null,
+      additional_images: productImages.slice(1),
       dimensions: parsedDimensions,
       materials,
       room_storytelling: roomStorytelling,
@@ -297,55 +259,25 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          {/* ── Product Image ── */}
+          {/* ── Product Images ── */}
           <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F1F3F5]">
-              <h3 className="text-[13px] font-semibold text-[#111827]">Product Image</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Drag & drop or select your primary product image.</p>
-            </div>
-            <div className="p-5 space-y-3">
-              <div
-                className={`relative border-2 border-dashed rounded-2xl transition-colors cursor-pointer ${dragOver ? "border-[#0E9F88] bg-[#F0FDF4]" : "border-[#EAECEF] hover:border-gray-300"}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-                onClick={() => document.getElementById("edit-file-input")?.click()}
-              >
-                <input
-                  id="edit-file-input"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-                  className="sr-only"
-                />
-                {imagePreview ? (
-                  <div className="p-4 flex items-center gap-4">
-                    <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-[#EAECEF]" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-[#111827]">
-                        {uploadingImage ? "Uploading…" : uploadedImageUrl ? "✓ Uploaded successfully" : "Processing…"}
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Click or drag to replace</p>
-                    </div>
-                    {uploadingImage && (
-                      <svg className="animate-spin w-5 h-5 text-[#0E9F88] shrink-0" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-10 flex flex-col items-center gap-2 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-1">
-                      <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                      </svg>
-                    </div>
-                    <p className="text-[12px] font-medium text-gray-600">Drag & drop or click</p>
-                    <p className="text-[11px] text-gray-400">Max 8 MB</p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-[#111827]">Product Images</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Add, remove, or reorder up to 5 images.</p>
+                </div>
+                <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#0E9F88]">Image 1 powers AI</span>
               </div>
+            </div>
+            <div className="p-5">
+              <ProductImagesField
+                images={productImages}
+                onChange={setProductImages}
+                onUploadingChange={setUploadingImage}
+                onError={setSaveError}
+                compact
+              />
             </div>
           </div>
 
