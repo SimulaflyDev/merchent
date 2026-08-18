@@ -2,23 +2,17 @@
 
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
-  topupIntentAction,
-  topupConfirmAction,
-  topupBypassAction,
   getBalanceHistoryAction,
   redeemCodeAction,
 } from "@/lib/auth/wallet-actions";
 import { updateMerchantAction } from "@/lib/auth/merchant-actions";
-import { listLeadsAction } from "@/lib/auth/lead-actions";
 import { isApiError } from "@/lib/api/errors";
-import { callAction } from "@/lib/api/action-utils";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import type { WalletOut, BalanceHistoryItem } from "@/lib/types/wallet";
 import type { MerchantOut } from "@/lib/types/merchant";
-import type { BuyerLeadOut } from "@/lib/types/lead";
 
 interface Props {
   wallet: WalletOut;
@@ -36,7 +30,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
   // Balance History State
   const [historyItems, setHistoryItems] = useState<BalanceHistoryItem[]>([]);
   const [historyTotal, setHistoryTotal] = useState(0);
-  const [historyLimit] = useState(25);
+  const historyLimit = 25;
   const [historyOffset, setHistoryOffset] = useState(0);
   const [timeWindow, setTimeWindow] = useState("all_time");
   const [eventFilter, setEventFilter] = useState("all");
@@ -45,13 +39,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
   // Modals & Forms State
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
   const [isRedeemOpen, setIsRedeemOpen] = useState(false);
-  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
 
   // Funds input
   const [customAmount, setCustomAmount] = useState("");
   const [redeemCodeText, setRedeemCodeText] = useState("");
-  const [newPaymentValue, setNewPaymentValue] = useState("");
-  const [newPaymentType, setNewPaymentType] = useState<"upi" | "card">("upi");
 
   // Notifications State
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -67,7 +58,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
   );
 
   // Fetch Balance History when filters or offset changes
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
       const res = await getBalanceHistoryAction({
@@ -87,16 +78,13 @@ export default function BillingClient({ wallet, merchant }: Props) {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [eventFilter, historyOffset, timeWindow]);
 
   useEffect(() => {
-    fetchHistory();
-  }, [timeWindow, eventFilter, historyOffset]);
-
-  // Reset offset when filters change
-  useEffect(() => {
-    setHistoryOffset(0);
-  }, [timeWindow, eventFilter]);
+    // Data loading is intentionally triggered when a filter or page changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchHistory();
+  }, [fetchHistory]);
 
   // Invoices (wallet top-ups/deposits) State
   const [allInvoiceTxs, setAllInvoiceTxs] = useState<BalanceHistoryItem[]>([]);
@@ -104,7 +92,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
   const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<BalanceHistoryItem | null>(null);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setInvoicesLoading(true);
     try {
       const res = await getBalanceHistoryAction({
@@ -121,13 +109,14 @@ export default function BillingClient({ wallet, merchant }: Props) {
     } finally {
       setInvoicesLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === "invoices") {
-      fetchInvoices();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchInvoices();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchInvoices]);
 
   const getInvoiceDetails = (tx: BalanceHistoryItem) => {
     let title = "SimulaFly Transaction";
@@ -286,12 +275,14 @@ export default function BillingClient({ wallet, merchant }: Props) {
   const getRunwayPercent = () => {
     // Find the last successful deposit transaction in history
     const lastDepositItem = historyItems.find((item) => item.entry_type === "Deposit" && item.amount > 0);
-    const baseAmount = lastDepositItem ? lastDepositItem.amount : 5000.0;
+    const baseAmount = lastDepositItem
+      ? lastDepositItem.amount
+      : Math.max(wallet.balance, wallet.low_balance_threshold, 1);
     const percent = Math.min(100, Math.max(0, Math.round((wallet.balance / baseAmount) * 100)));
     return { percent, baseAmount };
   };
 
-  const { percent: runwayPercent, baseAmount: lastTopupAmount } = getRunwayPercent();
+  const { percent: runwayPercent } = getRunwayPercent();
 
   // Auto recharge toggler
   const handleToggleAutoRecharge = async () => {
@@ -313,7 +304,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
         setAutoRecharge(!nextVal); // rollback
         setErrorMsg(res.error.detail || "Failed to update Auto-Recharge setting.");
       }
-    } catch (err) {
+    } catch {
       setAutoRecharge(!nextVal);
       setErrorMsg("An error occurred while updating settings.");
     } finally {
@@ -339,27 +330,61 @@ export default function BillingClient({ wallet, merchant }: Props) {
       setErrorMsg("Razorpay Checkout hasn't loaded yet — try again in a moment.");
       return;
     }
+    const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    if (!razorpayKeyId) {
+      setErrorMsg("Razorpay public key is not configured.");
+      return;
+    }
 
     setBusy(true);
     try {
-      const intent = await callAction(topupIntentAction(amount));
+      const orderResponse = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Math.round(amount * 100),
+          currency: "INR",
+        }),
+      });
+      const order = (await orderResponse.json()) as {
+        order_id?: string;
+        amount?: number;
+        currency?: string;
+        error?: string;
+      };
+      if (!orderResponse.ok || !order.order_id || !order.amount || !order.currency) {
+        throw new Error(order.error || "Could not create Razorpay order");
+      }
+
       const rzp = new window.Razorpay({
-        key: intent.razorpay_key_id,
-        amount: intent.amount * 100,
-        currency: intent.currency,
+        key: razorpayKeyId,
+        amount: order.amount,
+        currency: order.currency,
         name: "SimulaFly",
         description: "Wallet top-up",
-        order_id: intent.order_id,
+        order_id: order.order_id,
+        prefill: {
+          name: merchant.display_name,
+          email: merchant.support_email || "",
+          contact: merchant.support_phone || "",
+        },
         theme: { color: "#0E9F88" },
-        handler: async (resp: any) => {
+        handler: async (response) => {
           try {
-            await callAction(topupConfirmAction({
-              order_id: resp.razorpay_order_id,
-              payment_id: resp.razorpay_payment_id,
-              signature: resp.razorpay_signature,
-            }));
+            const verificationResponse = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(response),
+            });
+            const verification = (await verificationResponse.json()) as {
+              success?: boolean;
+              error?: string;
+            };
+            if (!verificationResponse.ok || !verification.success) {
+              throw new Error(verification.error || "Payment signature verification failed");
+            }
             setSuccessMsg(`Successfully added ₹${amount.toLocaleString("en-IN")} to your wallet.`);
-            fetchHistory();
+            void fetchHistory();
             router.refresh();
           } catch (err) {
             setErrorMsg(
@@ -370,40 +395,26 @@ export default function BillingClient({ wallet, merchant }: Props) {
           }
         },
         modal: {
-          ondismiss: () => setBusy(false),
+          ondismiss: () => {
+            setErrorMsg("Payment cancelled. Your wallet was not charged.");
+            setBusy(false);
+          },
         },
+      });
+      rzp.on("payment.failed", (...args: unknown[]) => {
+        const failure = args[0] as {
+          error?: { description?: string; reason?: string };
+        };
+        setErrorMsg(
+          failure.error?.description || failure.error?.reason || "Razorpay payment failed.",
+        );
+        setBusy(false);
       });
       rzp.open();
     } catch (err) {
-      setErrorMsg(isApiError(err) ? err.detail : "Could not start top-up");
-      setBusy(false);
-    }
-  };
-
-  // Simulated topup for testing
-  const handleSimulatedTopup = async (amount: number) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setIsAddFundsOpen(false);
-
-    if (amount < 1 || amount > 500_000) {
-      setErrorMsg("Amount must be between ₹1 and ₹500,000.");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const res = await topupBypassAction(amount);
-      if (res.success) {
-        setSuccessMsg(`[Test Mode] Successfully added ₹${amount.toLocaleString("en-IN")} to your wallet!`);
-        fetchHistory();
-        router.refresh();
-      } else {
-        setErrorMsg(res.error.detail || "Simulated top-up failed.");
-      }
-    } catch (err) {
-      setErrorMsg("Could not complete simulated top-up");
-    } finally {
+      setErrorMsg(
+        isApiError(err) ? err.detail : err instanceof Error ? err.message : "Could not start top-up",
+      );
       setBusy(false);
     }
   };
@@ -427,7 +438,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
       } else {
         setErrorMsg(res.error.detail || "Failed to redeem code.");
       }
-    } catch (err) {
+    } catch {
       setErrorMsg("An error occurred during code redemption.");
     } finally {
       setBusy(false);
@@ -443,94 +454,6 @@ export default function BillingClient({ wallet, merchant }: Props) {
     }
   };
 
-  // Get active payment methods or default
-  const getPaymentMethods = (): Array<{ id: string; type: string; value: string; isPrimary: boolean }> => {
-    return (merchant.settings?.payment_methods as any) || [
-      { id: "pm_default", type: "upi", value: "merchant@okaxis", isPrimary: true },
-    ];
-  };
-
-  const paymentMethods = getPaymentMethods();
-
-  // Add payment method
-  const handleAddPaymentMethod = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPaymentValue.trim()) return;
-
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setBusy(true);
-    try {
-      const currentSettings = merchant.settings || {};
-      const existing = (currentSettings.payment_methods as any) || [
-        { id: "pm_default", type: "upi", value: "merchant@okaxis", isPrimary: true },
-      ];
-      const newMethod = {
-        id: `pm_${Date.now()}`,
-        type: newPaymentType,
-        value: newPaymentValue.trim(),
-        isPrimary: existing.length === 0,
-      };
-
-      const res = await updateMerchantAction(merchant.id, {
-        settings: {
-          ...currentSettings,
-          payment_methods: [...existing, newMethod],
-        },
-      });
-
-      if (res.success) {
-        setSuccessMsg("Payment method added successfully.");
-        setNewPaymentValue("");
-        setIsAddPaymentOpen(false);
-        router.refresh();
-      } else {
-        setErrorMsg(res.error.detail || "Failed to add payment method.");
-      }
-    } catch (err) {
-      setErrorMsg("An error occurred while adding payment method.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Remove payment method
-  const handleRemovePaymentMethod = async (pmId: string) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setBusy(true);
-    try {
-      const currentSettings = merchant.settings || {};
-      const existing: Array<{ id: string; type: string; value: string; isPrimary: boolean }> =
-        (currentSettings.payment_methods as any) || [
-          { id: "pm_default", type: "upi", value: "merchant@okaxis", isPrimary: true },
-        ];
-
-      const filtered = existing.filter((pm) => pm.id !== pmId);
-      // Ensure there's a primary method if items remain
-      if (filtered.length > 0 && !filtered.some((pm) => pm.isPrimary)) {
-        filtered[0].isPrimary = true;
-      }
-
-      const res = await updateMerchantAction(merchant.id, {
-        settings: {
-          ...currentSettings,
-          payment_methods: filtered,
-        },
-      });
-
-      if (res.success) {
-        setSuccessMsg("Payment method removed successfully.");
-        router.refresh();
-      } else {
-        setErrorMsg(res.error.detail || "Failed to remove payment method.");
-      }
-    } catch (err) {
-      setErrorMsg("An error occurred while removing payment method.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   // Export CSV
   const handleExportCSV = () => {
@@ -559,9 +482,9 @@ export default function BillingClient({ wallet, merchant }: Props) {
     const calculatedPoints = referralCredits.reduce((sum, item) => sum + item.amount, 0);
 
     return {
-      points: calculatedPoints > 0 ? calculatedPoints : 12500, // fallback to match mockup
-      customers: Math.round(referralCredits.filter((item) => item.reason === "referral_redeem").length) || 15,
-      partners: Math.round(referralCredits.filter((item) => item.reason === "referral_partner").length) || 1,
+      points: calculatedPoints,
+      customers: referralCredits.filter((item) => item.reason === "referral_redeem").length,
+      partners: referralCredits.filter((item) => item.reason === "referral_partner").length,
     };
   };
 
@@ -572,6 +495,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="afterInteractive"
+        onError={() => setErrorMsg("Could not load Razorpay Checkout. Check your connection and retry.")}
       />
 
       <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-8">
@@ -713,7 +637,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
                       <div className="flex items-center gap-3">
                         <select
                           value={timeWindow}
-                          onChange={(e) => setTimeWindow(e.target.value)}
+                          onChange={(e) => {
+                            setTimeWindow(e.target.value);
+                            setHistoryOffset(0);
+                          }}
                           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white font-medium hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#0E9F88]"
                         >
                           <option value="all_time">All Time</option>
@@ -724,7 +651,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
                         <select
                           value={eventFilter}
-                          onChange={(e) => setEventFilter(e.target.value)}
+                          onChange={(e) => {
+                            setEventFilter(e.target.value);
+                            setHistoryOffset(0);
+                          }}
                           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white font-medium hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#0E9F88]"
                         >
                           <option value="all">All Events</option>
@@ -907,7 +837,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                       <div className="bg-white rounded-xl p-5 text-gray-900 w-full max-w-xs text-center border border-green-700/10 shadow-lg z-10 flex flex-col items-center">
                         <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Your Referral Code</span>
                         <div className="my-3 font-mono font-black text-xl text-[#0E9F88] tracking-widest bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-100 select-all">
-                          {merchant.referral_code || "SIMULA-XXXX-2026"}
+                          {merchant.referral_code || "Not available"}
                         </div>
                         <button
                           onClick={handleCopyReferral}
@@ -958,40 +888,21 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
                 {/* Tab 3: Payment Methods */}
                 {activeTab === "payments" && (
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      {paymentMethods.map((pm) => (
-                        <div 
-                          key={pm.id} 
-                          className="bg-white rounded-xl border border-[#E2E4E8] p-5 flex items-center justify-between shadow-sm hover:shadow-sm transition"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-8 bg-gray-50 border border-gray-200 rounded flex items-center justify-center font-black text-[10px] text-gray-500 uppercase">
-                              {pm.type}
-                            </div>
-                            <div>
-                              <span className="font-bold text-gray-800 block text-sm">{pm.value}</span>
-                              {pm.isPrimary && (
-                                <span className="text-[10px] text-gray-400 font-semibold block mt-0.5">Primary Method</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <button
-                            onClick={() => handleRemovePaymentMethod(pm.id)}
-                            className="text-red-500 hover:text-red-700 text-xs font-bold transition px-3 py-1.5 hover:bg-red-50 rounded-lg"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Add new payment method card button */}
+                  <div className="rounded-2xl border border-[#E2E4E8] bg-white p-6 shadow-sm">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="max-w-xl">
+                        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#0E9F88]/10 text-lg font-black text-[#0E9F88]">R</div>
+                        <h3 className="text-base font-black text-gray-900">Secure checkout by Razorpay</h3>
+                        <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                          Cards, UPI, netbanking, and wallets are entered only inside Razorpay Checkout.
+                          SimulaFly does not collect or store card numbers or UPI credentials.
+                        </p>
+                      </div>
                       <button
-                        onClick={() => setIsAddPaymentOpen(true)}
-                        className="w-full py-5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:text-[#0E9F88] hover:border-[#0E9F88] transition text-sm font-bold flex items-center justify-center gap-1.5"
+                        onClick={() => setIsAddFundsOpen(true)}
+                        className="rounded-xl bg-[#0E9F88] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B7A69]"
                       >
-                        + Add New Payment Method
+                        Add funds with Razorpay
                       </button>
                     </div>
                   </div>
@@ -1015,7 +926,9 @@ export default function BillingClient({ wallet, merchant }: Props) {
                         <span className="text-xs font-semibold text-gray-500">Invoice Type:</span>
                         <select
                           value={invoiceFilter}
-                          onChange={(e: any) => setInvoiceFilter(e.target.value)}
+                          onChange={(e) =>
+                            setInvoiceFilter(e.target.value as typeof invoiceFilter)
+                          }
                           className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-white font-medium hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#0E9F88]"
                         >
                           <option value="all">All Invoices</option>
@@ -1227,79 +1140,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
         </div>
       )}
 
-      {/* Modal 3: Add Payment Method */}
-      {isAddPaymentOpen && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-100">
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-black text-gray-900 text-lg">Add Payment Method</h3>
-              <button 
-                onClick={() => {
-                  setIsAddPaymentOpen(false);
-                  setNewPaymentValue("");
-                }} 
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-              >
-                &times;
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddPaymentMethod} className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider block">Payment Type</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewPaymentType("upi")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${
-                      newPaymentType === "upi"
-                        ? "border-[#0E9F88] bg-green-50/20 text-[#0E9F88]"
-                        : "border-gray-200 text-gray-500 hover:bg-gray-50"
-                    }`}
-                  >
-                    UPI ID
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewPaymentType("card")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${
-                      newPaymentType === "card"
-                        ? "border-[#0E9F88] bg-green-50/20 text-[#0E9F88]"
-                        : "border-gray-200 text-gray-500 hover:bg-gray-50"
-                    }`}
-                  >
-                    Card Number
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider block">
-                  {newPaymentType === "upi" ? "UPI Address" : "Card Ending In / Number"}
-                </label>
-                <input
-                  type="text"
-                  placeholder={newPaymentType === "upi" ? "merchant@upi" : "e.g. Card ending in 4242"}
-                  value={newPaymentValue}
-                  onChange={(e) => setNewPaymentValue(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#0E9F88] hover:border-gray-300 font-semibold"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!newPaymentValue.trim() || busy}
-                className="w-full py-3 bg-[#111827] hover:bg-black text-white text-sm font-bold rounded-xl disabled:opacity-50 transition shadow-sm"
-              >
-                Add Method
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 4: Invoice Details / Preview */}
+      {/* Modal 3: Invoice Details / Preview */}
       {selectedInvoice && (
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">

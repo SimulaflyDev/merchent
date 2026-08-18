@@ -3,7 +3,6 @@ import { api } from "./client";
 import type {
   WalletOut,
   PaginatedTransactions,
-  TopupIntentResponse,
   BalanceHistoryResponse,
   RedeemResponse,
 } from "@/lib/types/wallet";
@@ -22,37 +21,12 @@ export async function listTransactions(
   return api<PaginatedTransactions>(`/merchant/wallet/transactions${q ? `?${q}` : ""}`);
 }
 
-export async function topupIntent(amount: number): Promise<TopupIntentResponse> {
-  return api<TopupIntentResponse>("/merchant/wallet/topup/intent", {
-    method: "POST",
-    body: JSON.stringify({ amount }),
-  });
-}
-
-export async function topupConfirm(payload: {
-  order_id: string;
-  payment_id: string;
-  signature: string;
-}): Promise<WalletOut> {
-  return api<WalletOut>("/merchant/wallet/topup/confirm", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
 export async function updateWalletSettings(payload: {
   low_balance_threshold: number;
 }): Promise<WalletOut> {
   return api<WalletOut>("/merchant/wallet/settings", {
     method: "PATCH",
     body: JSON.stringify(payload),
-  });
-}
-
-export async function topupBypass(amount: number): Promise<WalletOut> {
-  return api<WalletOut>("/merchant/wallet/topup/bypass", {
-    method: "POST",
-    body: JSON.stringify({ amount }),
   });
 }
 
