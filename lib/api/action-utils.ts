@@ -15,8 +15,12 @@ export async function srvAction<T>(fn: () => Promise<T>): Promise<ActionResult<T
   } catch (err) {
     // If it's a Next.js redirect/not-found error, we must re-throw it so Next.js can handle it!
     if (
-      err instanceof Error &&
-      (err.message === "NEXT_REDIRECT" || (err as any).digest?.startsWith("NEXT_REDIRECT"))
+      (err instanceof Error &&
+        (err.message === "NEXT_REDIRECT" || (err as any).digest?.startsWith("NEXT_REDIRECT"))) ||
+      (typeof err === "object" &&
+        err !== null &&
+        "digest" in err &&
+        String((err as any).digest).startsWith("NEXT_REDIRECT"))
     ) {
       throw err;
     }

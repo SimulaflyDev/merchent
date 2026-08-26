@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { ApiError } from "./errors";
 import { cookieOpts, ACCESS_TTL, REFRESH_TTL, isTokenExpired } from "@/lib/auth/jwt";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.simulatech.org/api/v1";
 
 interface ApiOptions extends RequestInit {
   skipAuth?: boolean;
@@ -11,7 +11,7 @@ interface ApiOptions extends RequestInit {
 }
 
 async function refreshTokens(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.simulatech.org/api/v1";
   const res = await fetch(`${base}/auth/refresh`, {
     method: "POST",
     headers: {

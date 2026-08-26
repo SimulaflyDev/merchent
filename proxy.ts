@@ -15,7 +15,8 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.includes('/favicon.ico') ||
-    pathname.startsWith('/api/auth/logout')
+    pathname.startsWith('/api/auth/logout') ||
+    pathname.startsWith('/api/')
   ) {
     return NextResponse.next();
   }
@@ -33,7 +34,7 @@ export async function proxy(request: NextRequest) {
 
   if (needsRefresh) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.simulatech.org/api/v1';
       const refreshRes = await fetch(`${apiBase}/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -58,9 +59,9 @@ export async function proxy(request: NextRequest) {
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('cookie', cookieString);
 
-        // Redirect if visiting sign_in / sign_up to avoid rendering them for authenticated user
+        // Redirect if visiting sign_in / sign_up via GET to avoid rendering them for authenticated user
         let response: NextResponse;
-        if (isPublic && pathname !== '/merchant') {
+        if (isPublic && pathname !== '/merchant' && request.method === 'GET') {
           response = NextResponse.redirect(new URL('/merchant/dashboard', request.url));
         } else {
           response = NextResponse.next({
@@ -77,7 +78,9 @@ export async function proxy(request: NextRequest) {
         return response;
       } else {
         console.error('Refresh token is invalid or expired');
-        const response = NextResponse.redirect(new URL('/merchant/sign_in', request.url));
+        const response = isPublic
+          ? NextResponse.next()
+          : NextResponse.redirect(new URL('/merchant/sign_in', request.url));
         response.cookies.delete('access_token');
         response.cookies.delete('refresh_token');
         response.cookies.delete('active_merchant_id');
@@ -95,9 +98,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/merchant/sign_in', request.url));
   }
 
-  // 4. If visiting login/signup and already have a valid session, auto-redirect to dashboard
+  // 4. If visiting login/signup and already have a valid session, auto-redirect to dashboard (GET only)
   if (isPublic && refreshToken && accessToken && (getJwtExpiry(accessToken) ?? 0) >= Date.now() + 10000) {
-    if (pathname !== '/merchant') {
+    if (pathname !== '/merchant' && request.method === 'GET') {
       return NextResponse.redirect(new URL('/merchant/dashboard', request.url));
     }
   }
