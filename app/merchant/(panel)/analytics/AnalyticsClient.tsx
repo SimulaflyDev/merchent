@@ -381,7 +381,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <MiniKpi label="Impressions" value={imp.toLocaleString()} trend={impTrend.text} trendDir={impTrend.dir} />
             <MiniKpi label="Total Clicks" value={click.toLocaleString()} trend={clickTrend.text} trendDir={clickTrend.dir} />
-            <MiniKpi label="AI Mentions" value={summary.ai_mentions.toLocaleString()} trend={mentionsTrend.text} trendDir={mentionsTrend.dir} showAi />
+            <MiniKpi label="AI Mentions" value={summary.ai_mentions.toLocaleString()} trend={mentionsTrend.text} trendDir={mentionsTrend.dir} />
             <MiniKpi label="Avg. CTR" value={`${(summary.ctr * 100).toFixed(1)}%`} trend={ctrTrend.text} trendDir={ctrTrend.dir} />
             <MiniKpi label="Total Orders" value={lead.toLocaleString()} trend={leadsTrend.text} trendDir={leadsTrend.dir} />
             <MiniKpi label="Conv. Rate" value={`${overallConvRate.toFixed(1)}%`} trend={convTrend.text} trendDir={convTrend.dir} />
@@ -607,18 +607,11 @@ function TogglePill({ label, checked, onChange, color }: { label: string; checke
 }
 
 // ── Mini KPI card ──
-function MiniKpi({ label, value, trend, trendDir, showAi = false }: { label: string; value: string; trend: string; trendDir: "up" | "down"; showAi?: boolean }) {
+function MiniKpi({ label, value, trend, trendDir }: { label: string; value: string; trend: string; trendDir: "up" | "down" }) {
   return (
     <div className="bg-white rounded-xl border border-[#EAECEF] p-4 flex flex-col justify-between shadow-sm">
       <div className="flex justify-between items-start gap-1">
         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate">{label}</span>
-        {showAi && (
-          <span className="text-violet-500" title="AI Insight Powered">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </span>
-        )}
       </div>
       <div className="mt-2 flex items-baseline justify-between gap-1">
         <h4 className="text-[18px] font-bold text-[#111827] tabular-nums tracking-tight">{value}</h4>
