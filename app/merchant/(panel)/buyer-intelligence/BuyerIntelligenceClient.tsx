@@ -152,7 +152,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
   const topBuyers = [...buyers].sort((a, b) => b.intentScore - a.intentScore).slice(0, 3);
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -185,7 +185,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
       </div>
 
       {/* ── 70/30 Layout ── */}
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col items-stretch gap-5 xl:flex-row xl:items-start">
 
         {/* ── Buyer Feed ── */}
         <div className="flex-1 min-w-0 space-y-3">
@@ -203,14 +203,14 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
             <span className="text-[11px] text-gray-400 shrink-0">{filtered.length} buyers</span>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
             {buyers.length === 0 ? (
               <div className="px-6 py-16 text-center">
                 <p className="text-[14px] font-semibold text-gray-700 mb-1">No shopper data yet</p>
                 <p className="text-[12px] text-gray-400">Buyer interactions will appear here once shoppers engage with your products on SimulaFly.</p>
               </div>
             ) : (
-              <table className="w-full text-left">
+              <table className="w-full min-w-[760px] text-left">
                 <thead>
                   <tr className="border-b border-gray-100 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                     <th className="px-5 py-3">Buyer</th>
@@ -294,7 +294,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
         </div>
 
         {/* ── Insight Rail ── */}
-        <div className="w-64 shrink-0 space-y-3">
+        <div className="w-full shrink-0 space-y-3 xl:w-64">
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Top Intent</p>
             <div className="space-y-3">

@@ -161,7 +161,7 @@ export default function DashboardClient({
 
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-8">
+    <div className="mx-auto w-full max-w-[1440px] space-y-8 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
       {/* Low Balance Banner */}
       {!hideBanner && walletLow && (
@@ -183,12 +183,12 @@ export default function DashboardClient({
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-[22px] font-bold text-[#111827] tracking-tight">Dashboard</h1>
           <p className="text-[12px] text-gray-400 font-normal mt-1">Your storefront overview — last 30 days.</p>
         </div>
-        <Link href="/merchant/products" className="h-8 px-4 bg-[#111827] text-white text-[11px] font-medium rounded-lg hover:bg-black transition-colors flex items-center gap-2">
+        <Link href="/merchant/products" className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#111827] px-4 text-[11px] font-medium text-white transition-colors hover:bg-black sm:w-auto">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           Add Product
         </Link>
@@ -196,9 +196,9 @@ export default function DashboardClient({
 
       {/* ── QR Share Card ── */}
       {merchant && (
-        <div className="bg-gradient-to-r from-[#111827] to-[#1f2937] border border-[#2d3748] rounded-xl p-5 flex items-center gap-5">
+        <div className="flex flex-col items-stretch gap-4 rounded-xl border border-[#2d3748] bg-gradient-to-r from-[#111827] to-[#1f2937] p-5 sm:flex-row sm:items-center sm:gap-5">
           {/* Live QR preview */}
-          <div className="shrink-0 bg-white p-2.5 rounded-xl shadow-lg">
+          <div className="self-start shrink-0 rounded-xl bg-white p-2.5 shadow-lg sm:self-auto">
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`simulafly://merchant/${merchant.referral_code || merchant.slug}`)}&color=111827&margin=4`}
               alt="Store QR"
@@ -212,10 +212,10 @@ export default function DashboardClient({
             <p className="text-[12px] text-gray-400 mt-1 font-mono">{merchant.referral_code}</p>
           </div>
           {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => setQrModalOpen(true)}
-              className="flex items-center gap-2 h-9 px-4 bg-white text-[#111827] text-[12px] font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-[12px] font-semibold text-[#111827] transition-colors hover:bg-gray-100 sm:w-auto"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
@@ -347,7 +347,7 @@ export default function DashboardClient({
                 {graphType === "drop_rate" && "Total investment vs drop/cancellation rate over time."}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Graph Type Selector */}
               <div className="flex items-center gap-1 bg-[#EDEEF0] border border-[#EAECEF] rounded-lg p-1">
                 {(["revenue", "pipeline", "drop_rate"] as const).map((gt) => (
@@ -393,13 +393,13 @@ export default function DashboardClient({
           </div>
 
           {/* Real summary strip */}
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <div className="pr-6">
+          <div className="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="pb-4 sm:pb-0 sm:pr-6">
               <p className="text-[10px] font-medium text-gray-400">Total Balance Spent (30d)</p>
               <p className="text-2xl font-bold text-[#111827] tabular-nums mt-1">{fmtRs(s.total_spend)}</p>
               <p className="text-[11px] text-gray-500 font-medium mt-0.5">{s.published_products} products active</p>
             </div>
-            <div className="px-6">
+            <div className="py-4 sm:px-6 sm:py-0">
               <p className="text-[10px] font-medium text-gray-400">
                 {graphType === "revenue" && "Total Revenue Generated"}
                 {graphType === "pipeline" && "Pipeline Value"}
@@ -416,7 +416,7 @@ export default function DashboardClient({
                 {graphType === "drop_rate" && "Average cancellation rate"}
               </p>
             </div>
-            <div className="pl-6">
+            <div className="pt-4 sm:pl-6 sm:pt-0">
               <p className="text-[10px] font-medium text-gray-400">Wallet Balance</p>
               <p className={`text-2xl font-bold tabular-nums mt-1 ${walletLow ? "text-amber-600" : "text-[#0E9F88]"}`}>
                 {currencySymbol}{fmt(walletBalance)}
@@ -443,7 +443,7 @@ export default function DashboardClient({
             </Link>
           </div>
         ) : (
-          <div className="relative px-6 pt-6 pb-6" style={{ height: "340px" }}>
+          <div className="relative px-2 pb-6 pt-6 sm:px-6" style={{ height: "340px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>

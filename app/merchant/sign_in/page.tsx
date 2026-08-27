@@ -40,8 +40,8 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EDEEF0] px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-[#E2E4E8] p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#EDEEF0] px-4 py-6">
+      <div className="w-full max-w-md rounded-2xl border border-[#E2E4E8] bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-[#111827] mb-2">Sign in</h1>
         <p className="text-sm text-gray-500 mb-6">Welcome back to SimulaFly Merchant.</p>
 

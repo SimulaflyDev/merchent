@@ -286,7 +286,7 @@ function CreateShopModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
           {/* Error */}
           {error && (
             <div className="px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-start gap-2.5">
@@ -324,7 +324,7 @@ function CreateShopModal({
                 placeholder="e.g. Acme Home"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Support Email</label>
                 <input
@@ -378,7 +378,7 @@ function CreateShopModal({
                 placeholder="e.g. 42 MG Road, Bengaluru, Karnataka 560001"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Latitude</label>
                 <input
@@ -422,7 +422,7 @@ function CreateShopModal({
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">
               Regional Routing & ID Generation
             </p>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>State Code (2-letter)</label>
                 <input
@@ -545,7 +545,7 @@ export default function ShopsClient({ shops: initialShops, activeMerchantId }: P
   };
 
   return (
-    <div className="p-6 pb-24 max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl p-4 pb-24 sm:p-6 sm:pb-24">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2E4E8] pb-6 mb-8">
         <div>
@@ -558,7 +558,7 @@ export default function ShopsClient({ shops: initialShops, activeMerchantId }: P
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#0E9F88] hover:bg-[#0B7A69] text-white font-bold rounded-xl text-sm shadow-md shadow-emerald-700/10 transition-all shrink-0"
+          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0E9F88] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-700/10 transition-all hover:bg-[#0B7A69] sm:w-auto"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <line x1="12" y1="5" x2="12" y2="19" />

@@ -28,19 +28,19 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
     .slice(0, 5);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="relative flex max-h-[96dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200 sm:max-h-[92vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F5] shrink-0">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F1F3F5] px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
               {(["preview", "details", "ai"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`px-3.5 py-1.5 rounded-lg text-[12px] font-medium capitalize transition-colors ${
+                  className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium capitalize transition-colors sm:px-3.5 sm:text-[12px] ${
                     tab === t ? "bg-[#111827] text-white" : "text-gray-500 hover:text-[#111827] hover:bg-gray-100"
                   }`}
                 >
@@ -170,7 +170,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
           {/* ── Details Tab ── */}
           {tab === "details" && (
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoBlock label="SKU" value={product.sku} mono />
                 <InfoBlock label="Status" value={product.status.replace(/_/g, " ")} />
                 <InfoBlock label="Category" value={product.category ?? "—"} />
@@ -191,7 +191,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
               {Object.keys(product.dimensions).length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dimensions</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {Object.entries(product.dimensions).filter(([, v]) => v != null).map(([k, v]) => (
                       <div key={k} className="bg-gray-50 rounded-xl p-3">
                         <p className="text-[10px] text-gray-400 capitalize mb-1">{k}</p>
@@ -205,7 +205,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
               {Object.keys(product.materials).length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Materials</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {Object.entries(product.materials).filter(([, v]) => v != null).map(([k, v]) => (
                       <div key={k} className="bg-gray-50 rounded-xl p-3">
                         <p className="text-[10px] text-gray-400 capitalize mb-1">{k.replace(/_/g, " ")}</p>
@@ -307,7 +307,7 @@ export default function ProductPreviewModal({ product, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#F1F3F5] flex justify-between items-center shrink-0 bg-[#FAFBFC]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[#F1F3F5] bg-[#FAFBFC] px-4 py-3 sm:px-6 sm:py-4">
           <p className="text-[10px] text-gray-400">
             Last updated {new Date(product.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </p>

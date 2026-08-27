@@ -312,7 +312,7 @@ export default function OnboardingPage() {
   if (loading) return <Spinner variant="fullscreen" label="Loading onboarding…" />;
 
   return (
-    <div className="min-h-screen bg-[#EEF0F2] px-4 py-8 sm:px-6">
+    <div className="min-h-screen bg-[#EEF0F2] px-4 py-6 sm:px-6 sm:py-8">
       {submitting && <Spinner variant="fullscreen" label="Submitting for verification…" />}
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex items-center justify-between">
@@ -325,21 +325,22 @@ export default function OnboardingPage() {
           </button>
         </header>
 
-        <div className="mb-6 overflow-x-auto rounded-2xl border border-gray-200 bg-white px-3 py-4 shadow-sm">
-          <div className="flex min-w-[720px]">
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white px-3 py-4 shadow-sm">
+          <div className="flex min-w-0">
             {STEPS.map((label, index) => {
               const number = index + 1;
               return (
-                <div key={label} className="flex flex-1 items-center">
-                  <button type="button" onClick={() => number < step && setStep(number)} className="flex items-center gap-2 text-left">
+                <div key={label} className="flex min-w-0 flex-1 items-center">
+                  <button type="button" aria-label={`Step ${number}: ${label}`} onClick={() => number < step && setStep(number)} className="flex shrink-0 items-center justify-center gap-2 text-left sm:justify-start">
                     <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-extrabold ${number <= step ? "bg-[#0E9F88] text-white" : "bg-gray-100 text-gray-400"}`}>{number < step ? "✓" : number}</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${number === step ? "text-gray-900" : "text-gray-400"}`}>{label}</span>
+                    <span className={`hidden text-[10px] font-bold uppercase tracking-wider sm:inline ${number === step ? "text-gray-900" : "text-gray-400"}`}>{label}</span>
                   </button>
-                  {number < STEPS.length && <span className={`mx-2 h-px flex-1 ${number < step ? "bg-[#0E9F88]" : "bg-gray-200"}`} />}
+                  {number < STEPS.length && <span className={`mx-1 h-px min-w-0 flex-1 sm:mx-2 ${number < step ? "bg-[#0E9F88]" : "bg-gray-200"}`} />}
                 </div>
               );
             })}
           </div>
+          <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-wider text-gray-600 sm:hidden">Step {step}: {STEPS[step - 1]}</p>
         </div>
 
         <main className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-10">
@@ -355,7 +356,7 @@ export default function OnboardingPage() {
               <div className="sm:col-span-2"><Field label="Phone number" required>
                 <div className="flex flex-col gap-2 sm:flex-row"><input className={inputClass} value={phone} disabled={phoneVerified} onChange={(e) => { setPhone(e.target.value.replace(/[^+0-9]/g, "")); setPhoneVerified(false); }} placeholder="+919876543210" /><button type="button" onClick={sendOtp} disabled={otpBusy || phoneVerified} className="rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white disabled:opacity-50">{phoneVerified ? "Verified ✓" : otpSent ? "Resend OTP" : "Send OTP"}</button></div>
               </Field></div>
-              {otpSent && !phoneVerified && <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex gap-2"><input className={inputClass} value={otp} maxLength={6} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="6-digit OTP" /><button type="button" onClick={verifyOtp} disabled={otpBusy || otp.length !== 6} className="rounded-xl bg-[#0E9F88] px-5 text-xs font-bold text-white disabled:opacity-50">Verify</button></div>{devOtp && <p className="mt-2 text-[11px] text-amber-700">Development OTP: <strong>{devOtp}</strong></p>}</div>}
+              {otpSent && !phoneVerified && <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex flex-col gap-2 sm:flex-row"><input className={inputClass} value={otp} maxLength={6} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="6-digit OTP" /><button type="button" onClick={verifyOtp} disabled={otpBusy || otp.length !== 6} className="rounded-xl bg-[#0E9F88] px-5 py-3 text-xs font-bold text-white disabled:opacity-50 sm:py-0">Verify</button></div>{devOtp && <p className="mt-2 text-[11px] text-amber-700">Development OTP: <strong>{devOtp}</strong></p>}</div>}
             </div>
           </div>}
 
@@ -444,7 +445,7 @@ export default function OnboardingPage() {
             <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 text-sm text-gray-600"><input type="checkbox" className="mt-0.5" checked={informationAccurate} onChange={(e) => setInformationAccurate(e.target.checked)} /><span>I confirm that all submitted information is accurate and that I am authorized to submit it for this business.</span></label>
           </div>}
 
-          <div className="mt-9 flex items-center justify-between border-t border-gray-100 pt-6">
+          <div className="mt-9 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center">
             <button type="button" disabled={step === 1} onClick={() => { setError(null); setStep((current) => Math.max(1, current - 1)); }} className="rounded-xl border border-gray-200 px-5 py-3 text-sm font-bold text-gray-600 disabled:opacity-30">Back</button>
             {step < 5 ? <button type="button" onClick={goNext} className="rounded-xl bg-[#0E9F88] px-7 py-3 text-sm font-bold text-white hover:bg-[#0B7A69]">Next</button> : <button type="button" disabled={submitting || !informationAccurate} onClick={submit} className="rounded-xl bg-[#0E9F88] px-7 py-3 text-sm font-bold text-white disabled:opacity-50">Complete onboarding</button>}
           </div>

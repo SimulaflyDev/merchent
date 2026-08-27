@@ -498,7 +498,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
         onError={() => setErrorMsg("Could not load Razorpay Checkout. Check your connection and retry.")}
       />
 
-      <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-8">
+      <div className="mx-auto w-full max-w-[1440px] space-y-8 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* Banner Messages */}
         {errorMsg && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-sm flex items-center justify-between transition duration-300">
@@ -601,7 +601,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
             <div className="bg-white rounded-2xl border border-[#E2E4E8] shadow-sm overflow-hidden min-h-[500px]">
               
               {/* Tab Headers */}
-              <div className="flex border-b border-gray-200 bg-gray-50/50 px-6">
+                  <div className="flex overflow-x-auto border-b border-gray-200 bg-gray-50/50 px-4 sm:px-6">
                 {(["history", "rewards", "payments", "invoices"] as const).map((tab) => {
                   const isActive = activeTab === tab;
                   const labelMap = {
@@ -614,7 +614,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`py-4 px-4 border-b-2 text-sm font-semibold transition duration-150 ${
+                        className={`shrink-0 border-b-2 px-4 py-4 text-sm font-semibold transition duration-150 ${
                         isActive
                           ? "border-[#0E9F88] text-[#0E9F88] bg-white -mb-px"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -695,7 +695,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           No transactions found matching the selected filters.
                         </div>
                       ) : (
-                        <table className="w-full text-sm text-left table-auto">
+                        <table className="w-full min-w-[760px] table-auto text-left text-sm">
                           <thead className="bg-gray-50 text-gray-400 uppercase tracking-widest text-[10px] font-bold border-b border-gray-100">
                             <tr>
                               <th className="px-4 py-3">Date & Time</th>
@@ -949,7 +949,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           No invoices found for the selected category.
                         </div>
                       ) : (
-                        <table className="w-full text-sm text-left table-auto">
+                        <table className="w-full min-w-[860px] table-auto text-left text-sm">
                           <thead className="bg-gray-50 text-gray-400 uppercase tracking-widest text-[10px] font-bold border-b border-gray-100">
                             <tr>
                               <th className="px-4 py-3">Invoice ID</th>
@@ -1169,7 +1169,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">Billed To</span>
                   <span className="font-bold text-gray-900 block">{merchant.display_name}</span>
@@ -1215,7 +1215,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
               </table>
 
               <div className="flex justify-end pt-4">
-                <div className="w-64 border-t border-gray-900 pt-3 flex justify-between font-black text-sm text-gray-900">
+                <div className="flex w-full justify-between border-t border-gray-900 pt-3 text-sm font-black text-gray-900 sm:w-64">
                   <span>Total Amount</span>
                   <span>₹{Math.abs(selectedInvoice.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
                 </div>

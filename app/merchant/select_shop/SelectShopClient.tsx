@@ -36,15 +36,15 @@ export default function SelectShopClient({ shops, activeMerchantId }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFB] text-[#0F172A] flex flex-col items-center justify-center font-sans px-4 select-none animate-in fade-in duration-700">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFB] px-4 py-8 font-sans text-[#0F172A] select-none animate-in fade-in duration-700">
       {/* Netflix Profile Switcher Box styled in Premium Light Theme */}
-      <div className="max-w-4xl w-full text-center space-y-10">
+      <div className="w-full max-w-4xl space-y-7 text-center sm:space-y-10">
         <h1 className="text-3xl sm:text-5xl font-extrabold font-display tracking-tight text-[#0F172A] animate-in slide-in-from-top-6 duration-700">
           Who's managing today?
         </h1>
 
         {/* Profile Card Grid */}
-        <div className="flex flex-wrap justify-center gap-8 pt-4">
+        <div className="flex flex-wrap justify-center gap-4 pt-2 sm:gap-8 sm:pt-4">
           {shops.map((shop, index) => {
             const initials = shop.display_name.slice(0, 2).toUpperCase();
             const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];

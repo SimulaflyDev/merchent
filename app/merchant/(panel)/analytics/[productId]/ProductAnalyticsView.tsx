@@ -125,15 +125,15 @@ export default function ProductAnalyticsView({ detail }: Props) {
   }, [detail.daily_impressions, detail.daily_clicks]);
 
   return (
-    <div className="p-8 space-y-6 max-w-[1440px] mx-auto w-full bg-[#F3F4F6] min-h-screen text-[#111827] animate-in fade-in duration-200">
+    <div className="mx-auto min-h-screen w-full max-w-[1440px] space-y-6 bg-[#F3F4F6] p-4 text-[#111827] animate-in fade-in duration-200 sm:p-6 lg:p-8">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+      <div className="flex min-w-0 items-center justify-between">
+        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-[11px] font-bold uppercase tracking-widest text-gray-400">
           <Link href="/merchant/analytics" className="hover:text-[#111827] transition-colors">Analytics</Link>
           <span>/</span>
           <Link href="/merchant/analytics" className="hover:text-[#111827] transition-colors">Products</Link>
           <span>/</span>
-          <span className="text-gray-500 font-semibold">{title}</span>
+          <span className="truncate text-gray-500 font-semibold">{title}</span>
         </div>
       </div>
 
@@ -202,7 +202,7 @@ export default function ProductAnalyticsView({ detail }: Props) {
         {/* AI Trigger Performance */}
         <div className="bg-white rounded-2xl border border-[#EAECEF] p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex justify-between items-center mb-4 border-b border-[#F1F3F5] pb-4">
+            <div className="mb-4 flex flex-col items-start justify-between gap-2 border-b border-[#F1F3F5] pb-4 sm:flex-row sm:items-center">
               <div>
                 <h4 className="text-[13px] font-bold text-[#111827]">AI Trigger Performance</h4>
                 <p className="text-[10px] text-gray-400 mt-0.5">Surfaced keywords in shopper chat queries</p>
@@ -283,7 +283,7 @@ export default function ProductAnalyticsView({ detail }: Props) {
         {/* Impressions Trend Chart */}
         <div className="bg-white rounded-2xl border border-[#EAECEF] p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex justify-between items-center mb-4 border-b border-[#F1F3F5] pb-4">
+            <div className="mb-4 flex flex-col items-start justify-between gap-2 border-b border-[#F1F3F5] pb-4 sm:flex-row sm:items-center">
               <div>
                 <h4 className="text-[13px] font-bold text-[#111827]">7-Day Impressions Trend</h4>
                 <p className="text-[10px] text-gray-400 mt-0.5">Average weekly volume and shopper exposure</p>

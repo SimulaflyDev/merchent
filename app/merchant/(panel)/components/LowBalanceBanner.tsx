@@ -10,8 +10,8 @@ export default function LowBalanceBanner() {
   if (wallet.balance >= wallet.low_balance_threshold) return null;
 
   return (
-    <div className="bg-amber-50 border-b border-amber-200 px-6 py-2">
-      <div className="flex items-center justify-between gap-4">
+    <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 sm:px-6 sm:py-2">
+      <div className="flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-center sm:gap-4">
         <p className="text-sm text-amber-800">
           <strong>Low balance.</strong> Your wallet is below ₹
           {wallet.low_balance_threshold.toLocaleString("en-IN")}.
@@ -19,7 +19,7 @@ export default function LowBalanceBanner() {
         </p>
         <Link
           href="/merchant/billing"
-          className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-md hover:bg-amber-700"
+          className="rounded-md bg-amber-600 px-3 py-1.5 text-center text-xs font-medium text-white hover:bg-amber-700"
         >
           Top up
         </Link>

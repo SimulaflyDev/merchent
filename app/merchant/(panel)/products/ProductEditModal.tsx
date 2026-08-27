@@ -123,11 +123,11 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
     setMetadata(metadata.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-[#F5F5F7] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2 sm:p-4">
+      <div className="max-h-[96dvh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#F5F5F7] sm:max-h-[90vh]">
 
         {/* Header */}
-        <div className="px-6 py-4 bg-white rounded-t-2xl border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-[15px] font-bold text-[#111827]">Edit Product</h2>
             <p className="text-[11px] text-gray-400 mt-0.5 font-mono">{product.sku}</p>
@@ -161,7 +161,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               </div>
 
               {/* SKU (read-only) + Price */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     SKU <span className="text-[10px] font-normal text-gray-400 normal-case">(cannot be changed)</span>
@@ -187,7 +187,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               </div>
 
               {/* Category + Brand */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     Category <span className="text-red-400">*</span>
@@ -213,7 +213,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               </div>
 
               {/* Stock + Subcategory */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     Stock Quantity <span className="text-red-400">*</span>
@@ -365,7 +365,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               </select>
             </div>
             <div className="p-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <NumberField label="Width" value={String(dimensions.width ?? "")} onChange={(v) => setDimensions({ ...dimensions, width: v })} />
                 <NumberField label="Height" value={String(dimensions.height ?? "")} onChange={(v) => setDimensions({ ...dimensions, height: v })} />
                 <NumberField label="Depth" value={String(dimensions.depth ?? "")} onChange={(v) => setDimensions({ ...dimensions, depth: v })} />
@@ -413,7 +413,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 bg-white border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 rounded-b-2xl">
+        <div className="sticky bottom-0 flex flex-col-reverse gap-3 rounded-b-2xl border-t border-gray-200 bg-white px-5 py-4 sm:flex-row sm:justify-end">
           <button
             onClick={onClose}
             className="px-5 py-2.5 text-[12px] font-medium text-gray-500 hover:text-[#111827] bg-white border border-[#EAECEF] rounded-xl hover:bg-gray-50 transition-colors uppercase"

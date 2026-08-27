@@ -8,17 +8,17 @@ export default function MerchantLandingPage() {
 
          {/* Utility Navigation */}
          <nav className="sticky top-0 left-0 right-0 bg-white border-b border-[#E5E7EB] z-50 shadow-sm">
-            <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
-               <div className="flex items-center gap-4">
+            <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-12">
+               <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                   <img src="/logo.png" alt="SimulaFly Logo" className="w-8 h-8 object-contain" />
-                  <span className="font-extrabold text-xl tracking-tight text-[#022C22]">SimulaFly Merchant</span>
+                  <span className="truncate text-base font-extrabold tracking-tight text-[#022C22] sm:text-xl">SimulaFly <span className="hidden sm:inline">Merchant</span></span>
                </div>
-               <div className="flex items-center gap-8">
-                  <Link href="/merchant/sign_in" className="text-sm font-bold text-[#064E3B] hover:text-[#10B981] transition-colors">
-                     Merchant Login
+               <div className="flex shrink-0 items-center gap-3 sm:gap-8">
+                  <Link href="/merchant/sign_in" className="text-xs font-bold text-[#064E3B] transition-colors hover:text-[#10B981] sm:text-sm">
+                     <span className="sm:hidden">Login</span><span className="hidden sm:inline">Merchant Login</span>
                   </Link>
-                  <Link href="/merchant/sign_up" className="px-6 py-2.5 bg-[#059669] text-white text-sm font-bold rounded hover:bg-[#047857] hover:shadow-md transition-all shadow-sm">
-                     Apply to Sell
+                  <Link href="/merchant/sign_up" className="rounded bg-[#059669] px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#047857] hover:shadow-md sm:px-6 sm:py-2.5 sm:text-sm">
+                     <span className="sm:hidden">Apply</span><span className="hidden sm:inline">Apply to Sell</span>
                   </Link>
                </div>
             </div>
@@ -26,7 +26,7 @@ export default function MerchantLandingPage() {
 
          {/* Hero Section */}
          <section className="bg-white w-full border-b border-[#E5E7EB]">
-            <div className="w-full max-w-[1920px] mx-auto aspect-video relative bg-[#FAFAFA]">
+            <div className="relative mx-auto aspect-[4/3] w-full max-w-[1920px] bg-[#FAFAFA] sm:aspect-video">
                <img
                   src="/d1b26a1c-5c7b-4b3f-926b-990bf71e0097.png"
                   alt="SimulaFly Merchant Hero"
@@ -36,9 +36,9 @@ export default function MerchantLandingPage() {
          </section>
 
          {/* Elevated "Why Sell Here" Grid (The Problem/Outcome) */}
-         <section className="bg-[#FAFAFA] py-20 border-b border-[#E5E7EB]">
-            <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-12">
-               <h2 className="text-3xl font-extrabold mb-12 text-[#022C22] tracking-tight">Why sell on SimulaFly?</h2>
+         <section className="border-b border-[#E5E7EB] bg-[#FAFAFA] py-12 sm:py-20">
+            <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-12">
+               <h2 className="mb-8 text-2xl font-extrabold tracking-tight text-[#022C22] sm:mb-12 sm:text-3xl">Why sell on SimulaFly?</h2>
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -50,7 +50,7 @@ export default function MerchantLandingPage() {
                         </div>
                         <span className="text-[#059669] group-hover:text-white font-mono text-sm opacity-50 font-bold">01</span>
                      </div>
-                     <div className="p-8">
+                     <div className="p-6 sm:p-8">
                         <h3 className="font-extrabold text-xl mb-3 text-[#022C22]">Show products where people live</h3>
                         <p className="text-base text-[#064E3B] leading-relaxed font-medium">
                            Customers already understand the product. They see scale, fit, and context instantly without relying on guesswork.
@@ -66,7 +66,7 @@ export default function MerchantLandingPage() {
                         </div>
                         <span className="text-[#059669] group-hover:text-white font-mono text-sm opacity-50 font-bold">02</span>
                      </div>
-                     <div className="p-8">
+                     <div className="p-6 sm:p-8">
                         <h3 className="font-extrabold text-xl mb-3 text-[#022C22]">Reduce hesitation</h3>
                         <p className="text-base text-[#064E3B] leading-relaxed font-medium">
                            Help customers decide faster. When spatial and color objections are removed visually, the path to checkout is frictionless.
@@ -82,7 +82,7 @@ export default function MerchantLandingPage() {
                         </div>
                         <span className="text-[#059669] group-hover:text-white font-mono text-sm opacity-50 font-bold">03</span>
                      </div>
-                     <div className="p-8">
+                     <div className="p-6 sm:p-8">
                         <h3 className="font-extrabold text-xl mb-3 text-[#022C22]">Bring more ready buyers</h3>
                         <p className="text-base text-[#064E3B] leading-relaxed font-medium">
                            Make products easy to understand. Highly qualified traffic means you spend less time convincing and more time selling.
@@ -95,13 +95,13 @@ export default function MerchantLandingPage() {
          </section>
 
          {/* Operational Workflow Engine */}
-         <section className="bg-white py-20 border-b border-[#E5E7EB]">
-            <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-12">
+         <section className="border-b border-[#E5E7EB] bg-white py-12 sm:py-20">
+            <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-12">
 
                <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
                   {/* Left: Operational Timeline */}
                   <div className="w-full lg:w-1/3">
-                     <h2 className="text-3xl font-extrabold mb-10 text-[#022C22] tracking-tight">How it works for merchants</h2>
+                     <h2 className="mb-10 text-2xl font-extrabold tracking-tight text-[#022C22] sm:text-3xl">How it works for merchants</h2>
 
                      <div className="relative border-l-2 border-dashed border-[#E5E7EB] pl-8 space-y-10">
                         <div className="relative">
@@ -200,11 +200,11 @@ export default function MerchantLandingPage() {
          </section>
 
          {/* Seller University Video Portal (Highly Polished) */}
-         <section className="bg-[#FAFAFA] py-20 border-b border-[#E5E7EB]">
-            <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-12">
+         <section className="border-b border-[#E5E7EB] bg-[#FAFAFA] py-12 sm:py-20">
+            <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-12">
                <div className="flex justify-between items-end mb-10">
                   <div>
-                     <h2 className="text-3xl font-extrabold text-[#022C22] tracking-tight">Seller Resources</h2>
+                  <h2 className="text-2xl font-extrabold tracking-tight text-[#022C22] sm:text-3xl">Seller Resources</h2>
                      <p className="text-sm text-[#064E3B] mt-2 font-medium">Learn from top brands scaling with SimulaFly.</p>
                   </div>
                   <Link href="#" className="hidden md:inline-flex px-6 py-2.5 bg-white border border-[#E5E7EB] text-[#022C22] text-sm font-bold rounded-lg hover:border-[#059669] hover:text-[#059669] transition-all shadow-sm">
@@ -298,8 +298,8 @@ export default function MerchantLandingPage() {
          </section>
 
          {/* Utility Footer */}
-         <footer className="bg-[#022C22] text-white py-16 px-6 lg:px-12 text-sm border-t-4 border-[#059669]">
-            <div className="w-full max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+         <footer className="border-t-4 border-[#059669] bg-[#022C22] px-4 py-12 text-sm text-white sm:px-6 sm:py-16 lg:px-12">
+            <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 md:gap-12">
                <div className="col-span-1 md:col-span-2">
                   <div className="flex items-center gap-3 mb-6">
                      <img src="/logo.png" alt="SimulaFly Logo" className="w-10 h-10 object-contain brightness-0 invert" />

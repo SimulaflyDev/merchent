@@ -121,7 +121,7 @@ function CancelModal({ onConfirm, onDismiss }: CancelModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -383,9 +383,9 @@ export function LeadDrawer({
       />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-[95vw] md:w-[700px] bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out">
+      <div className="fixed inset-y-0 right-0 z-50 flex w-full transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[95vw] md:w-[700px]">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-white z-10">
+        <div className="z-10 flex items-start justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:items-center sm:px-8 sm:py-6">
           <div>
             <div className="flex items-center gap-4 mb-1">
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
@@ -434,7 +434,7 @@ export function LeadDrawer({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-10 bg-gray-50/50">
+        <div className="flex-1 space-y-7 overflow-y-auto bg-gray-50/50 p-4 sm:space-y-10 sm:p-8">
           {/* Payment warning (only for active orders) */}
           {lead.status !== "Cancelled Orders" && (
             <div className="bg-amber-50/80 border border-amber-200/60 p-3 rounded-lg flex items-center gap-3">
@@ -476,7 +476,7 @@ export function LeadDrawer({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-12">
             {/* Customer Contact */}
             <div>
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
@@ -603,7 +603,7 @@ export function LeadDrawer({
         </div>
 
         {/* Footer actions */}
-        <div className="p-6 bg-white border-t border-gray-100 flex flex-wrap gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
+        <div className="z-10 grid grid-cols-1 gap-3 border-t border-gray-100 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] sm:flex sm:flex-wrap sm:p-6">
           {lead.status === "New Order" && (
             <button
               onClick={() => handleUpdate("Order Confirmed")}

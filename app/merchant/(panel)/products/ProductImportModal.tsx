@@ -280,15 +280,15 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="relative flex max-h-[96dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl sm:max-h-[85vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <h2 className="text-lg font-bold text-[#111827] tracking-tight">Import Products</h2>
             <p className="text-[12px] text-gray-400 mt-0.5">
@@ -305,7 +305,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto bg-white p-4 sm:p-6">
 
           {/* ─── UPLOAD STEP ─── */}
           {step === "upload" && (
@@ -396,7 +396,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
               {/* Important Fields */}
               <div>
                 <h3 className="text-[12px] font-bold text-gray-900 mb-3 uppercase tracking-widest">Important Fields</h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6">
                   {IMPORTANT_FIELDS.map(field => (
                     <div key={field.key} className="flex flex-col gap-1.5">
                       <label className="text-[11px] font-semibold text-gray-700 flex items-center gap-1.5">
@@ -431,7 +431,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
                 </button>
                 
                 {showOptionalMapping && (
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-5 p-5 bg-[#F8FAFB] border border-gray-100 rounded-xl">
+                  <div className="mt-5 grid grid-cols-1 gap-y-4 rounded-xl border border-gray-100 bg-[#F8FAFB] p-4 sm:grid-cols-2 sm:gap-x-6 sm:p-5">
                     {OPTIONAL_FIELDS.map(field => (
                       <div key={field.key} className="flex flex-col gap-1.5">
                         <label className="text-[11px] font-semibold text-gray-600">
@@ -487,7 +487,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
               {/* Preview table */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px]">
+                  <table className="w-full min-w-[700px] text-[11px]">
                     <thead>
                       <tr className="bg-[#F8F9FA] border-b border-gray-100">
                         <th className="text-left px-4 py-2.5 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Name</th>
@@ -518,7 +518,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between shrink-0 bg-[#FAFBFC]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-100 bg-[#FAFBFC] px-4 py-4 sm:px-6">
           {/* Back/Cancel Logic */}
           <button
             onClick={() => {

@@ -270,7 +270,7 @@ export default function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[340px] bg-white border border-[#EAECEF] rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.10)] py-1 z-50 overflow-hidden">
+        <div className="fixed left-4 right-4 top-[72px] z-50 overflow-hidden rounded-xl border border-[#EAECEF] bg-white py-1 shadow-[0_8px_30px_rgb(0,0,0,0.10)] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#F1F3F5]">
             <div className="flex items-center gap-2">

@@ -100,8 +100,8 @@ export default function AddProductPage() {
 
   if (!onboardingCompleted) {
     return (
-      <div className="min-h-[80vh] w-full flex items-center justify-center p-6">
-        <div className="relative w-full max-w-lg bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 overflow-hidden p-8 sm:p-10 text-center flex flex-col items-center">
+      <div className="flex min-h-[80vh] w-full items-center justify-center p-4 sm:p-6">
+        <div className="relative flex w-full max-w-lg flex-col items-center overflow-hidden rounded-3xl border border-gray-100 bg-white/80 p-5 text-center shadow-[0_20px_50px_rgba(0,0,0,0.05)] backdrop-blur-md sm:p-10">
           {/* Decorative subtle gradients */}
           <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#1FAF9A]/5 rounded-full blur-3xl" />
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#108A77]/5 rounded-full blur-3xl" />
@@ -314,7 +314,7 @@ export default function AddProductPage() {
   };
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1400px] mx-auto">
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <Link
@@ -356,7 +356,7 @@ export default function AddProductPage() {
               </div>
 
               {/* SKU + Price */}
-              <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     SKU <span className="text-red-400">*</span>
@@ -383,7 +383,7 @@ export default function AddProductPage() {
               </div>
 
               {/* Category + Brand */}
-              <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category <span className="text-red-400">*</span></label>
                   <input
@@ -409,7 +409,7 @@ export default function AddProductPage() {
               </div>
 
               {/* Stock + Subcategory */}
-              <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Stock Quantity <span className="text-red-400">*</span></label>
                   <input
@@ -465,7 +465,7 @@ export default function AddProductPage() {
                 <p className="text-[12px] text-gray-400 italic">No attributes yet. Add some to improve AI discoverability.</p>
               )}
               {fields.map((field, idx) => (
-                <div key={field.id} className="flex gap-2 items-center">
+                <div key={field.id} className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                   <input
                     {...register(`metadata.${idx}.key`)}
                     placeholder="Key (e.g. Color)"
@@ -518,7 +518,7 @@ export default function AddProductPage() {
               </select>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <DimField label="Width" value={String(dimensions.width ?? "")} onChange={(v) => setDimensions({ ...dimensions, width: v })} />
                 <DimField label="Height" value={String(dimensions.height ?? "")} onChange={(v) => setDimensions({ ...dimensions, height: v })} />
                 <DimField label="Depth" value={String(dimensions.depth ?? "")} onChange={(v) => setDimensions({ ...dimensions, depth: v })} />
@@ -567,7 +567,7 @@ export default function AddProductPage() {
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-[#F1F3F5]">
+          <div className="flex flex-col-reverse gap-3 border-t border-[#F1F3F5] pt-6 sm:flex-row sm:justify-end">
             <Link
               href="/merchant/products"
               className="px-5 py-2.5 text-[12px] font-medium text-gray-500 hover:text-[#111827] bg-white border border-[#EAECEF] rounded-xl hover:bg-gray-50 transition-colors uppercase"

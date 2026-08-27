@@ -558,7 +558,7 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
   const hasCustomers = customers.length > 0;
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-5">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -611,8 +611,8 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
             />
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] border-b border-gray-100 px-6 py-4 bg-gray-50/50">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="grid min-w-[920px] grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] border-b border-gray-100 bg-gray-50/50 px-6 py-4">
               {["Name", "Phone", "Source", "Last Purchase", "Status", "", ""].map((h, i) => (
                 <p key={i} className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{h}</p>
               ))}
@@ -627,7 +627,7 @@ export default function BuyerNetworkClient({ initialContacts, products }: Props)
                   <div 
                     key={c.id} 
                     onClick={() => router.push(`/merchant/buyer-network/${c.id}`)}
-                    className="grid grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] items-center px-6 py-4.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors cursor-pointer group/row"
+                    className="grid min-w-[920px] cursor-pointer grid-cols-[2fr_1.5fr_1fr_1fr_120px_140px_32px] items-center border-b border-gray-50 px-6 py-4.5 transition-colors last:border-0 hover:bg-gray-50/40 group/row"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 text-gray-700 font-bold text-[11px] flex items-center justify-center shrink-0 shadow-sm">

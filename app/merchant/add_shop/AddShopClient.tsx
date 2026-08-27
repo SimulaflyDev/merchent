@@ -284,11 +284,11 @@ export default function AddShopClient() {
 
   if (hasNoShops || !kycCompleted) {
     return (
-      <div className="min-h-screen bg-[#EDEEF0] flex flex-col items-center justify-center py-12 px-4 font-sans">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#EDEEF0] px-4 py-6 font-sans sm:py-12">
         <div className="max-w-lg w-full bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-[#E2E4E8] overflow-hidden">
           {/* Header accent */}
           <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-orange-400" />
-          <div className="p-8">
+          <div className="p-5 sm:p-8">
             {/* Icon */}
             <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 border border-amber-100">
               <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -345,7 +345,7 @@ export default function AddShopClient() {
   // ─── KYC Verified: Shop Verification Form ─────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#EDEEF0] flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="flex min-h-screen flex-col items-center bg-[#EDEEF0] px-4 py-6 font-sans sm:px-6 sm:py-12 lg:px-8">
       <div className="max-w-2xl w-full">
 
         {/* Page header */}
@@ -389,7 +389,7 @@ export default function AddShopClient() {
           {/* Top accent stripe */}
           <div className="h-1 w-full bg-gradient-to-r from-[#0E9F88] to-emerald-400" />
 
-          <div className="p-8 space-y-6">
+          <div className="space-y-6 p-5 sm:p-8">
 
             {/* Error Banner */}
             {error && (
@@ -556,7 +556,7 @@ export default function AddShopClient() {
                 </div>
 
                 {/* Step 1 CTA */}
-                <div className="flex gap-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:gap-4">
                   <Link
                     href="/merchant/select_shop"
                     className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-center text-sm transition-colors uppercase"
@@ -590,7 +590,7 @@ export default function AddShopClient() {
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">
                     Branding
                   </h3>
-                  <div className="flex items-center gap-5">
+                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
                     {/* Preview */}
                     <div
                       className="w-16 h-16 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:border-[#0E9F88]/50 transition-colors"
@@ -739,7 +739,7 @@ export default function AddShopClient() {
                 </div>
 
                 {/* Step 2 CTAs */}
-                <div className="flex gap-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:gap-4">
                   <button
                     type="button"
                     onClick={() => { setError(null); setStep(1); window.scrollTo({ top: 0, behavior: "smooth" }); }}

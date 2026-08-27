@@ -116,10 +116,10 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null;
 
   return (
-    <div className="p-6 md:p-8 w-full space-y-6">
+    <div className="w-full space-y-6 p-4 sm:p-6 md:p-8">
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm px-4 py-3 rounded-xl shadow-lg max-w-sm">
+        <div className="fixed bottom-4 left-4 right-4 z-50 max-w-sm rounded-xl bg-gray-900 px-4 py-3 text-sm text-white shadow-lg sm:bottom-6 sm:left-auto sm:right-6">
           {toast}
         </div>
       )}
@@ -139,8 +139,8 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}
         <div className="w-full md:w-48 shrink-0">
-          <nav className="flex flex-col space-y-1">
-            <div className="flex justify-between items-center mb-2 px-2">
+          <nav className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:gap-0 md:space-y-1 md:overflow-visible md:pb-0">
+            <div className="hidden justify-between items-center mb-2 px-2 md:flex">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 Pipeline Status
               </span>
@@ -173,7 +173,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex justify-between items-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                className={`flex shrink-0 items-center justify-between gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
                   activeTab === key
                     ? "bg-[#1FAF9A]/10 text-[#1FAF9A]"
                     : "text-gray-600 hover:bg-gray-50"

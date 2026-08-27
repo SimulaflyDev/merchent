@@ -456,7 +456,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
   ] as const;
 
   return (
-    <div className="p-6 pb-24 max-w-5xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 pb-24 sm:p-6 sm:pb-24">
       {/* Page Title */}
       <div className="border-b border-[#E2E4E8] pb-5">
         <h1 className="text-2xl font-bold text-[#111827] tracking-tight">Settings</h1>
@@ -466,10 +466,10 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
       </div>
 
       {/* Two Column Layout: Left Tabs List, Right Active tab panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8 items-start">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[250px_1fr] lg:gap-8">
         
         {/* Left tabs List */}
-        <div className="flex flex-col space-y-1 bg-white p-3 rounded-2xl border border-[#E2E4E8] shadow-sm">
+        <div className="flex gap-2 overflow-x-auto rounded-2xl border border-[#E2E4E8] bg-white p-3 shadow-sm lg:flex-col lg:gap-0 lg:space-y-1 lg:overflow-visible">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -481,7 +481,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                   setProfileError(null);
                   setProfileSaved(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left ${
+                className={`flex w-auto shrink-0 items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all lg:w-full ${
                   isActive
                     ? "bg-[#111827] text-white font-medium shadow-sm"
                     : "text-gray-500 hover:bg-[#F5F5F7] hover:text-[#111827]"
@@ -492,7 +492,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                 </span>
                 <div className="min-w-0">
                   <p className="text-[12.5px] font-semibold leading-tight">{tab.label}</p>
-                  <p className={`text-[10px] truncate mt-0.5 ${isActive ? "text-gray-300" : "text-gray-400"}`}>{tab.desc}</p>
+                  <p className={`mt-0.5 hidden truncate text-[10px] lg:block ${isActive ? "text-gray-300" : "text-gray-400"}`}>{tab.desc}</p>
                 </div>
               </button>
             );
@@ -1367,7 +1367,7 @@ export default function SettingsClient({ initialMerchant, currentUser }: Props) 
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Recent Security Logs</h3>
                   </div>
                   <div className="overflow-x-auto text-[11.5px]">
-                    <table className="w-full border-collapse">
+                    <table className="w-full min-w-[680px] border-collapse">
                       <thead>
                         <tr className="border-b border-[#F1F3F5] bg-[#FAFBFC] text-left text-gray-400 font-bold uppercase tracking-wider text-[9px]">
                           <th className="p-3 pl-5">Timestamp</th>

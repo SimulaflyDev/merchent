@@ -374,7 +374,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const statusStyles = getStatusStyles(inviteStatusLabel);
 
   return (
-    <div className="px-8 py-6 w-full max-w-[1440px] mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
       
       {/* ── Breadcrumb ── */}
       <div>
@@ -516,7 +516,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               No orders found for the selected time period.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[920px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-[#F1F3F5] bg-gray-50/50 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                   <th className="w-10"></th>

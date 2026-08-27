@@ -271,14 +271,14 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
   }, [diagnostics.alerts, products.items, summary.pending_leads_count]);
 
   return (
-    <div className="p-8 space-y-6 max-w-[1440px] mx-auto w-full bg-[#F3F4F6] min-h-screen text-[#111827]">
+    <div className="mx-auto min-h-screen w-full max-w-[1440px] space-y-6 bg-[#F3F4F6] p-4 text-[#111827] sm:p-6 lg:p-8">
       {/* Title Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-[24px] font-bold text-[#111827] tracking-tight">Intelligence Hub</h1>
           <p className="text-[12px] text-gray-500 font-medium mt-1">Cross-channel analytics, shopper performance, and product-level insights.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
           {/* Time range selector */}
           <div className="relative">
             <select
@@ -295,7 +295,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
             </div>
           </div>
           {/* Export Report Button */}
-          <button className="flex items-center gap-2 h-9 px-4 bg-[#111827] text-white text-[12px] font-semibold rounded-lg hover:bg-black transition-colors shadow-sm">
+          <button className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-[#111827] px-4 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-black sm:flex-none">
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
@@ -305,7 +305,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex gap-2 border-b border-gray-200 pb-px">
+      <div className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-px">
         {[
           { key: "overview", label: "Overview" },
           { key: "breakdown", label: "Product Breakdown" },
@@ -314,7 +314,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key as any)}
-            className={`px-4 py-2 rounded-lg text-[12px] font-bold transition-all relative flex items-center gap-1.5 ${activeTab === t.key
+                  className={`relative flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-bold transition-all ${activeTab === t.key
                 ? "bg-[#111827] text-white"
                 : "text-gray-500 hover:text-[#111827] hover:bg-gray-100"
               }`}
@@ -410,7 +410,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
             <div className="bg-white rounded-2xl border border-[#EAECEF] p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <h4 className="text-[13px] font-bold text-[#111827] mb-4">SimulaFly Commerce Channel</h4>
-                <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <ChannelBox label="Reach" value={(summary.reach_count || 0).toLocaleString()} sub="unique users" />
                   <ChannelBox label="Frequency" value={`${(summary.reach_count > 0 ? (imp / summary.reach_count) : 1.0).toFixed(1)}x`} sub="avg per user" />
                   <ChannelBox label="CTR" value={`${(summary.ctr * 100).toFixed(1)}%`} sub="click-through" />
@@ -554,7 +554,7 @@ export default function AnalyticsClient({ summary, products, diagnostics, days }
               <p className="text-[10px] text-gray-400 mt-0.5">See exactly what users typed to trigger your products.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[600px] text-sm">
                 <thead className="bg-[#FAFBFC] text-left text-gray-400 border-b border-[#F1F3F5] text-[10px] font-bold uppercase tracking-widest">
                   <tr>
                     <th className="px-6 py-3.5">User Search Query</th>
@@ -792,7 +792,7 @@ function ProductCard({
         </div>
 
         {/* 4 KPIs grid */}
-        <div className="grid grid-cols-4 gap-2 border-t border-[#F1F3F5] mt-4 pt-4 text-center">
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#F1F3F5] pt-4 text-center sm:grid-cols-4">
           <div>
             <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Orders Placed</p>
             <p className="text-[14px] font-bold text-[#111827] mt-1 tabular-nums">{activity.toLocaleString()}</p>

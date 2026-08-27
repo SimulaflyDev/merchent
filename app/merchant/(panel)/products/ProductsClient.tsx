@@ -135,17 +135,17 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
   );
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
       {/* Header */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-[22px] font-bold text-[#111827] tracking-tight">Products</h1>
           <p className="text-[12px] text-gray-400 mt-1">
             {initialData.total} product{initialData.total !== 1 ? "s" : ""} in your catalogue
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           {/* View toggle */}
           <div className="flex bg-[#F1F2F4] rounded-lg p-1 gap-1">
             <button
@@ -173,7 +173,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
           <button
             onClick={() => setShareModalOpen(true)}
-            className="flex items-center gap-2 h-9 px-4 bg-white border border-[#EAECEF] hover:border-gray-300 text-gray-700 text-[12px] font-medium rounded-lg transition-colors"
+            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-[#EAECEF] bg-white px-3 text-[12px] font-medium text-gray-700 transition-colors hover:border-gray-300 sm:flex-none sm:px-4"
           >
             <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -184,7 +184,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
           <Link
             href={onboardingCompleted ? "/merchant/products/add" : "/merchant/onboarding"}
-            className="flex items-center gap-2 h-9 px-4 bg-[#111827] text-white text-[12px] font-medium rounded-lg hover:bg-black transition-colors"
+            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-[#111827] px-3 text-[12px] font-medium text-white transition-colors hover:bg-black sm:flex-none sm:px-4"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -196,7 +196,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
       {/* Onboarding Incomplete Banner */}
       {!onboardingCompleted && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4">
+        <div className="mb-6 flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 shadow-sm animate-in fade-in slide-in-from-top-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -212,7 +212,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
           </div>
           <Link
             href="/merchant/onboarding"
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded-lg transition-all shadow-sm shrink-0"
+            className="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-center text-[11px] font-bold text-white shadow-sm transition-all hover:bg-amber-700"
           >
             Resume Setup
           </Link>
@@ -220,7 +220,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
       )}
 
       {/* Status tabs */}
-      <div className="flex items-center gap-1 mb-5">
+      <div className="mb-5 flex flex-wrap items-center gap-1">
         {STATUS_OPTIONS.map((opt) => {
           const count = opt.value === "all" ? counts.all : (counts[opt.value as keyof typeof counts] ?? 0);
           const active = statusFilter === opt.value;
@@ -243,7 +243,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
         })}
 
         {/* Search */}
-        <div className="ml-auto relative">
+        <div className="relative mt-2 w-full sm:ml-auto sm:mt-0 sm:w-auto">
           <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -253,7 +253,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
               placeholder="Search title or SKU…"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="w-64 pl-9 pr-4 py-2 bg-white border border-[#EAECEF] rounded-lg text-[12px] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0E9F88] focus:border-[#0E9F88] transition-all"
+              className="w-full rounded-lg border border-[#EAECEF] bg-white py-2 pl-9 pr-4 text-[12px] text-gray-700 placeholder-gray-400 transition-all focus:border-[#0E9F88] focus:outline-none focus:ring-1 focus:ring-[#0E9F88] sm:w-64"
             />
           </form>
         </div>
@@ -303,7 +303,8 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 
       {/* List view */}
       {viewMode === "list" && initialData.items.length > 0 && (
-        <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto rounded-2xl border border-[#EAECEF] bg-white">
+          <div className="min-w-[760px]">
           {/* List header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[#FAFBFC] border-b border-[#F1F3F5] text-[10px] font-bold text-gray-400 uppercase tracking-widest">
             <div className="col-span-4">Product</div>
@@ -325,6 +326,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
                 onPreview={setPreviewProduct}
               />
             ))}
+          </div>
           </div>
         </div>
       )}

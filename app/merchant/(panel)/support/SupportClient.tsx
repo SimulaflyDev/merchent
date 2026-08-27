@@ -579,7 +579,7 @@ export default function SupportClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#EDEEF0] p-6">
+    <div className="min-h-screen bg-[#EDEEF0] p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
@@ -685,7 +685,7 @@ export default function SupportClient({
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
 
                 {/* Error banner */}
                 {error && (

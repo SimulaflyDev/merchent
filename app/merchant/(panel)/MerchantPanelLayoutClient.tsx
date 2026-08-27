@@ -17,7 +17,7 @@ function ToastRenderer() {
   const { toast, hideToast } = useMerchant();
   if (!toast) return null;
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-4 left-4 right-4 z-50 flex items-center gap-3 rounded-xl bg-gray-900 px-4 py-3 text-white shadow-2xl animate-in slide-in-from-bottom-5 sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm">
       {toast.type === 'success' ? (
         <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -57,6 +57,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consumerSupportOpen, setConsumerSupportOpen] = useState(false);
 
   const walletBalance = Number(initialWallet.balance);
@@ -83,6 +84,22 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [router]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -251,6 +268,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
       <Link
         key={item.name}
         href={item.href}
+        onClick={() => setMobileNavOpen(false)}
         title={collapsed ? item.name : undefined}
         className={`relative flex items-center rounded-xl transition-all group ${
           collapsed
@@ -280,7 +298,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
 
   // Logo component
   const Logo = ({ size = "default" }: { size?: "default" | "small" }) => (
-    <Link href="/merchant/dashboard" className="flex items-center gap-2.5">
+    <Link href="/merchant/dashboard" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-2.5">
       <img src="/simulafly-logo.png" alt="SimulaFly" className={`${size === "small" ? "w-7 h-7" : "w-9 h-9"} rounded-xl shadow-sm shrink-0 object-cover`} />
       {!collapsed && size !== "small" && (
         <div className="flex items-baseline gap-1.5">
@@ -324,20 +342,44 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
     <MerchantProvider activeMerchantId={activeMerchantId} initialMerchant={initialMerchant} initialWallet={initialWallet}>
       <div 
         className="min-h-screen bg-[#EDEEF0] flex font-sans"
+        data-merchant-panel
         style={{ "--sidebar-width": collapsed ? "72px" : "264px" } as React.CSSProperties}
       >
+        {mobileNavOpen && (
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px] md:hidden"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        )}
+
         {/* ─── Sidebar ─── */}
-        <aside className={`${collapsed ? 'w-[72px]' : 'w-[264px]'} bg-white border-r border-[#E2E4E8] flex-col hidden md:flex sticky top-0 h-screen shrink-0 transition-all duration-300 ease-in-out`}>
+        <aside
+          id="merchant-navigation"
+          className={`${collapsed ? 'md:w-[72px]' : 'md:w-[264px]'} fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(18rem,calc(100vw-3rem))] shrink-0 flex-col border-r border-[#E2E4E8] bg-white shadow-2xl transition-transform duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 md:shadow-none ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        >
 
           {/* Logo */}
-          <div className={`h-[72px] flex items-center border-b border-[#F1F3F5] shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`}>
+          <div className={`relative h-[72px] flex items-center border-b border-[#F1F3F5] shrink-0 ${collapsed ? 'md:justify-center md:px-0' : 'px-5'}`}>
             <Logo />
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#111827] md:hidden"
+              aria-label="Close navigation menu"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
 
 
           {/* Hamburger toggle — between logo and nav */}
-          <div className={`shrink-0 flex ${collapsed ? 'justify-center py-4' : 'px-4 pt-5 pb-1'}`}>
+          <div className={`hidden shrink-0 md:flex ${collapsed ? 'justify-center py-4' : 'px-4 pt-5 pb-1'}`}>
             <button
               onClick={() => setCollapsed(!collapsed)}
               className={`flex items-center gap-3 rounded-xl transition-all group ${
@@ -456,12 +498,29 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
         </aside>
 
         {/* ─── Main Content Area ─── */}
-        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden md:h-screen">
           {/* Header Bar */}
-          <header className="h-[64px] bg-white border-b border-[#E2E4E8] flex items-center justify-between px-6 shrink-0 sticky top-0 z-20">
+          <header className="h-[64px] bg-white border-b border-[#E2E4E8] flex items-center justify-between gap-2 px-3 sm:px-6 shrink-0 sticky top-0 z-20">
             {/* Logo in header (visible always — acts as breadcrumb anchor) */}
-            <div className="flex items-center gap-4">
-              <div className="md:hidden">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapsed(false);
+                  setMobileNavOpen(true);
+                }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EAECEF] bg-[#F5F5F7] text-gray-500 transition-colors hover:bg-white hover:text-[#111827] md:hidden"
+                aria-label="Open navigation menu"
+                aria-controls="merchant-navigation"
+                aria-expanded={mobileNavOpen}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <line x1="4" y1="6" x2="20" y2="6" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
+              </button>
+              <div className="shrink-0 md:hidden">
                 <Logo size="small" />
               </div>
               {/* Page context indicator (desktop) */}
@@ -473,9 +532,9 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               {/* Active Shop identity badge */}
-              <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 sm:flex">
                 <div className="w-6 h-6 rounded-md bg-[#0E9F88]/10 flex items-center justify-center shrink-0">
                   <svg className="w-3.5 h-3.5 text-[#0E9F88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -549,7 +608,7 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto">
             <LowBalanceBanner />
             <PageGate>{children}</PageGate>
           </main>

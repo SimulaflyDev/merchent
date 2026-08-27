@@ -200,7 +200,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
   const roomRenders = buyer.timeline.filter(e => e.type === "room").map(e => e.text);
 
   return (
-    <div className="px-8 py-8 w-full max-w-[1440px] mx-auto space-y-5">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
 
       {/* ── Breadcrumb ── */}
       <div className="flex items-center gap-2 text-[11px] text-gray-400">
@@ -211,12 +211,12 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
 
       {/* ── Profile Header ── */}
       <div className={`bg-white border border-gray-200 rounded-xl p-5 border-l-4 ${tier.border} flex flex-col md:flex-row items-start md:items-center justify-between gap-5`}>
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="w-14 h-14 rounded-xl bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-lg shrink-0 border border-gray-200">
             {initials}
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+          <div className="min-w-0">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
               <h1 className="text-[18px] font-bold text-gray-900">{buyerName}</h1>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-current ${tier.text} bg-opacity-5`}>{buyer.intent_label}</span>
             </div>
@@ -230,7 +230,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Scores */}
-        <div className="flex items-center gap-8 shrink-0">
+        <div className="flex w-full shrink-0 items-center justify-between gap-6 md:w-auto md:justify-start md:gap-8">
           <div>
             <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest">Intent Score</p>
             <div className="flex items-end gap-1 mt-0.5">
@@ -249,12 +249,12 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ── Conversion Probability Banner ── */}
-      <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-5 py-3">
         <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
         <p className="text-[12px] font-semibold text-gray-700">
           {buyer.intent_tier === "ready" ? "Likely to purchase within 7 days" : buyer.intent_tier === "high" ? "High revisit momentum detected" : "Building catalog consideration"}
         </p>
-        <span className="text-[10px] text-gray-400 ml-auto">AI estimate based on engagement patterns</span>
+        <span className="w-full text-[10px] text-gray-400 sm:ml-auto sm:w-auto">AI estimate based on engagement patterns</span>
       </div>
 
       {/* ── Action Buttons ── */}
@@ -286,7 +286,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ── Two-Column Layout ── */}
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col items-stretch gap-5 xl:flex-row xl:items-start">
 
         {/* ── LEFT ── */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -393,7 +393,7 @@ export default function BuyerProfilePage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* ── RIGHT ── */}
-        <div className="w-64 shrink-0 space-y-4">
+        <div className="w-full shrink-0 space-y-4 xl:w-64">
 
           {/* Customer Overview */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

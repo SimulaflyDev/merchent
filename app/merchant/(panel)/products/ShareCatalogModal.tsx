@@ -297,7 +297,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Premium blur backdrop */}
       <div 
         className="absolute inset-0 bg-[#0B0F17]/40 backdrop-blur-md transition-opacity duration-300"
@@ -305,7 +305,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
       />
       
       {/* Dialog container */}
-      <div className="relative bg-white/95 dark:bg-[#121824]/95 border border-[#EAECEF]/40 dark:border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl backdrop-blur-xl transition-all scale-100 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative flex max-h-[96dvh] w-full max-w-md scale-100 flex-col overflow-y-auto rounded-3xl border border-[#EAECEF]/40 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 duration-200 dark:border-white/10 dark:bg-[#121824]/95 sm:p-6">
         
         {/* Close Button */}
         <button 

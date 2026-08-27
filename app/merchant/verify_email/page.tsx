@@ -88,8 +88,8 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EDEEF0] px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-[#E2E4E8] p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#EDEEF0] px-4 py-6">
+      <div className="w-full max-w-md rounded-2xl border border-[#E2E4E8] bg-white p-6 shadow-sm sm:p-8">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-[#0E9F88]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#0E9F88]">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -115,7 +115,7 @@ export default function VerifyEmailPage() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
               placeholder="000000"
-              className="w-full bg-[#F8FAFB] border-2 border-gray-200 rounded-xl px-4 py-4 text-2xl text-center font-mono font-bold tracking-[8px] outline-none focus:border-[#0E9F88] transition-colors"
+              className="w-full rounded-xl border-2 border-gray-200 bg-[#F8FAFB] px-3 py-4 text-center font-mono text-xl font-bold tracking-[5px] outline-none transition-colors focus:border-[#0E9F88] sm:px-4 sm:text-2xl sm:tracking-[8px]"
               autoFocus
               autoComplete="one-time-code"
             />
