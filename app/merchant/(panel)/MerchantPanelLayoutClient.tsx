@@ -523,13 +523,6 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
               <div className="shrink-0 md:hidden">
                 <Logo size="small" />
               </div>
-              {/* Page context indicator (desktop) */}
-              <div className="hidden md:flex items-center gap-2 text-[12px] text-gray-400 font-normal">
-                <svg className="w-4 h-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <span>Search products, analytics, settings…</span>
-              </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
