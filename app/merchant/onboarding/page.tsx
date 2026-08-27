@@ -44,8 +44,20 @@ const RELATIONSHIPS: { value: Relationship; label: string }[] = [
 const FULFILMENT_METHODS: { value: FulfilmentMethod; label: string }[] = [
   { value: "merchant_delivery", label: "Merchant delivery" },
   { value: "customer_pickup", label: "Customer pickup" },
-  { value: "platform_delivery", label: "Platform / third-party delivery" },
+  { value: "third_party_delivery", label: "Third-party delivery" },
   { value: "installation_service", label: "Installation / execution service" },
+];
+const OPERATING_HOURS_OPTIONS = [
+  "Mon–Sat, 10:00 AM–8:00 PM",
+  "Mon–Sat, 9:00 AM–7:00 PM",
+  "Mon–Sat, 9:00 AM–9:00 PM",
+  "Mon–Sat, 10:00 AM–9:00 PM",
+  "Mon–Sun, 10:00 AM–8:00 PM",
+  "Mon–Sun, 9:00 AM–9:00 PM",
+  "Mon–Sun, 10:00 AM–10:00 PM",
+  "Mon–Fri, 9:00 AM–6:00 PM",
+  "Mon–Fri, 10:00 AM–7:00 PM",
+  "All Days, 24 Hours (24/7)",
 ];
 
 const inputClass =
@@ -127,6 +139,8 @@ export default function OnboardingPage() {
   const [gstin, setGstin] = useState("");
   const [operatingLocation, setOperatingLocation] = useState("");
   const [operatingHours, setOperatingHours] = useState("");
+  const [customOperatingHours, setCustomOperatingHours] = useState("");
+  const [isCustomHours, setIsCustomHours] = useState(false);
   const [serviceRadius, setServiceRadius] = useState("");
 
   const [fulfilmentMethods, setFulfilmentMethods] = useState<FulfilmentMethod[]>([]);
@@ -374,7 +388,41 @@ export default function OnboardingPage() {
               <Field label="PIN code" required><input className={inputClass} value={shopPostalCode} disabled={sameShopAddress} maxLength={6} onChange={(e) => setShopPostalCode(e.target.value.replace(/\D/g, ""))} /></Field>
               <Field label="Operating location" required><input className={inputClass} value={operatingLocation} onChange={(e) => setOperatingLocation(e.target.value)} placeholder="Area / landmark / service location" /></Field>
               <Field label="Contact number"><input className={`${inputClass} bg-gray-100`} value={phone} disabled /></Field>
-              <Field label="Operating hours" required><input className={inputClass} value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)} placeholder="Mon–Sat, 10:00 AM–8:00 PM" /></Field>
+              <Field label="Operating hours" required>
+                <select
+                  className={inputClass}
+                  value={isCustomHours ? "custom" : operatingHours}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "custom") {
+                      setIsCustomHours(true);
+                      setOperatingHours(customOperatingHours);
+                    } else {
+                      setIsCustomHours(false);
+                      setOperatingHours(val);
+                    }
+                  }}
+                >
+                  <option value="" disabled>Select operating hours</option>
+                  {OPERATING_HOURS_OPTIONS.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                  <option value="custom">Custom / Other hours</option>
+                </select>
+                {isCustomHours && (
+                  <div className="mt-2">
+                    <input
+                      className={inputClass}
+                      value={customOperatingHours}
+                      onChange={(e) => {
+                        setCustomOperatingHours(e.target.value);
+                        setOperatingHours(e.target.value);
+                      }}
+                      placeholder="e.g. Tue–Sun, 11:00 AM–9:00 PM"
+                    />
+                  </div>
+                )}
+              </Field>
               <Field label="Service / delivery radius (km)"><input type="number" min="0" className={inputClass} value={serviceRadius} onChange={(e) => setServiceRadius(e.target.value)} /></Field>
             </div>
           </div>}

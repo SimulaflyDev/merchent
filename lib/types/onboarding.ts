@@ -11,7 +11,7 @@ export type Relationship = "owner" | "partner" | "director" | "authorized_repres
 export type FulfilmentMethod =
   | "merchant_delivery"
   | "customer_pickup"
-  | "platform_delivery"
+  | "third_party_delivery"
   | "installation_service";
 
 export interface AddressInput {
