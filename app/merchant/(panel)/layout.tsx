@@ -5,21 +5,20 @@ import { getMerchant } from "@/lib/api/merchants";
 import { getWallet } from "@/lib/api/wallet";
 import { isApiError } from "@/lib/api/errors";
 import MerchantPanelLayoutClient from "./MerchantPanelLayoutClient";
+import VerificationFeatureGate from "./components/VerificationFeatureGate";
 
 export default async function MerchantPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getMerchantSession();
   if (!session?.activeMerchantId) redirect("/merchant/sign_in");
 
   let merchant;
-  let wallet;
+  let wallet = null;
 
   try {
-    const [m, w] = await Promise.all([
-      getMerchant(session.activeMerchantId),
-      getWallet(),
-    ]);
-    merchant = m;
-    wallet = w;
+    merchant = await getMerchant(session.activeMerchantId);
+    if (merchant.is_kyc_completed) {
+      wallet = await getWallet();
+    }
   } catch (err) {
     if (isApiError(err) && err.status === 401) {
       redirect("/api/auth/logout");
@@ -33,7 +32,9 @@ export default async function MerchantPanelLayout({ children }: { children: Reac
       initialMerchant={merchant}
       initialWallet={wallet}
     >
-      {children}
+      <VerificationFeatureGate isVerified={merchant.is_kyc_completed}>
+        {children}
+      </VerificationFeatureGate>
     </MerchantPanelLayoutClient>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 
 // ─── Reason Categories ────────────────────────────────────────────────────────
 const REASON_CATEGORIES = [
@@ -473,13 +473,15 @@ export default function SupportClient({
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (reason === "orders_leads") {
+  const handleReasonChange = (nextReason: string) => {
+    setReason(nextReason);
+    setSubReason("");
+    if (nextReason === "orders_leads") {
       setProductId("");
     } else {
       setOrderId("");
     }
-  }, [reason]);
+  };
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("support@simulafly.com");
@@ -559,7 +561,7 @@ export default function SupportClient({
       const order = reason === "orders_leads" ? orders.find((o) => o.id === orderId) : null;
 
       setSubmitted({
-        ticketId: ticket.id,
+        ticketId: ticket.reference,
         reason: reasonName,
         subReason: subReasonName,
         productTitle: product ? `${product.title} (${product.sku})` : null,
@@ -628,7 +630,7 @@ export default function SupportClient({
               {REASON_CATEGORIES.map((cat) => (
                 <div
                   key={cat.slug}
-                  onClick={() => { setReason(cat.slug); setSubReason(""); document.getElementById("support-ticket-form")?.scrollIntoView({ behavior: "smooth" }); }}
+                  onClick={() => { handleReasonChange(cat.slug); document.getElementById("support-ticket-form")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#F1F3F5] bg-[#FAFBFC] hover:bg-[#F0FDF9] hover:border-[#0E9F88]/20 cursor-pointer transition-all group"
                 >
                   <span className="text-gray-400 group-hover:text-[#0E9F88] transition-colors shrink-0">{getCategoryIcon(cat.slug)}</span>
@@ -701,7 +703,7 @@ export default function SupportClient({
                 <div>
                   <label className="block text-[11.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Reason <span className="text-red-400">*</span></label>
                   <div className="relative">
-                    <select id="support-reason" value={reason} onChange={(e) => { setReason(e.target.value); setSubReason(""); }} required
+                    <select id="support-reason" value={reason} onChange={(e) => handleReasonChange(e.target.value)} required
                       className="w-full appearance-none bg-[#F8F9FB] border border-[#E2E4E8] rounded-xl px-4 py-3 text-[13px] text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all pr-10">
                       <option value="">Select a category…</option>
                       {REASON_CATEGORIES.map((cat) => (<option key={cat.slug} value={cat.slug}>{cat.name}</option>))}

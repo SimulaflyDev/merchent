@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
 
   const amount = Number(body.amount);
   const currency = typeof body.currency === "string" ? body.currency.toUpperCase() : "INR";
-  if (!Number.isInteger(amount) || amount < 100) {
+  if (!Number.isInteger(amount) || amount < 50_000) {
     return NextResponse.json(
-      { error: "Amount must be an integer of at least 100 paise" },
+      { error: "Minimum recharge amount is ₹500" },
       { status: 400 },
     );
   }

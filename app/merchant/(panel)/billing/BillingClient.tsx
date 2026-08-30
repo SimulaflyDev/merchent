@@ -322,8 +322,8 @@ export default function BillingClient({ wallet, merchant }: Props) {
     setSuccessMsg(null);
     setIsAddFundsOpen(false);
 
-    if (amount < 1 || amount > 500_000) {
-      setErrorMsg("Amount must be between ₹1 and ₹500,000.");
+    if (!Number.isInteger(amount) || amount < 500 || amount > 500_000) {
+      setErrorMsg("Recharge amount must be between ₹500 and ₹500,000.");
       return;
     }
     if (typeof window === "undefined" || !window.Razorpay) {
@@ -1064,25 +1064,26 @@ export default function BillingClient({ wallet, merchant }: Props) {
               <form 
                 onSubmit={(e) => {
                   e.preventDefault();
-                  const amt = parseFloat(customAmount);
-                  if (amt > 0) handleLiveTopup(amt);
+                  const amt = Number(customAmount);
+                  if (Number.isInteger(amt)) void handleLiveTopup(amt);
                 }} 
                 className="space-y-3"
               >
                 <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider block">Or Enter Custom Amount</span>
                 <div className="flex gap-2">
                   <input
-                    type="number"
-                    min="1"
-                    max="500000"
-                    placeholder="Custom amount (₹1 – ₹500,000)"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    placeholder="Custom amount (₹500 – ₹500,000)"
                     value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
+                    onChange={(e) => setCustomAmount(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#0E9F88] hover:border-gray-300 font-semibold"
                   />
                   <button
                     type="submit"
-                    disabled={!customAmount}
+                    disabled={!customAmount || Number(customAmount) < 500}
                     className="px-5 py-2.5 bg-[#0E9F88] hover:bg-[#0B7A69] text-white text-sm font-bold rounded-xl disabled:opacity-50 transition shadow-sm"
                   >
                     Top up

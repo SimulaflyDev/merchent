@@ -11,6 +11,7 @@ export interface SupportTicketCreatePayload {
 
 export interface SupportTicketOut {
   id: string;
+  reference: string;
   subject: string;
   status: string;
   priority: string;

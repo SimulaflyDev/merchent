@@ -187,13 +187,13 @@ async function generateStorefrontCardBlob(
   ctx.drawImage(qrImg, qrBoxX + qrPad, qrBoxY + qrPad, qrBoxSize - qrPad * 2, qrBoxSize - qrPad * 2);
   URL.revokeObjectURL(qrObjUrl);
 
-  // 8. Referral Code
-  const refCode = merchant.referral_code || `SL-${merchant.slug.toUpperCase()}`;
+  // 8. Shop ID
+  const shopId = merchant.shop_id || merchant.partner_id || merchant.id;
   ctx.fillStyle = "#94A3B8";
   ctx.font = "bold 20px monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(refCode, width / 2, cardY + cardH - 50);
+  ctx.fillText(shopId, width / 2, cardY + cardH - 50);
 
   // 9. Shareable Web Link Box
   const linkBoxW = width - 160;
@@ -242,9 +242,10 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
   const [downloadingCard, setDownloadingCard] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
 
-  // Generate deep link and web sharing URLs
-  const deepLink = `simulafly://merchant/${merchant.referral_code || merchant.slug || merchant.id}`;
-  const webLink = `https://simulafly.com/m/${merchant.referral_code || merchant.slug}`;
+  // Both destinations use the unique shop ID so every QR resolves to the selected shop.
+  const shopId = merchant.shop_id || merchant.partner_id || merchant.id;
+  const deepLink = `simulafly://merchant/${encodeURIComponent(shopId)}`;
+  const webLink = `https://simulafly.com/m/${encodeURIComponent(shopId)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(deepLink)}&color=111827&margin=10`;
 
   const handleCopy = async () => {
@@ -252,7 +253,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
       await navigator.clipboard.writeText(webLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       // fallback
     }
   };
@@ -264,7 +265,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${merchant.slug || "merchant"}_storefront_card.png`;
+      a.download = `${shopId}_storefront_card.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -284,7 +285,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${merchant.slug || "merchant"}_qr_code.png`;
+      a.download = `${shopId}_qr_code.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -354,7 +355,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
           </div>
           
           <span className="text-[10px] text-gray-400 font-mono tracking-wider mt-3">
-            {merchant.referral_code || `SL-${merchant.slug.toUpperCase()}`}
+            {shopId}
           </span>
         </div>
 

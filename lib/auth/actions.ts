@@ -22,6 +22,7 @@ export async function loginAction(email: string, password: string): Promise<Acti
     // Check email verification status
     const user = await api<{ is_email_verified: boolean }>("/users/me");
     if (!user.is_email_verified) {
+      await api<{ message: string }>("/auth/send-otp", { method: "POST" });
       redirect("/merchant/verify_email");
     }
 

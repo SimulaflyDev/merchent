@@ -163,7 +163,7 @@ interface ProviderProps {
   children: ReactNode;
   activeMerchantId: string;
   initialMerchant: MerchantOut;
-  initialWallet: WalletOut;
+  initialWallet: WalletOut | null;
 }
 
 export const MerchantProvider = ({ children, activeMerchantId: _activeMerchantId, initialMerchant, initialWallet }: ProviderProps) => {

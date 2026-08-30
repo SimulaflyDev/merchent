@@ -64,6 +64,9 @@ const inputClass =
   "w-full rounded-xl border border-gray-200 bg-[#F8FAFB] px-4 py-3 text-sm font-medium text-gray-900 outline-none transition focus:border-[#0E9F88] focus:ring-2 focus:ring-[#0E9F88]/15";
 const labelClass = "mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400";
 
+const digitsOnly = (value: string, maxLength: number) =>
+  value.replace(/\D/g, "").slice(0, maxLength);
+
 function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <div>
@@ -225,7 +228,10 @@ export default function OnboardingPage() {
       if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) return "Enter a valid 15-character GSTIN.";
       if (!operatingLocation.trim() || !operatingHours.trim()) return "Enter the operating location and operating hours.";
     }
-    if (target === 4 && (!fulfilmentMethods.length || !fulfilmentTime.trim())) return "Select a fulfilment method and enter the estimated fulfilment time.";
+    if (target === 4) {
+      if (!fulfilmentMethods.length) return "Select at least one fulfilment method.";
+      if (!/^[1-9][0-9]?$/.test(fulfilmentTime)) return "Enter maximum fulfilment days as a number from 1 to 99.";
+    }
     if (target === 5 && !informationAccurate) return "Confirm that the submitted information is accurate.";
     return null;
   };
@@ -298,7 +304,7 @@ export default function OnboardingPage() {
 
       sessionStorage.setItem("sf_pending_pan", businessPan);
       sessionStorage.removeItem("sf_onboarding_step");
-      router.push("/merchant/verification");
+      router.push("/merchant/verification?onboarding=complete");
     } catch (err) {
       setError(isApiError(err) ? err.detail : "Could not submit onboarding. Please try again.");
       setSubmitting(false);
@@ -424,14 +430,14 @@ export default function OnboardingPage() {
                   </div>
                 )}
               </Field>
-              <Field label="Service / delivery radius (km)"><input type="number" min="0" className={inputClass} value={serviceRadius} onChange={(e) => setServiceRadius(e.target.value)} /></Field>
+              <Field label="Service / delivery radius (km)"><input type="text" inputMode="numeric" pattern="[0-9]{0,2}" maxLength={2} className={inputClass} value={serviceRadius} onChange={(e) => setServiceRadius(digitsOnly(e.target.value, 2))} /></Field>
             </div>
           </div>}
 
           {step === 4 && <div>
             <SectionTitle title="Fulfilment & merchant operations" description="Choose how orders will be fulfilled after the merchant is activated." />
             <div className="grid gap-3 sm:grid-cols-2">{FULFILMENT_METHODS.map((method) => <label key={method.value} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm font-bold ${fulfilmentMethods.includes(method.value) ? "border-[#0E9F88] bg-emerald-50 text-[#0E9F88]" : "border-gray-200 text-gray-600"}`}><input type="checkbox" checked={fulfilmentMethods.includes(method.value)} onChange={() => toggleFulfilment(method.value)} />{method.label}</label>)}</div>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2"><Field label="Delivery / service radius (km)"><input type="number" min="0" className={inputClass} value={deliveryRadius} onChange={(e) => setDeliveryRadius(e.target.value)} /></Field><Field label="Estimated fulfilment time" required><input className={inputClass} value={fulfilmentTime} onChange={(e) => setFulfilmentTime(e.target.value)} placeholder="e.g. 2–4 business days" /></Field></div>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2"><Field label="Delivery / service radius (km)"><input type="text" inputMode="numeric" pattern="[0-9]{0,2}" maxLength={2} className={inputClass} value={deliveryRadius} onChange={(e) => setDeliveryRadius(digitsOnly(e.target.value, 2))} /></Field><Field label="MAXIMUM FULFILMENT DAYS" required><input type="text" inputMode="numeric" pattern="[0-9]{1,2}" maxLength={2} className={inputClass} value={fulfilmentTime} onChange={(e) => setFulfilmentTime(digitsOnly(e.target.value, 2))} placeholder="e.g. 3" /></Field></div>
           </div>}
 
           {step === 5 && <div>
@@ -440,7 +446,7 @@ export default function OnboardingPage() {
               <ReviewCard title="Personal details" step={1} onEdit={setStep}><p><strong>Name:</strong> {fullName}</p><p><strong>Relationship:</strong> {relationship.replaceAll("_", " ")}</p><p><strong>Email:</strong> {email}</p><p><strong>Phone:</strong> {phone} ✓</p></ReviewCard>
               <ReviewCard title="Business details" step={2} onEdit={setStep}><p><strong>Business:</strong> {registeredBusinessName}</p><p><strong>Type:</strong> {businessType.replaceAll("_", " ")}</p><p><strong>PAN:</strong> ******{businessPan.slice(-4)}</p><p><strong>Address:</strong> {registeredAddress}, {registeredCity}, {registeredState} {registeredPostalCode}</p></ReviewCard>
               <ReviewCard title="Shop & GST details" step={3} onEdit={setStep}><p><strong>Shop:</strong> {shopName}</p><p><strong>GSTIN:</strong> {gstin}</p><p><strong>Location:</strong> {shopAddress}, {shopCity}</p><p><strong>Hours:</strong> {operatingHours}</p></ReviewCard>
-              <ReviewCard title="Fulfilment" step={4} onEdit={setStep}><p><strong>Methods:</strong> {fulfilmentMethods.map((v) => v.replaceAll("_", " ")).join(", ")}</p><p><strong>ETA:</strong> {fulfilmentTime}</p></ReviewCard>
+              <ReviewCard title="Fulfilment" step={4} onEdit={setStep}><p><strong>Methods:</strong> {fulfilmentMethods.map((v) => v.replaceAll("_", " ")).join(", ")}</p><p><strong>Maximum fulfilment:</strong> {fulfilmentTime} days</p></ReviewCard>
             </div>
             <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 text-sm text-gray-600"><input type="checkbox" className="mt-0.5" checked={informationAccurate} onChange={(e) => setInformationAccurate(e.target.checked)} /><span>I confirm that all submitted information is accurate and that I am authorized to submit it for this business.</span></label>
           </div>}

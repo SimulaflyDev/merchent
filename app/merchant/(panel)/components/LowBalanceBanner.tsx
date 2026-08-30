@@ -12,10 +12,8 @@ export default function LowBalanceBanner() {
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 sm:px-6 sm:py-2">
       <div className="flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <p className="text-sm text-amber-800">
-          <strong>Low balance.</strong> Your wallet is below ₹
-          {wallet.low_balance_threshold.toLocaleString("en-IN")}.
-          Products will pause if it hits zero.
+        <p className="text-sm font-semibold text-amber-800">
+          LOW BALANCE ALERT!!! Services will be suspended soon, recharge wallet balance now.
         </p>
         <Link
           href="/merchant/billing"

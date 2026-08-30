@@ -54,6 +54,9 @@ export default function VerificationClient({
   const [gstin, setGstin] = useState(initialGstin.toUpperCase());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [verificationPromptOpen, setVerificationPromptOpen] = useState(
+    () => searchParams.get("onboarding") === "complete" || searchParams.get("locked") === "1",
+  );
   const [pending, startTransition] = useTransition();
   const [agreementChecks, setAgreementChecks] = useState<Record<string, boolean>>({
     merchant_agreement: false,
@@ -165,6 +168,36 @@ export default function VerificationClient({
 
   return (
     <div className="min-h-full bg-[#EDEEF0] px-4 py-8 sm:px-7 lg:px-10">
+      {verificationPromptOpen && verification.approval_status !== "approved" && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="verification-prompt-title"
+            className="w-full max-w-md rounded-3xl border border-white/20 bg-white p-6 text-center shadow-2xl sm:p-8"
+          >
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-[#0E9F88]">
+              <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </div>
+            <h2 id="verification-prompt-title" className="text-xl font-extrabold text-[#111827]">
+              Complete shop verification
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-gray-500">
+              Your onboarding details were submitted successfully. Verify the merchant PAN and this shop&apos;s GSTIN to unlock all merchant features.
+            </p>
+            <button
+              type="button"
+              onClick={() => setVerificationPromptOpen(false)}
+              className="mt-6 w-full rounded-xl bg-[#0E9F88] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B7A69]"
+            >
+              Start verification
+            </button>
+          </section>
+        </div>
+      )}
       <div className="mx-auto max-w-5xl">
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -428,15 +461,26 @@ export default function VerificationClient({
             ) : (
               <div className="space-y-3">
                 {([
-                  ["merchant_agreement", "Merchant Agreement"],
-                  ["terms_and_conditions", "Terms & Conditions"],
-                  ["privacy_policy", "Privacy Policy"],
-                  ["marketplace_rules", "Marketplace / Platform Rules"],
-                  ["product_listing_policy", "Product & Listing Policies"],
-                  ["cancellation_return_rules", "Cancellation / Return Rules"],
-                  ["merchant_obligations_and_fees", "Merchant obligations and applicable platform fees"],
-                ] as const).map(([key, label]) => (
-                  <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[12px] text-gray-700"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0E9F88]" checked={agreementChecks[key]} onChange={(event) => setAgreementChecks((current) => ({ ...current, [key]: event.target.checked }))} /><span>I accept the {label}.</span></label>
+                  ["merchant_agreement", "Merchant Agreement", null],
+                  ["terms_and_conditions", "Terms & Conditions", "https://simulafly.com/terms-and-conditions-for-website"],
+                  ["privacy_policy", "Privacy Policy", "https://simulafly.com/privacy-policy-for-website"],
+                  ["marketplace_rules", "Marketplace / Platform Rules", null],
+                  ["product_listing_policy", "Product & Listing Policies", null],
+                  ["cancellation_return_rules", "Cancellation / Return Rules", null],
+                  ["merchant_obligations_and_fees", "Merchant obligations and applicable platform fees", null],
+                ] as const).map(([key, label, link]) => (
+                  <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[12px] text-gray-700">
+                    <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0E9F88]" checked={agreementChecks[key]} onChange={(event) => setAgreementChecks((current) => ({ ...current, [key]: event.target.checked }))} />
+                    <span>
+                      I accept the {link ? (
+                        <a href={link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[#0E9F88] font-medium hover:underline">
+                          {label}
+                        </a>
+                      ) : (
+                        label
+                      )}.
+                    </span>
+                  </label>
                 ))}
                 <button type="button" onClick={activateMerchant} disabled={pending || !allAgreementsAccepted} className="mt-2 flex w-full items-center justify-center rounded-xl bg-[#0E9F88] py-3 text-sm font-bold text-white disabled:opacity-50">Approve &amp; activate merchant</button>
               </div>

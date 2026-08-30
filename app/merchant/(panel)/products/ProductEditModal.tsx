@@ -177,9 +177,10 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
                     Price (₹) <span className="text-red-400">*</span>
                   </label>
                   <input
-                    type="number" step="any" min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={inAppPrice}
-                    onChange={(e) => setInAppPrice(e.target.value)}
+                    onChange={(e) => setInAppPrice(sanitiseDecimal(e.target.value))}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="15000"
                   />
@@ -219,9 +220,11 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
                     Stock Quantity <span className="text-red-400">*</span>
                   </label>
                   <input
-                    type="number" step="1" min="0"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={inAppStock}
-                    onChange={(e) => setInAppStock(e.target.value)}
+                    onChange={(e) => setInAppStock(e.target.value.replace(/\D/g, ""))}
                     className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
                     placeholder="50"
                   />
@@ -265,7 +268,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[13px] font-semibold text-[#111827]">Product Images</h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Add, remove, or reorder up to 5 images.</p>
+                  <p className="text-[11px] font-semibold text-gray-500 mt-0.5">MAXIMUM OF 05 IMAGES CAN BE ADDED PER PRODUCT</p>
                 </div>
                 <span className="rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#0E9F88]">Image 1 powers AI</span>
               </div>
@@ -365,11 +368,42 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
               </select>
             </div>
             <div className="p-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <NumberField label="Width" value={String(dimensions.width ?? "")} onChange={(v) => setDimensions({ ...dimensions, width: v })} />
+              <div className="space-y-3">
                 <NumberField label="Height" value={String(dimensions.height ?? "")} onChange={(v) => setDimensions({ ...dimensions, height: v })} />
+                <NumberField label="Width" value={String(dimensions.width ?? "")} onChange={(v) => setDimensions({ ...dimensions, width: v })} />
                 <NumberField label="Depth" value={String(dimensions.depth ?? "")} onChange={(v) => setDimensions({ ...dimensions, depth: v })} />
-                <NumberField label="Weight" value={String(dimensions.weight ?? "")} onChange={(v) => setDimensions({ ...dimensions, weight: v })} />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Weight ── */}
+          <div className="overflow-hidden rounded-2xl border border-[#EAECEF] bg-white">
+            <div className="border-b border-[#F1F3F5] px-5 py-3.5">
+              <h3 className="text-[13px] font-semibold text-[#111827]">Weight</h3>
+              <p className="mt-0.5 text-[11px] text-gray-400">Product weight and its measurement unit.</p>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_9rem]">
+                <label htmlFor="edit-product-weight" className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Weight</label>
+                <input
+                  id="edit-product-weight"
+                  type="text"
+                  inputMode="decimal"
+                  value={String(dimensions.weight ?? "")}
+                  onChange={(e) => setDimensions({ ...dimensions, weight: sanitiseDecimal(e.target.value) })}
+                  className="w-full rounded-xl border border-[#EAECEF] bg-[#FAFBFC] px-3.5 py-2.5 text-[13px] text-[#111827] transition-all focus:border-[#0E9F88] focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30"
+                />
+                <select
+                  aria-label="Weight unit"
+                  value={(dimensions.weight_unit as string) || "kg"}
+                  onChange={(e) => setDimensions({ ...dimensions, weight_unit: e.target.value })}
+                  className="col-start-2 rounded-xl border border-[#EAECEF] bg-[#FAFBFC] px-3.5 py-2.5 text-[12px] font-medium text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 sm:col-start-auto"
+                >
+                  <option value="g">Grams (g)</option>
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="oz">Ounces (oz)</option>
+                  <option value="lb">Pounds (lb)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -464,16 +498,21 @@ function NumberField({
   label, value, onChange,
 }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div>
-      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+    <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">{label}</label>
       <input
-        type="number"
-        step="any"
-        min="0"
+        type="text"
+        inputMode="decimal"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(sanitiseDecimal(e.target.value))}
         className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
       />
     </div>
   );
+}
+
+function sanitiseDecimal(value: string) {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const [whole, ...decimalParts] = cleaned.split(".");
+  return decimalParts.length ? `${whole}.${decimalParts.join("")}` : whole;
 }

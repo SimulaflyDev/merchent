@@ -148,7 +148,12 @@ export default function SignUpPage() {
               />
               <label htmlFor="acceptPrivacy" className="text-xs text-gray-600">
                 I have read and agree to the{" "}
-                <a href="/privacy-policy.pdf" target="_blank" rel="noopener noreferrer" className="text-[#0E9F88] font-medium hover:underline">
+                <a
+                  href="https://simulafly.com/privacy-policy-for-website"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0E9F88] font-medium hover:underline"
+                >
                   Privacy Policy (read more)
                 </a>
               </label>
@@ -177,7 +182,12 @@ export default function SignUpPage() {
               />
               <label htmlFor="acceptTerms" className="text-xs text-gray-600">
                 I have read and agree to the{" "}
-                <a href="/terms-and-conditions.pdf" target="_blank" rel="noopener noreferrer" className="text-[#0E9F88] font-medium hover:underline">
+                <a
+                  href="https://simulafly.com/terms-and-conditions-for-website"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#0E9F88] font-medium hover:underline"
+                >
                   Terms of Services (read more)
                 </a>
               </label>

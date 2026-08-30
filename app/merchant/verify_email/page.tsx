@@ -17,20 +17,6 @@ export default function VerifyEmailPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
 
-  // Send initial OTP on mount
-  useEffect(() => {
-    async function sendInitialOtp() {
-      try {
-        await callAction(sendEmailOtpAction());
-        setSuccessMessage("Verification code sent to your business email.");
-      } catch (err) {
-        console.error("Failed to send initial OTP:", err);
-        setError("Failed to send verification code. Please request a new one.");
-      }
-    }
-    sendInitialOtp();
-  }, []);
-
   // Countdown timer for resend button
   useEffect(() => {
     if (countdown > 0) {
@@ -51,7 +37,7 @@ export default function VerifyEmailPage() {
 
     setIsSubmitting(true);
     try {
-      const result = await callAction(verifyEmailOtpAction(otp));
+      await callAction(verifyEmailOtpAction(otp));
       setSuccessMessage("Email verified successfully! Redirecting...");
       setTimeout(() => {
         router.push("/merchant/onboarding");

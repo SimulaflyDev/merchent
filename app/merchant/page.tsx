@@ -285,7 +285,7 @@ export default function MerchantLandingPage() {
                               <svg className="w-8 h-8 text-white ml-1 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                            </div>
                         </div>
-                        <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold z-20 tabular-nums shadow-sm">
+                        <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur text-white text-[10px] px-2 py-1 rounded font-bold z-10 tabular-nums shadow-sm">
                            02:30
                         </div>
                      </div>
@@ -324,7 +324,8 @@ export default function MerchantLandingPage() {
                   <ul className="space-y-4">
                      <li><Link href="#" className="text-[#E5E7EB] hover:text-white hover:underline transition-all font-medium">Onboarding Guide</Link></li>
                      <li><Link href="#" className="text-[#E5E7EB] hover:text-white hover:underline transition-all font-medium">Contact Sales</Link></li>
-                     <li><Link href="#" className="text-[#E5E7EB] hover:text-white hover:underline transition-all font-medium">Privacy & Terms</Link></li>
+                     <li><a href="https://simulafly.com/privacy-policy-for-website" target="_blank" rel="noopener noreferrer" className="text-[#E5E7EB] hover:text-white hover:underline transition-all font-medium">Privacy Policy</a></li>
+                     <li><a href="https://simulafly.com/terms-and-conditions-for-website" target="_blank" rel="noopener noreferrer" className="text-[#E5E7EB] hover:text-white hover:underline transition-all font-medium">Terms &amp; Conditions</a></li>
                   </ul>
                </div>
             </div>

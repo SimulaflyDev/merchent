@@ -50,7 +50,7 @@ interface Props {
   children: React.ReactNode;
   activeMerchantId: string;
   initialMerchant: MerchantOut;
-  initialWallet: WalletOut;
+  initialWallet: WalletOut | null;
 }
 
 export default function MerchantPanelLayoutClient({ children, activeMerchantId, initialMerchant, initialWallet }: Props) {
@@ -60,9 +60,10 @@ export default function MerchantPanelLayoutClient({ children, activeMerchantId, 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [consumerSupportOpen, setConsumerSupportOpen] = useState(false);
 
-  const walletBalance = Number(initialWallet.balance);
-  const walletLow = walletBalance < initialWallet.low_balance_threshold;
-  const currencySymbol = initialWallet.currency === "INR" ? "₹" : initialWallet.currency + " ";
+  const walletBalance = Number(initialWallet?.balance ?? 0);
+  const walletLow = initialWallet ? walletBalance < initialWallet.low_balance_threshold : false;
+  const walletCurrency = initialWallet?.currency ?? "INR";
+  const currencySymbol = walletCurrency === "INR" ? "₹" : walletCurrency + " ";
   const merchantInitials = initialMerchant.display_name.slice(0, 2).toUpperCase();
 
   useEffect(() => {

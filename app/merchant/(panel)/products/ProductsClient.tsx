@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import type { MerchantProductOut, PaginatedProducts, ProductStatus } from "@/lib/types/product";
-import { archiveProductAction, publishProductAction } from "@/lib/auth/product-actions";
+import {
+  archiveProductAction,
+  publishProductAction,
+  updateProductAction,
+} from "@/lib/auth/product-actions";
 import { isApiError } from "@/lib/api/errors";
 import { callAction } from "@/lib/api/action-utils";
 import ProductEditModal from "./ProductEditModal";
@@ -71,7 +75,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
   const [pending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { merchant } = useMerchant();
+  const { merchant, showToast } = useMerchant();
   const onboardingCompleted = merchant?.settings?.onboarding_completed === true;
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
@@ -129,10 +133,19 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
     });
   };
 
-  const statusCounts = initialData.items.reduce(
-    (acc, p) => { acc[p.status] = (acc[p.status] ?? 0) + 1; return acc; },
-    {} as Record<string, number>
-  );
+  const handleRemoveFromStorefront = (id: string) => {
+    if (!confirm("Remove this archived product from the storefront? Its database record will be kept.")) return;
+    setActionError(null);
+    startTransition(async () => {
+      try {
+        await callAction(updateProductAction(id, { has_simulafly_listing: false }));
+        showToast("Product removed from the storefront. Its database record was kept.");
+        router.refresh();
+      } catch (err) {
+        setActionError(isApiError(err) ? err.detail : "Failed to remove product from the storefront");
+      }
+    });
+  };
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
@@ -294,6 +307,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
               pending={pending}
               onPublish={handlePublish}
               onArchive={handleArchive}
+              onRemoveFromStorefront={handleRemoveFromStorefront}
               onEdit={setEditingProduct}
               onPreview={setPreviewProduct}
             />
@@ -322,6 +336,7 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
                 pending={pending}
                 onPublish={handlePublish}
                 onArchive={handleArchive}
+                onRemoveFromStorefront={handleRemoveFromStorefront}
                 onEdit={setEditingProduct}
                 onPreview={setPreviewProduct}
               />
@@ -358,12 +373,13 @@ export default function ProductsClient({ initialData, initialStatus, initialSear
 // ── Product Card (Grid View) ──────────────────────────────────────────────────
 
 function ProductCard({
-  product, pending, onPublish, onArchive, onEdit, onPreview,
+  product, pending, onPublish, onArchive, onRemoveFromStorefront, onEdit, onPreview,
 }: {
   product: MerchantProductOut;
   pending: boolean;
   onPublish: (id: string) => void;
   onArchive: (id: string) => void;
+  onRemoveFromStorefront: (id: string) => void;
   onEdit: (p: MerchantProductOut) => void;
   onPreview: (p: MerchantProductOut) => void;
 }) {
@@ -490,12 +506,27 @@ function ProductCard({
               <button
                 onClick={() => onArchive(product.id)}
                 disabled={pending}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors disabled:opacity-50"
                 title="Archive"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  <rect x="3" y="4" width="18" height="4" rx="1" />
+                  <path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+                  <path d="M9 12h6" />
+                </svg>
+              </button>
+            )}
+            {product.status === "archived" && (
+              <button
+                onClick={() => onRemoveFromStorefront(product.id)}
+                disabled={pending}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+                title="Delete from storefront"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                 </svg>
               </button>
             )}
@@ -509,12 +540,13 @@ function ProductCard({
 // ── Product List Row ──────────────────────────────────────────────────────────
 
 function ProductListRow({
-  product, pending, onPublish, onArchive, onEdit, onPreview,
+  product, pending, onPublish, onArchive, onRemoveFromStorefront, onEdit, onPreview,
 }: {
   product: MerchantProductOut;
   pending: boolean;
   onPublish: (id: string) => void;
   onArchive: (id: string) => void;
+  onRemoveFromStorefront: (id: string) => void;
   onEdit: (p: MerchantProductOut) => void;
   onPreview: (p: MerchantProductOut) => void;
 }) {
@@ -602,9 +634,19 @@ function ProductListRow({
           <button
             onClick={() => onArchive(product.id)}
             disabled={pending}
-            className="px-2.5 py-1.5 text-[11px] font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+            className="px-2.5 py-1.5 text-[11px] font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
           >
             Archive
+          </button>
+        )}
+        {product.status === "archived" && (
+          <button
+            onClick={() => onRemoveFromStorefront(product.id)}
+            disabled={pending}
+            className="px-2.5 py-1.5 text-[11px] font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+            title="Keeps the database record"
+          >
+            Delete
           </button>
         )}
       </div>

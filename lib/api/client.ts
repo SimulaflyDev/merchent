@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ApiError } from "./errors";
 import { cookieOpts, ACCESS_TTL, REFRESH_TTL, isTokenExpired } from "@/lib/auth/jwt";
 
@@ -103,6 +104,14 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     } catch {
       /* non-JSON error body — keep generic detail */
     }
+
+    if (
+      res.status === 403 &&
+      detail === "Shop verification is required before using merchant features."
+    ) {
+      redirect("/merchant/verification?locked=1");
+    }
+
     throw new ApiError(res.status, detail, payload);
   }
 
