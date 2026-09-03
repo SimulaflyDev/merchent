@@ -227,7 +227,7 @@ async function generateStorefrontCardBlob(
   ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("POWERED BY SIMULAFLY • SMART 3D & AR CATALOG", width / 2, height - 65);
+  ctx.fillText("POWERED BY SIMULAFLY", width / 2, height - 65);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -300,16 +300,16 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Premium blur backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-[#0B0F17]/40 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
-      
+
       {/* Dialog container */}
       <div className="relative flex max-h-[96dvh] w-full max-w-md scale-100 flex-col overflow-y-auto rounded-3xl border border-[#EAECEF]/40 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 duration-200 dark:border-white/10 dark:bg-[#121824]/95 sm:p-6">
-        
+
         {/* Close Button */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#111827] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-all duration-200 focus:outline-none"
         >
@@ -334,7 +334,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
 
         {/* Card Mockup & QR Code */}
         <div className="bg-gradient-to-tr from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 border border-[#EAECEF]/50 dark:border-white/5 rounded-2xl p-5 mb-5 flex flex-col items-center shadow-inner">
-          
+
           {/* Mock Storefront logo/initial */}
           <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#0E9F88] to-teal-400 flex items-center justify-center text-white text-[16px] font-bold shadow-md shadow-[#0E9F88]/20 mb-4 overflow-hidden border-2 border-white dark:border-[#121824]">
             {merchant.logo_url ? (
@@ -346,14 +346,14 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
 
           {/* Dynamic high-res QR code */}
           <div className="bg-white p-3.5 rounded-2xl shadow-lg border border-[#EAECEF]/30 relative group transition-transform hover:scale-[1.02] duration-200">
-            <img 
-              src={qrCodeUrl} 
-              alt="Deep Link QR Code" 
+            <img
+              src={qrCodeUrl}
+              alt="Deep Link QR Code"
               className="w-44 h-44 object-contain"
             />
             <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
           </div>
-          
+
           <span className="text-[10px] text-gray-400 font-mono tracking-wider mt-3">
             {shopId}
           </span>
@@ -365,19 +365,18 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
             Shareable Web Link
           </label>
           <div className="flex bg-gray-50 dark:bg-[#1C2533] border border-[#EAECEF] dark:border-white/5 rounded-xl overflow-hidden p-1.5 items-center">
-            <input 
-              type="text" 
-              readOnly 
-              value={webLink} 
+            <input
+              type="text"
+              readOnly
+              value={webLink}
               className="flex-1 bg-transparent px-3 text-[12px] font-medium text-gray-600 dark:text-gray-300 focus:outline-none"
             />
             <button
               onClick={handleCopy}
-              className={`flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-[12px] font-semibold transition-all duration-200 ${
-                copied 
-                  ? "bg-[#0E9F88] text-white shadow-sm" 
+              className={`flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-[12px] font-semibold transition-all duration-200 ${copied
+                  ? "bg-[#0E9F88] text-white shadow-sm"
                   : "bg-[#111827] dark:bg-white text-white dark:text-[#111827] hover:bg-black dark:hover:bg-white/90"
-              }`}
+                }`}
             >
               {copied ? (
                 <>
@@ -418,7 +417,7 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
               )}
               Download Card
             </button>
-            
+
             <button
               onClick={onClose}
               className="flex items-center justify-center h-10 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-[12px] font-semibold rounded-xl transition-all"
