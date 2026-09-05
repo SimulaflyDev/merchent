@@ -121,7 +121,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
   const getInvoiceDetails = (tx: BalanceHistoryItem) => {
     let title = "SimulaFly Transaction";
     let sub = "Transaction record entry.";
-    
+
     if (tx.reason === "topup") {
       title = "SimulaFly Wallet Top-up";
       sub = "Prepaid credits added to merchant wallet.";
@@ -150,7 +150,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
       title = "User Referral Credit";
       sub = "Credits earned for mobile app user referral.";
     }
-    
+
     return { title, sub };
   };
 
@@ -179,7 +179,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
     });
     const printWindow = window.open("", "_blank", "width=800,height=900");
     if (!printWindow) return;
-    
+
     printWindow.document.write(`
       <html>
         <head>
@@ -207,7 +207,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
           <div class="header">
             <div>
               <div class="logo">SimulaFly</div>
-              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">SimulaFly Technologies Pvt. Ltd.</div>
+              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">SimulaFly Technologies LLP.</div>
             </div>
             <div>
               <div class="title">Invoice</div>
@@ -524,7 +524,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
         {/* Outer Split Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* Left Column: Wallet Summary */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white rounded-2xl border border-[#E2E4E8] shadow-sm overflow-hidden p-6 hover:shadow-md transition duration-300">
@@ -542,7 +542,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                   <span className="font-bold">{runwayPercent}% of last top-up</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-[#0E9F88] rounded-full transition-all duration-500"
                     style={{ width: `${runwayPercent}%` }}
                   />
@@ -581,15 +581,13 @@ export default function BillingClient({ wallet, merchant }: Props) {
                   type="button"
                   onClick={handleToggleAutoRecharge}
                   disabled={busy}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    autoRecharge ? "bg-[#0E9F88]" : "bg-gray-200"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${autoRecharge ? "bg-[#0E9F88]" : "bg-gray-200"
+                    }`}
                 >
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      autoRecharge ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${autoRecharge ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -599,9 +597,9 @@ export default function BillingClient({ wallet, merchant }: Props) {
           {/* Right Column: Tabbed Workspace */}
           <div className="lg:col-span-8 space-y-6">
             <div className="bg-white rounded-2xl border border-[#E2E4E8] shadow-sm overflow-hidden min-h-[500px]">
-              
+
               {/* Tab Headers */}
-                  <div className="flex overflow-x-auto border-b border-gray-200 bg-gray-50/50 px-4 sm:px-6">
+              <div className="flex overflow-x-auto border-b border-gray-200 bg-gray-50/50 px-4 sm:px-6">
                 {(["history", "rewards", "payments", "invoices"] as const).map((tab) => {
                   const isActive = activeTab === tab;
                   const labelMap = {
@@ -614,11 +612,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                        className={`shrink-0 border-b-2 px-4 py-4 text-sm font-semibold transition duration-150 ${
-                        isActive
+                      className={`shrink-0 border-b-2 px-4 py-4 text-sm font-semibold transition duration-150 ${isActive
                           ? "border-[#0E9F88] text-[#0E9F88] bg-white -mb-px"
                           : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
+                        }`}
                     >
                       {labelMap[tab]}
                     </button>
@@ -733,9 +730,9 @@ export default function BillingClient({ wallet, merchant }: Props) {
                                         <>
                                           <div className="w-8 h-8 rounded bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
                                             {item.product.image_url ? (
-                                              <img 
-                                                src={resolveImageUrl(item.product.image_url)} 
-                                                alt="" 
+                                              <img
+                                                src={resolveImageUrl(item.product.image_url)}
+                                                alt=""
                                                 className="w-full h-full object-cover"
                                               />
                                             ) : (
@@ -766,11 +763,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
                                   </td>
                                   <td className="px-4 py-3 text-center whitespace-nowrap">
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800">
-                                      <span className={`w-1.5 h-1.5 rounded-full ${
-                                        item.entry_type === "Mention" ? "bg-amber-500" :
-                                        item.entry_type === "Add to Cart" ? "bg-blue-500" :
-                                        item.entry_type === "View" ? "bg-indigo-400" : "bg-green-500"
-                                      }`} />
+                                      <span className={`w-1.5 h-1.5 rounded-full ${item.entry_type === "Mention" ? "bg-amber-500" :
+                                          item.entry_type === "Add to Cart" ? "bg-blue-500" :
+                                            item.entry_type === "View" ? "bg-indigo-400" : "bg-green-500"
+                                        }`} />
                                       {item.entry_type}
                                     </span>
                                   </td>
@@ -856,7 +852,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                     <div className="space-y-4">
                       <h3 className="text-sm font-bold text-gray-800 uppercase tracking-widest">Your Referral Impact</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        
+
                         {/* Stat Card 1 */}
                         <div className="bg-white rounded-xl border border-[#E2E4E8] p-5 shadow-sm hover:shadow transition">
                           <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Total Points Earned</span>
@@ -920,7 +916,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           {invoiceTxs.length} invoices displayed
                         </span>
                       </div>
-                      
+
                       {/* Category Dropdown Selector */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-gray-500">Invoice Type:</span>
@@ -1032,17 +1028,17 @@ export default function BillingClient({ wallet, merchant }: Props) {
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-100">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-black text-gray-900 text-lg">Add Wallet Funds</h3>
-              <button 
+              <button
                 onClick={() => {
                   setIsAddFundsOpen(false);
                   setCustomAmount("");
-                }} 
+                }}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
                 &times;
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* Presets */}
               <div className="space-y-2.5">
@@ -1061,12 +1057,12 @@ export default function BillingClient({ wallet, merchant }: Props) {
               </div>
 
               {/* Custom Form */}
-              <form 
+              <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const amt = Number(customAmount);
                   if (Number.isInteger(amt)) void handleLiveTopup(amt);
-                }} 
+                }}
                 className="space-y-3"
               >
                 <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider block">Or Enter Custom Amount</span>
@@ -1101,17 +1097,17 @@ export default function BillingClient({ wallet, merchant }: Props) {
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-gray-100">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-black text-gray-900 text-lg">Redeem Promo or Referral Code</h3>
-              <button 
+              <button
                 onClick={() => {
                   setIsRedeemOpen(false);
                   setRedeemCodeText("");
-                }} 
+                }}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
                 &times;
               </button>
             </div>
-            
+
             <form onSubmit={handleRedeemCode} className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider block">Enter Code</label>
@@ -1147,20 +1143,20 @@ export default function BillingClient({ wallet, merchant }: Props) {
           <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
               <h3 className="font-black text-gray-900 text-lg">Invoice Details</h3>
-              <button 
-                onClick={() => setSelectedInvoice(null)} 
+              <button
+                onClick={() => setSelectedInvoice(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
                 &times;
               </button>
             </div>
-            
+
             {/* Invoice Print Layout Preview */}
             <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-gray-700">
               <div className="flex justify-between border-b border-gray-100 pb-4">
                 <div>
                   <h4 className="font-extrabold text-lg text-[#0E9F88]">SimulaFly</h4>
-                  <p className="text-xs text-gray-400 mt-1">SimulaFly Technologies Pvt. Ltd.</p>
+                  <p className="text-xs text-gray-400 mt-1">SimulaFly Technologies LLP.</p>
                 </div>
                 <div className="text-right">
                   <h4 className="font-black text-gray-900 uppercase">Invoice</h4>
