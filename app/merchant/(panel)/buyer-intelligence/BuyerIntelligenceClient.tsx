@@ -27,6 +27,7 @@ type Buyer = {
   cartSignals: number;
   tags: string[];
   unlocked: boolean;
+  unlockCost: number;
   email: string | null;
   phone: string | null;
 };
@@ -68,6 +69,7 @@ function adaptShopper(s: ShopperOut): Buyer {
     cartSignals: 0,
     tags: [],
     unlocked: s.unlocked,
+    unlockCost: s.unlock_cost,
     email: s.email,
     phone: s.phone,
   };
@@ -110,11 +112,12 @@ function Avatar({ initials: ini }: { initials: string }) {
 interface Props {
   initialShoppers: ShopperOut[];
   walletBalance: number;
+  unlockCost: number;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function BuyerIntelligenceClient({ initialShoppers, walletBalance }: Props) {
+export default function BuyerIntelligenceClient({ initialShoppers, walletBalance, unlockCost }: Props) {
   const [buyers, setBuyers] = useState<Buyer[]>(initialShoppers.map(adaptShopper));
   const [credits, setCredits] = useState(Math.floor(walletBalance));
   const [search, setSearch] = useState("");
@@ -179,7 +182,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
         <KpiCard
           label="Total Interactions"
           value={buyers.reduce((s, b) => s + b.interactions, 0)}
-          sub="clicks, AI views, redirects"
+          sub="clicks and AI views"
           icon={<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
         />
       </div>
@@ -273,7 +276,7 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
                               onClick={() => setUnlockTarget(buyer)}
                               className="px-3 py-1.5 bg-gray-900 text-white text-[11px] font-semibold rounded-lg hover:bg-black transition-colors whitespace-nowrap"
                             >
-                              Unlock · ₹{buyer.intentScore >= 81 ? 30 : 15}
+                              Unlock · ₹{buyer.unlockCost}
                             </button>
                           ) : (
                             <Link
@@ -319,12 +322,8 @@ export default function BuyerIntelligenceClient({ initialShoppers, walletBalance
 
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Unlock Cost</p>
-            <p className="text-xl font-bold text-gray-900">₹15 / ₹30</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Tiered pricing by intent</p>
-            <div className="mt-2 text-[10px] text-gray-400 space-y-1">
-              <div>• 10% - 80% score: ₹15</div>
-              <div>• 81% - 99% score: ₹30</div>
-            </div>
+            <p className="text-xl font-bold text-gray-900">₹{unlockCost}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Per buyer, configured by admin</p>
           </div>
         </div>
       </div>

@@ -14,13 +14,11 @@ const IMPORTANT_FIELDS = [
   { key: "sellPrice", label: "Price (₹)" },
   { key: "stock", label: "Stock Quantity" },
   { key: "img", label: "Primary Image URL" },
-  { key: "url", label: "Website URL" },
 ];
 
 const OPTIONAL_FIELDS = [
   { key: "subCategory", label: "Subcategory" },
   { key: "brand", label: "Brand" },
-  { key: "purchaseDestination", label: "Purchase Destination" },
   { key: "material", label: "General Material" },
   { key: "color", label: "General Color" },
   { key: "width", label: "Width (cm)" },
@@ -42,8 +40,8 @@ const CSV_COLUMNS = [...IMPORTANT_FIELDS, ...OPTIONAL_FIELDS].map(f => f.key);
 
 const SAMPLE_ROWS = [
   [
-    "Nordic Lounge Chair", "Furniture", "18500", "25", "https://example.com/image1.jpg", "https://example.com/chair",
-    "Accent Chairs", "Acme Furniture", "SimulaFly Checkout", "Teak Wood", "Walnut",
+    "Nordic Lounge Chair", "Furniture", "18500", "25", "https://example.com/image1.jpg",
+    "Accent Chairs", "Acme Furniture", "Teak Wood", "Walnut",
     "68", "82", "72", "12", "Solid Teak", "Natural Matte", "Cotton Blend",
     "Living room,Bedroom", "Modern apartments", "Coffee table, Floor lamp", "Warm minimalist", ""
   ],
@@ -110,7 +108,6 @@ function autoMapHeaders(csvHeaders: string[]): Record<string, string> {
         sellPrice: ["price", "cost", "mrp", "selling price", "rate"],
         stock: ["qty", "quantity", "inventory"],
         img: ["image", "picture", "photo", "image url", "primary image", "image link"],
-        url: ["link", "website link", "product link", "buy link", "website"],
         category: ["type", "main category"],
         brand: ["manufacturer", "make"],
         merchantNotes: ["notes", "remarks"]
@@ -234,9 +231,7 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
         color: get("color"),
         brand: get("brand"),
         img: get("img") || "bg-gray-100",
-        url: get("url") || undefined,
         date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-        purchaseDestination: (get("purchaseDestination") as Product["purchaseDestination"]) || undefined,
         merchantNotes: get("merchantNotes") || undefined,
         v2Dimensions: {
           width: get("width") || undefined,
@@ -494,7 +489,6 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
                         <th className="text-left px-4 py-2.5 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Category</th>
                         <th className="text-right px-4 py-2.5 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Price</th>
                         <th className="text-left px-4 py-2.5 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Image URL</th>
-                        <th className="text-left px-4 py-2.5 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Website URL</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -506,7 +500,6 @@ export function ProductImportModal({ onClose, onImport }: ImportModalProps) {
                             {p.sellPrice ? `₹${p.sellPrice.toLocaleString("en-IN")}` : "—"}
                           </td>
                           <td className="px-4 py-2.5 text-gray-500 max-w-[120px] truncate">{p.img === 'bg-gray-100' || !p.img ? "—" : p.img}</td>
-                          <td className="px-4 py-2.5 text-gray-500 max-w-[120px] truncate">{p.url || "—"}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -6,6 +6,7 @@ import { reverseLeadStatus, adaptLead } from "@/lib/types/lead";
 import { updateLeadStatusAction, cancelLeadAction } from "@/lib/auth/lead-actions";
 import type { CancellationReason } from "@/lib/api/leads";
 import { LeadDrawer } from "./LeadDrawer";
+import { CreateCouponModal } from "./CreateCouponModal";
 import { callAction } from "@/lib/api/action-utils";
 
 interface Props {
@@ -25,6 +26,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
     direction: "asc" | "desc";
   } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showCouponModal, setShowCouponModal] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -125,7 +127,7 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-end mb-2">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-2">
         <div>
           <h1 className="text-2xl font-display font-bold text-neutral-dark mb-1 tracking-tight">
             Orders
@@ -134,6 +136,12 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
             Track AI-generated orders and purchase intents from SimulaFly.
           </p>
         </div>
+        <button
+          onClick={() => setShowCouponModal(true)}
+          className="rounded-xl bg-[#1FAF9A] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#189986]"
+        >
+          Create coupon
+        </button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -363,6 +371,12 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
         onCancelLead={cancelLead}
         onShowToast={showToast}
       />
+      {showCouponModal && (
+        <CreateCouponModal
+          onClose={() => setShowCouponModal(false)}
+          onCreated={showToast}
+        />
+      )}
     </div>
   );
 }

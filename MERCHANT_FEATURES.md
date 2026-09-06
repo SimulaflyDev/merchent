@@ -26,7 +26,6 @@ The central command center for your store operations.
 Manage the lifecycle of your digital showroom.
 - **Dual Purchase Paths**:
   - *SimulaFly Checkout*: Surfaced as a "Buy on SimulaFly" in-app checkout lead form.
-  - *External Links*: Attach Amazon, Shopify, WhatsApp, or Brand Site URLs to your products. Surfaced as "Also buy on..." options.
 - **Rich Spatial Metadata**: Store product dimensions (width, height, depth), materials, colors, and room storytelling hints (e.g., "pairs well with", "best used in").
 - **AI Vector Search Indexing**: When you create or update a product's title, description, or categories, the platform automatically regenerates a `3072-dimensional vector embedding`. This indexing makes your products immediately searchable in the consumer AI Chat/RAG engine.
 - **Bulk Product Import**: Import your entire collection via CSV/JSON with support for `create`, `upsert`, and `replace_all` upload modes.
@@ -58,7 +57,7 @@ A unified customer relation system for unlocked relationships.
 Manage in-app checkout inquiries.
 - **In-App Checkout Leads**: When a buyer chooses "Buy on SimulaFly", a lead form pre-fills their details and submits an order in the status `pending_merchant_contact`.
 - **Offline Fulfillment**: Contact buyers directly (via phone or WhatsApp link provided in the order drawer) to arrange delivery, payment terms, or cash on delivery.
-- **Commission-on-Completion**: You are only billed the 5.00% transaction commission once you transition the order status to `completed`.
+- **Fee-on-Acceptance**: The admin-configured `simulafly_purchase` fee is deducted once when you accept/confirm an order. Marking payment received does not deduct it again.
 
 ---
 
@@ -74,7 +73,7 @@ The platform maintains a transparent, flat-rate deduction model. Pricing rules a
 | **AI Image Generation** | Buyer Event | Flat | ₹2.00 | Charged when your product is composite-rendered in an AI visualization. Deduplicated per hour. |
 | **External Redirect** | Buyer Event | Flat | ₹5.00 | Charged when a buyer clicks a redirect button to Amazon/Shopify/WhatsApp. |
 | **Lead Unlock** | System Action | Flat | ₹50.00 | Flat fee charged when you unlock the contact details (PII) of a high-intent buyer. |
-| **SimulaFly Purchase** | System Action | Percentage | 5.00% | Charged on total order value only when order status is marked `completed`. |
+| **SimulaFly Purchase** | System Action | Admin-configured | 5.00% default | Charged on the discounted order value when the merchant accepts/confirms the order. |
 
 ---
 

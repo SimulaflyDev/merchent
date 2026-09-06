@@ -13,6 +13,7 @@ interface Buyer {
   styleAffinity: string;
   cartSignals: number;
   unlocked: boolean;
+  unlockCost: number;
 }
 
 interface UnlockModalProps {
@@ -25,7 +26,7 @@ interface UnlockModalProps {
 export default function UnlockModal({ buyer, credits, onClose, onUnlock }: UnlockModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const cost = buyer.intentScore >= 81 ? 30 : 15;
+  const cost = buyer.unlockCost;
   const canAfford = credits >= cost;
 
   const handleUnlock = async () => {

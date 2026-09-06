@@ -30,7 +30,13 @@ export interface OrderOut {
   id: string;
   status: string;
   items: OrderItemOut[];
+  subtotal_estimated: number;
   total_estimated: number;
+  coupon_code: string | null;
+  discount_amount: number;
+  accepted_at: string | null;
+  fee_charged_at: string | null;
+  platform_fee_amount: number;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -79,7 +85,10 @@ export interface Lead {
   date: string;
   time: string;
   items: number;
+  subtotal: number;
   total: number;
+  couponCode: string | null;
+  discountAmount: number;
   status: LeadStatus;
   type: LeadType;
   customer: {
@@ -142,7 +151,10 @@ export function adaptLead(raw: BuyerLeadOut): Lead {
     }),
     time: d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
     items: products.length,
+    subtotal: Number(raw.order?.subtotal_estimated ?? raw.estimated_value),
     total: Number(raw.estimated_value),
+    couponCode: raw.order?.coupon_code ?? null,
+    discountAmount: Number(raw.order?.discount_amount ?? 0),
     status: mapLeadStatus(raw.status),
     type: raw.lead_type,
     customer: {

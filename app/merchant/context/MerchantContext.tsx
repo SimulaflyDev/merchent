@@ -82,7 +82,6 @@ export interface Product {
   img: string;
 
   // New V2 Structured Fields
-  purchaseDestination?: "SimulaFly Checkout" | "External Website" | "Amazon" | "Shopify" | "Manual inquiry";
   merchantNotes?: string;
 
   v2Dimensions?: ProductDimensions;
@@ -109,7 +108,6 @@ export interface Product {
   brand?: string;
   rating?: number;
   asin?: string;
-  url?: string;
   color?: string;
   material?: string;
   dimensions?: string;

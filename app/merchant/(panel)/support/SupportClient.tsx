@@ -62,7 +62,6 @@ const REASON_CATEGORIES = [
       { name: "AI Visualization Issue", slug: "ai_visualization_issue" },
       { name: "Product Dimensions", slug: "product_dimensions" },
       { name: "Inventory Update", slug: "inventory_update" },
-      { name: "External Purchase Links", slug: "external_purchase_links" },
       { name: "Product Visibility", slug: "product_visibility" },
       { name: "Bulk Upload", slug: "bulk_upload" },
       { name: "Other", slug: "other" },

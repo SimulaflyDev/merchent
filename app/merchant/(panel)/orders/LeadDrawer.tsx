@@ -535,9 +535,19 @@ export function LeadDrawer({
                 <div className="flex justify-between text-gray-600">
                   <span>Product Value</span>
                   <span className="font-medium">
-                    ₹{lead.total.toLocaleString("en-IN")}
+                    ₹{lead.subtotal.toLocaleString("en-IN")}
                   </span>
                 </div>
+                {lead.couponCode && lead.discountAmount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700">
+                    <span>
+                      Coupon used: <strong className="font-mono">{lead.couponCode}</strong>
+                    </span>
+                    <span className="font-semibold">
+                      -₹{lead.discountAmount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-400 text-xs italic">
                   <span>Shipping &amp; Taxes</span>
                   <span>To be negotiated</span>

@@ -12,6 +12,7 @@ export interface ShopperOut {
   intent_tier: "ready" | "high" | "medium" | "low";
   interaction_count: number;
   unlocked: boolean;
+  unlock_cost: number;
   click_count: number;
   rag_count: number;
   image_count: number;
@@ -23,6 +24,7 @@ export interface PaginatedShoppers {
   total: number;
   limit: number;
   offset: number;
+  unlock_cost: number;
 }
 
 export async function listShoppers(params: {
@@ -61,6 +63,7 @@ export interface ShopperDetailResponse {
   intent_label: string;
   intent_tier: "ready" | "high" | "medium" | "low";
   unlocked: boolean;
+  unlock_cost: number;
   interaction_count: number;
   click_count: number;
   rag_count: number;
