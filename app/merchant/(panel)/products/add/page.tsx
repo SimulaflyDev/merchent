@@ -52,6 +52,7 @@ export default function AddProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [statusToSubmit, setStatusToSubmit] = useState<"draft" | "published">("draft");
+  const [hasSimulaflyListing, setHasSimulaflyListing] = useState(true);
 
   const [shops, setShops] = useState<MerchantOut[]>([]);
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
@@ -207,7 +208,7 @@ export default function AddProductPage() {
       best_used_in: watchCategory || undefined,
     },
     custom_metadata: {},
-    has_simulafly_listing: true,
+    has_simulafly_listing: hasSimulaflyListing,
     in_app_price: watchPrice ? parseFloat(watchPrice) : null,
     in_app_stock: watchStock ? parseInt(watchStock) : null,
     ai_relevance_score: watchDescription && watchDescription.length >= 30 ? 95 : 65,
@@ -297,6 +298,7 @@ export default function AddProductPage() {
         in_app_stock: data.stock ? parseInt(data.stock) : undefined,
         custom_metadata: customMetadata,
         status: statusToSubmit,
+        has_simulafly_listing: hasSimulaflyListing,
         shop_ids: selectedShops,
         dimensions: parsedDimensions,
         materials,
@@ -702,6 +704,25 @@ export default function AddProductPage() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* ── Section: SimulaFly Listing ── */}
+          <div className="bg-white border border-[#EAECEF] rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#F1F3F5]">
+              <h2 className="text-[13px] font-semibold text-[#111827]">SimulaFly Listing</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">Control whether this product is listed on the SimulaFly app.</p>
+            </div>
+            <div className="p-6">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasSimulaflyListing}
+                  onChange={(e) => setHasSimulaflyListing(e.target.checked)}
+                  className="w-4 h-4 text-[#0E9F88] focus:ring-[#0E9F88]/30 rounded border-gray-300"
+                />
+                <span className="text-[13px] text-gray-700">Enable in-app checkout (buyers can view and buy this product in the app)</span>
+              </label>
             </div>
           </div>
 
