@@ -24,6 +24,36 @@ function load(file, mocks = {}, globals = {}) {
 }
 
 const links = load('lib/share-links.ts');
+const appLinks = load('lib/android-app-links.ts');
+
+test('Android association targets the directly installed Simulafly APK certificate', () => {
+  const [statement] = appLinks.androidAssetLinks();
+  assert.equal(statement.relation[0], 'delegate_permission/common.handle_all_urls');
+  assert.equal(statement.target.namespace, 'android_app');
+  assert.equal(statement.target.package_name, 'com.simulafly');
+  assert.equal(statement.target.sha256_cert_fingerprints[0], '0B:A8:AD:F9:80:4E:65:DE:5A:EA:BA:A6:1F:93:84:F6:85:55:08:A4:03:6D:33:C9:C6:BF:E0:74:9E:E2:DF:4B');
+  const nextCert = Array(32).fill('AB').join(':');
+  const configured = appLinks.androidAssetLinks(`${nextCert.toLowerCase()},${nextCert}`);
+  assert.equal(configured[0].target.sha256_cert_fingerprints.length, 1);
+  assert.equal(configured[0].target.sha256_cert_fingerprints[0], nextCert);
+  assert.throws(() => appLinks.androidAssetLinks(''));
+  assert.throws(() => appLinks.androidAssetLinks('not-a-certificate'));
+});
+
+test('Android verification endpoint returns JSON with no redirect and fails closed on bad config', async () => {
+  const route = load('app/.well-known/assetlinks.json/route.ts', {
+    '@/lib/android-app-links': appLinks,
+  }, { Response });
+  const response = route.GET();
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /application\/json/);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal((await response.json())[0].target.package_name, 'com.simulafly');
+  const invalidRoute = load('app/.well-known/assetlinks.json/route.ts', {
+    '@/lib/android-app-links': { androidAssetLinks: () => { throw new Error('invalid'); } },
+  }, { Response });
+  assert.equal(invalidRoute.GET().status, 503);
+});
 const shop = { id: 'merchant-1', slug: 'demo-shop', display_name: 'Demo shop', legal_name: 'Demo merchant', address: 'Delhi', support_phone: null, support_email: null, logo_url: null };
 const products = [
   { id: 'product-1', merchant_id: shop.id, title: 'Walnut table', status: 'published', has_simulafly_listing: true, primary_image_url: '/api/v1/upload/room-image/photo-1', in_app_price: '1200.00', in_app_stock: 2 },
@@ -61,6 +91,8 @@ test('only public shop routes bypass merchant authentication', async () => {
   });
   const publicRequest = { nextUrl: { pathname: '/shop/demo-shop' }, cookies: { get: () => { throw new Error('Public page must not read cookies'); } } };
   assert.equal((await proxy(publicRequest)).allowed, true);
+  assert.equal((await proxy({ ...publicRequest, nextUrl: { pathname: '/.well-known/assetlinks.json' } })).allowed, true);
+  assert.equal((await proxy({ nextUrl: { pathname: '/.well-known/private' }, url: 'https://merchant.simulatech.org/.well-known/private', cookies: { get: () => undefined } })).redirected, true);
   assert.equal((await proxy({ nextUrl: { pathname: '/merchant/orders' }, url: 'https://merchant.simulatech.org/merchant/orders', cookies: { get: () => undefined } })).redirected, true);
   assert.equal(links.isPublicStorefrontPath('/shop/demo-shop/admin'), false);
 });

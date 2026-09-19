@@ -12,6 +12,9 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Android domain verification must receive JSON, never a merchant login.
+  if (pathname === '/.well-known/assetlinks.json') return NextResponse.next();
+
   // Shared customer-facing pages must not require a merchant account, nor
   // redirect signed-in recipients back to their merchant dashboard.
   if (isPublicStorefrontPath(pathname)) return NextResponse.next();
