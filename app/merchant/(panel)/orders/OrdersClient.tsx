@@ -3,7 +3,12 @@
 import { useState } from "react";
 import type { Lead, LeadStatus } from "@/lib/types/lead";
 import { reverseLeadStatus, adaptLead } from "@/lib/types/lead";
-import { updateLeadStatusAction, cancelLeadAction, updateOrderProgressAction } from "@/lib/auth/lead-actions";
+import {
+  updateLeadStatusAction,
+  cancelLeadAction,
+  updateOrderProgressAction,
+  listLeadsAction,
+} from "@/lib/auth/lead-actions";
 import type { CancellationReason } from "@/lib/api/leads";
 import { LeadDrawer } from "./LeadDrawer";
 import { CreateCouponModal } from "./CreateCouponModal";
@@ -13,12 +18,20 @@ interface Props {
   initialLeads: Lead[];
   /** Maps the short display id (8-char) → full backend UUID */
   backendIdMap: Record<string, string>;
+  initialLoadError?: string;
 }
 
-export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
+export default function OrdersClient({
+  initialLeads,
+  backendIdMap: initialBackendIdMap,
+  initialLoadError,
+}: Props) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [backendIdMap, setBackendIdMap] = useState(initialBackendIdMap);
+  const [loadError, setLoadError] = useState<string | null>(initialLoadError ?? null);
+  const [reloading, setReloading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [leadMode, setLeadMode] = useState("all");
+  const [leadMode] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{
@@ -28,6 +41,27 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  const reloadOrders = async () => {
+    if (reloading) return;
+    setReloading(true);
+    try {
+      const data = await callAction(listLeadsAction({ limit: 100 }));
+      setLeads(data.items.map(adaptLead));
+      setBackendIdMap(
+        Object.fromEntries(
+          data.items.map((raw) => [raw.id.slice(0, 8).toUpperCase(), raw.id]),
+        ),
+      );
+      setLoadError(null);
+    } catch {
+      setLoadError(
+        "The order service is still unavailable. Please try again shortly.",
+      );
+    } finally {
+      setReloading(false);
+    }
+  };
 
   const updateOrderProgress = async (displayId: string, progress: { fulfillment_status?: string; payment_status?: "paid" }) => {
     const backendId = backendIdMap[displayId];
@@ -162,6 +196,26 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
         </button>
       </div>
 
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="font-bold text-amber-950">Orders could not be loaded</p>
+            <p className="mt-1 text-sm text-amber-800">{loadError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={reloadOrders}
+            disabled={reloading}
+            className="shrink-0 rounded-xl bg-amber-950 px-4 py-2.5 text-sm font-bold text-white transition-opacity disabled:cursor-wait disabled:opacity-60"
+          >
+            {reloading ? "Retrying…" : "Retry orders"}
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}
         <div className="w-full md:w-48 shrink-0">
@@ -291,7 +345,9 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
                   {sortedLeads.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
-                        No orders found for this filter.
+                        {loadError
+                          ? "Orders will appear here once the service reconnects."
+                          : "No orders found for this filter."}
                       </td>
                     </tr>
                   ) : (
