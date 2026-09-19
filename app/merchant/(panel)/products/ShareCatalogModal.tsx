@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { MerchantOut } from "@/lib/types/merchant";
+import { publicShopUrl } from "@/lib/share-links";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 
 interface ShareCatalogModalProps {
@@ -243,9 +244,9 @@ export default function ShareCatalogModal({ merchant, onClose }: ShareCatalogMod
   const [downloadingQr, setDownloadingQr] = useState(false);
 
   // Both destinations use the unique shop ID so every QR resolves to the selected shop.
-  const shopId = merchant.shop_id || merchant.partner_id || merchant.id;
-  const deepLink = `simulafly://merchant/${encodeURIComponent(shopId)}`;
-  const webLink = `https://simulafly.com/m/${encodeURIComponent(shopId)}`;
+  const shopId = merchant.shop_id || merchant.id;
+  const webLink = publicShopUrl(shopId);
+  const deepLink = webLink;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(deepLink)}&color=111827&margin=10`;
 
   const handleCopy = async () => {

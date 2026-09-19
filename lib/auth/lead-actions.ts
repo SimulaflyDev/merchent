@@ -44,6 +44,18 @@ export async function updateLeadNotesAction(
   });
 }
 
+export async function updateOrderProgressAction(
+  leadId: string,
+  progress: { fulfillment_status?: string; payment_status?: "paid" },
+): Promise<ActionResult<BuyerLeadOut>> {
+  return srvAction(async () => {
+    // The API authenticates the session/active shop and validates transitions.
+    const updated = await apiPatchLead(leadId, progress);
+    revalidatePath("/merchant/orders");
+    return updated;
+  });
+}
+
 export async function listLeadsAction(
   params: { status?: string; lead_type?: string; limit?: number; offset?: number } = {},
 ): Promise<ActionResult<{ items: BuyerLeadOut[]; total: number; limit: number; offset: number }>> {

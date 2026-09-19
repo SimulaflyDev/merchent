@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Lead, LeadStatus } from "@/lib/types/lead";
 import { reverseLeadStatus, adaptLead } from "@/lib/types/lead";
-import { updateLeadStatusAction, cancelLeadAction } from "@/lib/auth/lead-actions";
+import { updateLeadStatusAction, cancelLeadAction, updateOrderProgressAction } from "@/lib/auth/lead-actions";
 import type { CancellationReason } from "@/lib/api/leads";
 import { LeadDrawer } from "./LeadDrawer";
 import { CreateCouponModal } from "./CreateCouponModal";
@@ -27,6 +27,24 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
   } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const updateOrderProgress = async (displayId: string, progress: { fulfillment_status?: string; payment_status?: "paid" }) => {
+    const backendId = backendIdMap[displayId];
+    if (!backendId || updating) return;
+    setUpdating(true);
+    try {
+      const updated = await callAction(updateOrderProgressAction(backendId, progress));
+      setLeads((prev) => prev.map((l) => l.id === displayId ? adaptLead(updated) : l));
+      showToast(updated.order?.status === "completed"
+        ? "Order completed. 10 tokens awarded to the customer."
+        : "Order progress saved. The customer can see this update.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not update progress. Please retry.");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -35,7 +53,8 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
 
   const updateLeadStatus = async (displayId: string, newStatus: LeadStatus) => {
     const backendId = backendIdMap[displayId];
-    if (!backendId) return;
+    if (!backendId || updating) return;
+    setUpdating(true);
 
     const backendStatus = reverseLeadStatus(newStatus);
     try {
@@ -45,15 +64,14 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
         prev.map((l) => (l.id === displayId ? adapted : l))
       );
       if (newStatus === "Order Confirmed") {
-        const lead = leads.find((l) => l.id === displayId);
-        showToast(
-          `WhatsApp sent to ${lead?.customer.name ?? "customer"}: "Hi, SimulaFly Merchant confirmed. We'll connect shortly."`
-        );
+        showToast("Order confirmed. The customer has been notified in Simulafly.");
       } else if (newStatus === "Converted") {
         showToast("Order marked as Payment Received. Fulfillment process started.");
       }
     } catch {
       showToast("Failed to update order status. Please try again.");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -368,6 +386,8 @@ export default function OrdersClient({ initialLeads, backendIdMap }: Props) {
         lead={selectedLead}
         onClose={() => setSelectedLeadId(null)}
         onUpdateStatus={updateLeadStatus}
+        onUpdateProgress={updateOrderProgress}
+        busy={updating}
         onCancelLead={cancelLead}
         onShowToast={showToast}
       />

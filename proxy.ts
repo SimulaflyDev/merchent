@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cookieOpts, ACCESS_TTL, REFRESH_TTL, getJwtExpiry } from './lib/auth/jwt';
+import { isPublicStorefrontPath } from './lib/share-links';
 
 const PUBLIC_PATHS = [
   '/merchant',
@@ -10,6 +11,10 @@ const PUBLIC_PATHS = [
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Shared customer-facing pages must not require a merchant account, nor
+  // redirect signed-in recipients back to their merchant dashboard.
+  if (isPublicStorefrontPath(pathname)) return NextResponse.next();
 
   // 1. Exclude public static files and API routes we shouldn't intercept
   if (

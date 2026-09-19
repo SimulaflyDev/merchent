@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { publicShopUrl } from "@/lib/share-links";
 import { useMemo, useState } from "react";
 import type { Lead } from "@/lib/types/lead";
 import { useMerchant } from "@/app/merchant/context/MerchantContext";
@@ -200,7 +201,7 @@ export default function DashboardClient({
           {/* Live QR preview */}
           <div className="self-start shrink-0 rounded-xl bg-white p-2.5 shadow-lg sm:self-auto">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`simulafly://merchant/${merchant.referral_code || merchant.slug}`)}&color=111827&margin=4`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(publicShopUrl(merchant.slug))}&color=111827&margin=4`}
               alt="Store QR"
               className="w-16 h-16 block"
             />

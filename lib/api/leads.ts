@@ -34,6 +34,8 @@ export async function patchLead(
   body: {
     status?: string;
     merchant_notes?: string;
+    fulfillment_status?: string;
+    payment_status?: "paid";
     cancellation_reason?: CancellationReason;
   },
 ): Promise<BuyerLeadOut> {

@@ -314,6 +314,8 @@ interface LeadDrawerProps {
   lead: Lead | null;
   onClose: () => void;
   onUpdateStatus: (id: string, newStatus: LeadStatus) => void;
+  onUpdateProgress: (id: string, progress: { fulfillment_status?: string; payment_status?: "paid" }) => Promise<void>;
+  busy: boolean;
   onCancelLead: (id: string, reason: CancellationReason) => void;
   onShowToast: (msg: string) => void;
 }
@@ -322,6 +324,8 @@ export function LeadDrawer({
   lead,
   onClose,
   onUpdateStatus,
+  onUpdateProgress,
+  busy,
   onCancelLead,
   onShowToast,
 }: LeadDrawerProps) {
@@ -340,13 +344,6 @@ export function LeadDrawer({
 
   const handleUpdate = (newStatus: LeadStatus) => {
     onUpdateStatus(lead.id, newStatus);
-    if (newStatus === "Order Confirmed") {
-      onShowToast(
-        `WhatsApp sent to ${lead.customer.name}: "Hi ${lead.customer.name.split(" ")[0]}, SimulaFly Merchant has confirmed. We will connect shortly."`
-      );
-    } else if (newStatus === "Converted") {
-      onShowToast("Lead marked as Payment Received. Fulfillment process started.");
-    }
   };
 
   const handleCancelConfirm = (
@@ -613,18 +610,50 @@ export function LeadDrawer({
         </div>
 
         {/* Footer actions */}
+        {lead.order && (
+          <section className="border-t border-gray-100 bg-gray-50 px-6 py-4" aria-label="Order progress">
+            <p className="text-sm font-bold">Delivery: {lead.order.fulfillment_status.replaceAll("_", " ")}</p>
+            <p className="mt-1 text-sm">Payment: {lead.order.payment_status === "paid" ? "Complete — confirmed by shop" : lead.order.payment_status === "unknown" ? "Not recorded" : "Pending"}</p>
+            <p className="mt-2 text-xs text-gray-600">{lead.order.reward_tokens > 0
+              ? `${lead.order.reward_tokens} tokens awarded to the customer.`
+              : lead.order.status === "completed" ? "Historical completed order." : "Delivery and payment must both be complete before the customer automatically receives 10 tokens."}</p>
+            {lead.order.status !== "completed" && lead.order.status !== "cancelled" && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  ["in_progress", "Start preparing"], ["shipped", "Mark shipped"],
+                  ["out_for_delivery", "Out for delivery"], ["fulfilled", "Mark delivered"],
+                ].filter(([stage]) => ["pending", "in_progress", "shipped", "out_for_delivery", "fulfilled"].indexOf(stage)
+                  > ["pending", "in_progress", "shipped", "out_for_delivery", "fulfilled"].indexOf(lead.order!.fulfillment_status))
+                  .map(([stage, label]) => (
+                    <button key={stage} disabled={busy} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
+                      onClick={() => {
+                        if (stage !== "fulfilled" || window.confirm("Confirm that the customer has received this order? If payment is complete, the order will finish and award 10 tokens.")) {
+                          void onUpdateProgress(lead.id, { fulfillment_status: stage });
+                        }
+                      }}>{label}</button>
+                  ))}
+              </div>
+            )}
+          </section>
+        )}
         <div className="z-10 grid grid-cols-1 gap-3 border-t border-gray-100 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] sm:flex sm:flex-wrap sm:p-6">
           {lead.status === "New Order" && (
             <button
               onClick={() => handleUpdate("Order Confirmed")}
+              disabled={busy}
               className="flex-1 py-3 bg-[#1FAF9A] hover:bg-[#189986] text-white font-bold text-sm rounded-xl shadow-md shadow-[#1FAF9A]/20 transition-all"
             >
               Confirm Order
             </button>
           )}
-          {lead.status === "Order Confirmed" && (
+          {lead.status === "Order Confirmed" && lead.order?.payment_status !== "paid" && (
             <button
-              onClick={() => handleUpdate("Converted")}
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm("Confirm that full payment for this order has been received? This records payment; it does not charge the customer.")) {
+                  void onUpdateProgress(lead.id, { payment_status: "paid" });
+                }
+              }}
               className="flex-1 py-3 bg-[#1FAF9A] hover:bg-[#189986] text-white font-bold text-sm rounded-xl shadow-md shadow-[#1FAF9A]/20 transition-all"
             >
               Mark Payment Received

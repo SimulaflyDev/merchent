@@ -38,6 +38,12 @@ export interface OrderOut {
   fee_charged_at: string | null;
   platform_fee_amount: number;
   completed_at: string | null;
+  fulfillment_status: string;
+  payment_status: string;
+  payment_completed_at: string | null;
+  delivered_at: string | null;
+  reward_tokens: number;
+  reward_granted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +87,7 @@ export interface LeadProduct {
 }
 
 export interface Lead {
+  order?: OrderOut | null;
   id: string;
   date: string;
   time: string;
@@ -143,6 +150,7 @@ export function adaptLead(raw: BuyerLeadOut): Lead {
     : [];
 
   return {
+    order: raw.order,
     id: raw.id.slice(0, 8).toUpperCase(),
     date: d.toLocaleDateString("en-IN", {
       day: "2-digit",
