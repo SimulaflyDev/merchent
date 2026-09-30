@@ -27,6 +27,7 @@ function metadataToRows(meta: Record<string, unknown>): { key: string; value: st
 
 export default function ProductEditModal({ product, onClose, onSaved }: Props) {
   // ── Basic Info ──────────────────────────────────────────────────────────────
+  const [sku, setSku] = useState(product.sku);
   const [title, setTitle] = useState(product.title);
   const [description, setDescription] = useState(product.description ?? "");
   const [category, setCategory] = useState(product.category ?? "");
@@ -68,6 +69,13 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
   // ── Save ─────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     setSaveError(null);
+
+    const trimmedSku = sku.trim();
+    if (!trimmedSku) {
+      setSaveError("SKU is required.");
+      return;
+    }
+
     setSaving(true);
 
     const parseNumber = (val: unknown) => {
@@ -92,6 +100,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
 
 
     const payload: MerchantProductUpdatePayload = {
+      sku: trimmedSku,
       title,
       description: description || null,
       category: category || null,
@@ -112,7 +121,13 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
       const updated = await callAction(updateProductAction(product.id, payload));
       onSaved(updated);
     } catch (err) {
-      setSaveError(isApiError(err) ? err.detail : "Failed to save");
+      setSaveError(
+        isApiError(err)
+          ? err.status === 409
+            ? "A product with that SKU already exists."
+            : err.detail
+          : "Failed to save",
+      );
       setSaving(false);
     }
   };
@@ -130,7 +145,7 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
         <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
           <div>
             <h2 className="text-[15px] font-bold text-[#111827]">Edit Product</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5 font-mono">{product.sku}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5 font-mono">{sku || product.sku}</p>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -160,16 +175,17 @@ export default function ProductEditModal({ product, onClose, onSaved }: Props) {
                 />
               </div>
 
-              {/* SKU (read-only) + Price */}
+              {/* SKU + Price */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    SKU <span className="text-[10px] font-normal text-gray-400 normal-case">(cannot be changed)</span>
+                    SKU <span className="text-red-400">*</span>
                   </label>
                   <input
-                    readOnly
-                    value={product.sku}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-mono text-gray-400 cursor-not-allowed"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#FAFBFC] border border-[#EAECEF] rounded-xl text-[13px] font-mono text-[#111827] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0E9F88]/30 focus:border-[#0E9F88] transition-all"
+                    placeholder="e.g. OAK-DT-001"
                   />
                 </div>
                 <div>
