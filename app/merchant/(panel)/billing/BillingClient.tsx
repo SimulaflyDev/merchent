@@ -13,15 +13,24 @@ import { isApiError } from "@/lib/api/errors";
 import { resolveImageUrl } from "@/lib/api/image-utils";
 import type { WalletOut, BalanceHistoryItem } from "@/lib/types/wallet";
 import type { MerchantOut } from "@/lib/types/merchant";
+import type { MerchantVerification } from "@/lib/types/verification";
+import WalletInvoiceDocument, {
+  invoiceDescription,
+  invoiceNumber,
+  isInvoiceTransaction,
+  isRechargeTransaction,
+  printWalletInvoice,
+} from "./WalletInvoiceDocument";
 
 interface Props {
   wallet: WalletOut;
   merchant: MerchantOut;
+  verification: MerchantVerification;
 }
 
 const PRESET_TIERS = [500, 1000, 2500, 5000, 10000];
 
-export default function BillingClient({ wallet, merchant }: Props) {
+export default function BillingClient({ wallet, merchant, verification }: Props) {
   const router = useRouter();
 
   // Active Tab: "history", "rewards", "payments", "invoices"
@@ -88,7 +97,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
   // Invoices (wallet top-ups/deposits) State
   const [allInvoiceTxs, setAllInvoiceTxs] = useState<BalanceHistoryItem[]>([]);
-  const [invoiceFilter, setInvoiceFilter] = useState<"all" | "topups" | "order_confirmation" | "buyer_intel_unlock">("all");
+  const [invoiceFilter, setInvoiceFilter] = useState<"all" | "recharges" | "spend" | "order_confirmation">("all");
   const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<BalanceHistoryItem | null>(null);
 
@@ -118,157 +127,18 @@ export default function BillingClient({ wallet, merchant }: Props) {
     }
   }, [activeTab, fetchInvoices]);
 
-  const getInvoiceDetails = (tx: BalanceHistoryItem) => {
-    let title = "SimulaFly Transaction";
-    let sub = "Transaction record entry.";
-
-    if (tx.reason === "topup") {
-      title = "SimulaFly Wallet Top-up";
-      sub = "Prepaid credits added to merchant wallet.";
-    } else if (tx.reason === "kyc_welcome_bonus") {
-      title = "KYC Welcome Bonus";
-      sub = "One-time welcome credit for successful KYC completion.";
-    } else if (tx.reason === "order_confirmation") {
-      title = "Order Confirmation Fee";
-      sub = `Deduction for buyer order confirmation ${tx.product ? `(Product: ${tx.product.title})` : ""}`;
-    } else if (tx.reason === "external_redirect" || tx.reason === "click") {
-      title = "External Marketplace Redirect Fee";
-      sub = `Deduction for third party online marketplace redirect click ${tx.product ? `(Product: ${tx.product.title})` : ""}`;
-    } else if (tx.reason === "buyer_intel_unlock") {
-      title = "Buyer Intelligence Unlock Fee";
-      sub = "Deduction for high-intent customer lead profile unlock.";
-    } else if (tx.reason?.startsWith("promo_")) {
-      title = "Promo Code Credit";
-      sub = `Credits added from promotional code: ${tx.reason.replace("promo_", "").toUpperCase()}`;
-    } else if (tx.reason === "referral_redeem") {
-      title = "Merchant Referral Credit";
-      sub = "Credits earned for onboarding a new merchant.";
-    } else if (tx.reason === "referral_partner") {
-      title = "Merchant Onboarding Bonus";
-      sub = "Credit bonus for onboarding through referral link.";
-    } else if (tx.reason === "user_referral") {
-      title = "User Referral Credit";
-      sub = "Credits earned for mobile app user referral.";
-    }
-
-    return { title, sub };
-  };
-
-  const invoiceTxs = allInvoiceTxs.filter((tx) => {
+  const invoiceTxs = allInvoiceTxs.filter(isInvoiceTransaction).filter((tx) => {
     if (invoiceFilter === "all") return true;
-    if (invoiceFilter === "topups") {
-      return tx.entry_type === "Deposit" || tx.reason === "topup" || tx.reason === "kyc_welcome_bonus" || tx.reason.startsWith("promo_") || tx.reason === "referral_redeem" || tx.reason === "referral_partner" || tx.reason === "user_referral";
-    }
+    if (invoiceFilter === "recharges") return isRechargeTransaction(tx);
+    if (invoiceFilter === "spend") return tx.amount < 0;
     if (invoiceFilter === "order_confirmation") {
       return tx.reason === "order_confirmation";
-    }
-
-    if (invoiceFilter === "buyer_intel_unlock") {
-      return tx.reason === "buyer_intel_unlock";
     }
     return true;
   });
 
-  // Invoice Print helper
   const handlePrintInvoice = (tx: BalanceHistoryItem) => {
-    const { title, sub } = getInvoiceDetails(tx);
-    const dateStr = new Date(tx.created_at).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-    const printWindow = window.open("", "_blank", "width=800,height=900");
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice - ${tx.id.replace(/^tx_|^le_/, "").slice(0, 8).toUpperCase()}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, sans-serif; color: #1f2937; padding: 40px; margin: 0; line-height: 1.5; }
-            .header { display: flex; justify-content: space-between; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: 800; color: #0E9F88; }
-            .title { font-size: 28px; font-weight: 800; text-align: right; text-transform: uppercase; color: #111827; }
-            .details { display: flex; justify-content: space-between; margin-bottom: 40px; gap: 40px; }
-            .details-col { flex: 1; }
-            .details-label { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #9ca3af; margin-bottom: 6px; }
-            .details-value { font-size: 14px; font-weight: 500; }
-            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-            .invoice-table th { background: #f9fafb; border-bottom: 2px solid #e5e7eb; padding: 12px; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #4b5563; text-align: left; }
-            .invoice-table td { padding: 16px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-            .invoice-table td.right { text-align: right; }
-            .invoice-table th.right { text-align: right; }
-            .total-section { display: flex; justify-content: flex-end; margin-bottom: 50px; }
-            .total-box { width: 300px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; border-top: 2px solid #111827; padding-top: 12px; }
-            .footer { border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 12px; text-align: center; color: #9ca3af; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="logo">SimulaFly</div>
-              <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">SimulaFly Technologies LLP.</div>
-            </div>
-            <div>
-              <div class="title">Invoice</div>
-              <div style="font-size: 13px; text-align: right; font-weight: bold; margin-top: 4px;">INV-${tx.id.replace(/^tx_|^le_/, "").slice(0, 8).toUpperCase()}</div>
-            </div>
-          </div>
-          
-          <div class="details">
-            <div class="details-col">
-              <div class="details-label">Billed To</div>
-              <div class="details-value" style="font-weight: 700; color: #111827;">${merchant.display_name}</div>
-              <div class="details-value">${merchant.legal_name || "—"}</div>
-              <div class="details-value">${merchant.support_email || "—"}</div>
-            </div>
-            <div class="details-col" style="text-align: right;">
-              <div class="details-label">Invoice Details</div>
-              <div class="details-value"><strong>Date:</strong> ${dateStr}</div>
-              <div class="details-value"><strong>Payment Method:</strong> ${tx.payment_method || "Wallet"}</div>
-              <div class="details-value"><strong>Reference ID:</strong> ${tx.gateway_ref || "—"}</div>
-            </div>
-          </div>
-
-          <table class="invoice-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th class="right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <strong>${title}</strong><br/>
-                  <span style="font-size: 12px; color: #6b7280;">${sub}</span>
-                </td>
-                <td class="right" style="font-weight: bold;">₹${Math.abs(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="total-section">
-            <div class="total-box">
-              <span>Total Amount</span>
-              <span>₹${Math.abs(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            Thank you for your business! For any billing queries, support is available at support@simulafly.com
-          </div>
-          
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    printWalletInvoice({ transaction: tx, merchant, verification });
   };
 
   // Compute runway percentage based on latest recharge transaction
@@ -913,7 +783,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           SimulaFly Wallet Invoices
                         </h3>
                         <span className="text-xs font-semibold text-gray-400 mt-1 block">
-                          {invoiceTxs.length} invoices displayed
+                          {invoiceTxs.length} invoice documents displayed
                         </span>
                       </div>
 
@@ -927,10 +797,10 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           }
                           className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs bg-white font-medium hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#0E9F88]"
                         >
-                          <option value="all">All Invoices</option>
-                          <option value="topups">Wallet Recharge</option>
-                          <option value="order_confirmation">Post Order Confirmation</option>
-                          <option value="buyer_intel_unlock">Buyer Intel Purchase</option>
+                          <option value="all">All Documents</option>
+                          <option value="recharges">Wallet Recharges</option>
+                          <option value="spend">Wallet Spend</option>
+                          <option value="order_confirmation">Order Facilitation</option>
                         </select>
                       </div>
                     </div>
@@ -959,9 +829,9 @@ export default function BillingClient({ wallet, merchant }: Props) {
                           </thead>
                           <tbody className="divide-y divide-gray-100 font-medium">
                             {invoiceTxs.map((tx) => {
-                              const displayId = `INV-${tx.id.replace(/^tx_|^le_/, "").slice(0, 8).toUpperCase()}`;
+                              const displayId = invoiceNumber(tx);
                               const isDeduction = tx.amount < 0;
-                              const { title } = getInvoiceDetails(tx);
+                              const title = invoiceDescription(tx);
                               return (
                                 <tr key={tx.id} className="hover:bg-gray-50/50 transition duration-150 text-xs">
                                   <td className="px-4 py-3 font-mono font-bold text-gray-900">
@@ -992,7 +862,7 @@ export default function BillingClient({ wallet, merchant }: Props) {
                                     {tx.gateway_ref || "—"}
                                   </td>
                                   <td className={`px-4 py-3 text-right font-black tabular-nums ${isDeduction ? "text-red-600" : "text-[#0E9F88]"}`}>
-                                    {isDeduction ? "-" : "+"} ₹{Math.abs(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                    {isDeduction ? "-" : "+"}₹{Math.abs(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                                   </td>
                                   <td className="px-4 py-3 text-center whitespace-nowrap">
                                     <button
@@ -1139,96 +1009,44 @@ export default function BillingClient({ wallet, merchant }: Props) {
 
       {/* Modal 3: Invoice Details / Preview */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
-            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <h3 className="font-black text-gray-900 text-lg">Invoice Details</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-2 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[96dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6">
+              <div>
+                <h3 className="text-base font-black text-gray-900 sm:text-lg">
+                  {invoiceDescription(selectedInvoice)}
+                </h3>
+                <p className="mt-0.5 font-mono text-[10px] font-bold text-[#0E9F88] sm:text-xs">
+                  {invoiceNumber(selectedInvoice)}
+                </p>
+              </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                aria-label="Close invoice preview"
+                className="text-2xl font-bold text-gray-400 hover:text-gray-600"
               >
                 &times;
               </button>
             </div>
 
-            {/* Invoice Print Layout Preview */}
-            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-sm text-gray-700">
-              <div className="flex justify-between border-b border-gray-100 pb-4">
-                <div>
-                  <h4 className="font-extrabold text-lg text-[#0E9F88]">SimulaFly</h4>
-                  <p className="text-xs text-gray-400 mt-1">SimulaFly Technologies LLP.</p>
-                </div>
-                <div className="text-right">
-                  <h4 className="font-black text-gray-900 uppercase">Invoice</h4>
-                  <p className="text-xs font-mono font-bold mt-1 text-[#0E9F88]">
-                    INV-{selectedInvoice.id.replace(/^tx_|^le_/, "").slice(0, 8).toUpperCase()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">Billed To</span>
-                  <span className="font-bold text-gray-900 block">{merchant.display_name}</span>
-                  <span className="text-xs text-gray-500 block mt-0.5">{merchant.legal_name || "—"}</span>
-                  <span className="text-xs text-gray-500 block">{merchant.support_email || "—"}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">Invoice Details</span>
-                  <span className="text-xs block">
-                    <strong>Date:</strong> {new Date(selectedInvoice.created_at).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
-                  <span className="text-xs block mt-1">
-                    <strong>Payment Method:</strong> <span className="uppercase">{selectedInvoice.payment_method || "Wallet"}</span>
-                  </span>
-                  <span className="text-xs block mt-1 truncate">
-                    <strong>Reference ID:</strong> {selectedInvoice.gateway_ref || "—"}
-                  </span>
-                </div>
-              </div>
-
-              <table className="w-full text-xs text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase text-[10px]">
-                    <th className="px-3 py-2">Description</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-gray-100">
-                    <td className="px-3 py-4 text-gray-700">
-                      <span className="font-bold block text-sm">{getInvoiceDetails(selectedInvoice).title}</span>
-                      <span className="text-[10px] text-gray-400 mt-1 block">{getInvoiceDetails(selectedInvoice).sub}</span>
-                    </td>
-                    <td className="px-3 py-4 text-right font-black text-gray-900 text-sm tabular-nums">
-                      ₹{Math.abs(selectedInvoice.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="flex justify-end pt-4">
-                <div className="flex w-full justify-between border-t border-gray-900 pt-3 text-sm font-black text-gray-900 sm:w-64">
-                  <span>Total Amount</span>
-                  <span>₹{Math.abs(selectedInvoice.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
+            <div className="flex-1 overflow-y-auto bg-gray-100 p-2 sm:p-5">
+              <WalletInvoiceDocument
+                transaction={selectedInvoice}
+                merchant={merchant}
+                verification={verification}
+              />
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0 bg-gray-50">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-4">
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors"
+                className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-100"
               >
                 Close
               </button>
               <button
                 onClick={() => handlePrintInvoice(selectedInvoice)}
-                className="px-4 py-2 bg-[#0E9F88] hover:bg-[#0B7A69] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-[#0E9F88] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0B7A69]"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

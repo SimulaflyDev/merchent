@@ -1,5 +1,6 @@
 import { getWallet } from "@/lib/api/wallet";
 import { getMerchant } from "@/lib/api/merchants";
+import { getMerchantVerification } from "@/lib/api/verification";
 import { getMerchantSession } from "@/lib/auth/session";
 import BillingClient from "./BillingClient";
 
@@ -17,15 +18,17 @@ export default async function BillingPage({ searchParams }: PageProps) {
     );
   }
 
-  const [wallet, merchant] = await Promise.all([
+  const [wallet, merchant, verification] = await Promise.all([
     getWallet(),
     getMerchant(session.activeMerchantId),
+    getMerchantVerification(session.activeMerchantId),
   ]);
 
   return (
     <BillingClient
       wallet={wallet}
       merchant={merchant}
+      verification={verification}
     />
   );
 }

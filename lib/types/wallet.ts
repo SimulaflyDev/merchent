@@ -50,6 +50,24 @@ export interface BalanceHistoryItemProduct {
   image_url: string | null;
 }
 
+export interface BalanceHistoryOrderItem {
+  product_id: string | null;
+  title: string;
+  sku: string;
+  quantity: number;
+}
+
+export interface BalanceHistoryOrderDetails {
+  id: string;
+  created_at: string;
+  accepted_at: string | null;
+  status: string;
+  buyer_name: string | null;
+  buyer_address: string | null;
+  total_value: number;
+  items: BalanceHistoryOrderItem[];
+}
+
 export interface BalanceHistoryItem {
   id: string;
   created_at: string;
@@ -58,8 +76,12 @@ export interface BalanceHistoryItem {
   reason: string;
   payment_method: string | null;
   gateway_ref: string | null;
+  gateway: string | null;
+  payment_order_id: string | null;
+  reference_id: string | null;
   running_balance: number;
   product: BalanceHistoryItemProduct | null;
+  order: BalanceHistoryOrderDetails | null;
 }
 
 export interface BalanceHistoryResponse {
