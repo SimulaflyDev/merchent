@@ -12,6 +12,12 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Password recovery must remain reachable without a session or with stale cookies.
+  // This also allows the recovery page's Server Action POST requests through.
+  if (pathname === '/merchant/forgot_password' || pathname === '/merchant/forgot_password/') {
+    return NextResponse.next();
+  }
+
   // Android domain verification must receive JSON, never a merchant login.
   if (pathname === '/.well-known/assetlinks.json') return NextResponse.next();
 
