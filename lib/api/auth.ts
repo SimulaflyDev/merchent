@@ -14,6 +14,26 @@ export async function login(email: string, password: string): Promise<TokenPair>
   });
 }
 
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return api<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+    skipAuth: true,
+  });
+}
+
+export async function resetPassword(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  return api<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
+    skipAuth: true,
+  });
+}
+
 export async function register(payload: {
   email: string;
   password: string;

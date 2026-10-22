@@ -3,7 +3,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { login as loginApi, register as registerApi } from "@/lib/api/auth";
+import {
+  forgotPassword as forgotPasswordApi,
+  login as loginApi,
+  register as registerApi,
+  resetPassword as resetPasswordApi,
+} from "@/lib/api/auth";
 import { api } from "@/lib/api/client";
 import type { MerchantOut } from "@/lib/types/merchant";
 
@@ -34,6 +39,20 @@ export async function loginAction(email: string, password: string): Promise<Acti
     }
     redirect("/merchant/select_shop");
   });
+}
+
+export async function forgotPasswordAction(
+  email: string,
+): Promise<ActionResult<{ message: string }>> {
+  return srvAction(() => forgotPasswordApi(email));
+}
+
+export async function resetPasswordAction(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<ActionResult<{ message: string }>> {
+  return srvAction(() => resetPasswordApi(email, otp, newPassword));
 }
 
 export async function registerAction(
