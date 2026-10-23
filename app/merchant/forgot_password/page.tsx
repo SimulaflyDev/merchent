@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import Spinner from "../components/Spinner";
 import { callAction } from "@/lib/api/action-utils";
@@ -22,20 +22,32 @@ export default function ForgotPasswordPage() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
 
   const normalizedEmail = email.trim().toLowerCase();
 
   const requestCode = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
+    if (pending || resendSeconds > 0) return;
     setPending(true);
     setError(null);
     setMessage(null);
     try {
       const result = await callAction(forgotPasswordAction(normalizedEmail));
       setMessage(result.message);
+      setOtp("");
+      setResendSeconds(60);
       setStage("reset");
     } catch (err) {
-      setError(isApiError(err) ? err.detail : "Could not request a reset code. Try again.");
+      setError(isApiError(err) && err.status === 503
+        ? "We couldn’t send the email because the email service is unavailable. Please try later or contact SimulaFly support."
+        : isApiError(err) ? err.detail : "Could not request a reset code. Try again.");
     } finally {
       setPending(false);
     }
@@ -54,6 +66,9 @@ export default function ForgotPasswordPage() {
     try {
       const result = await callAction(resetPasswordAction(normalizedEmail, otp, password));
       setMessage(result.message);
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
       setStage("complete");
     } catch (err) {
       setError(isApiError(err) ? err.detail : "Could not reset your password. Try again.");
@@ -84,7 +99,7 @@ export default function ForgotPasswordPage() {
         </h1>
         <p className="mt-2 text-sm leading-6 text-gray-500">
           {stage === "request" && "Enter your merchant email and we’ll send you a six-digit reset code."}
-          {stage === "reset" && `Enter the code sent to ${normalizedEmail} and choose a new password.`}
+          {stage === "reset" && `If ${normalizedEmail} has an active account, use the code in your latest email. It expires in 10 minutes.`}
           {stage === "complete" && "Your password has been reset. You can now sign in with the new password."}
         </p>
 
@@ -149,7 +164,7 @@ export default function ForgotPasswordPage() {
                 type="password"
                 required
                 minLength={8}
-                maxLength={128}
+                maxLength={72}
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -163,7 +178,7 @@ export default function ForgotPasswordPage() {
                 type="password"
                 required
                 minLength={8}
-                maxLength={128}
+                maxLength={72}
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
@@ -179,11 +194,19 @@ export default function ForgotPasswordPage() {
             </button>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || resendSeconds > 0}
               onClick={() => void requestCode()}
               className="w-full text-sm font-semibold text-[#0E9F88] hover:underline disabled:opacity-50"
             >
-              Resend code
+              {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => { setStage("request"); setError(null); setMessage(null); setOtp(""); setPassword(""); setConfirmPassword(""); setResendSeconds(0); }}
+              className="w-full text-sm text-gray-500 hover:underline disabled:opacity-50"
+            >
+              Use a different email
             </button>
           </form>
         )}

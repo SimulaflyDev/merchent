@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ApiError } from "./errors";
+import { ApiError, apiErrorDetail } from "./errors";
 import { cookieOpts, ACCESS_TTL, REFRESH_TTL, isTokenExpired } from "@/lib/auth/jwt";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.simulatech.org/api/v1";
@@ -100,7 +100,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     let payload: unknown = undefined;
     try {
       payload = await res.json();
-      detail = (payload as { detail?: string })?.detail ?? detail;
+      detail = apiErrorDetail(payload, detail);
     } catch {
       /* non-JSON error body — keep generic detail */
     }

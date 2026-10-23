@@ -19,6 +19,10 @@ interface Props {
   initialGstin: string;
 }
 
+type VerificationStep = 0 | 1 | 2;
+
+const steps = ["PAN verification", "GSTIN verification", "Terms & Conditions"] as const;
+
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-[#F8FAFB] px-4 py-3 text-sm font-medium text-[#111827] outline-none transition focus:border-[#0E9F88] focus:ring-2 focus:ring-[#0E9F88]/15 disabled:cursor-not-allowed disabled:bg-gray-100";
 const labelClass =
@@ -47,6 +51,9 @@ export default function VerificationClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [verification, setVerification] = useState(initialVerification);
+  const [activeStep, setActiveStep] = useState<VerificationStep>(
+    initialVerification.pan.status !== "verified" ? 0 : initialVerification.gstin.status !== "verified" ? 1 : 2,
+  );
   const [pan, setPan] = useState("");
   const [panName, setPanName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -58,15 +65,7 @@ export default function VerificationClient({
     () => searchParams.get("onboarding") === "complete" || searchParams.get("locked") === "1",
   );
   const [pending, startTransition] = useTransition();
-  const [agreementChecks, setAgreementChecks] = useState<Record<string, boolean>>({
-    merchant_agreement: false,
-    terms_and_conditions: false,
-    privacy_policy: false,
-    marketplace_rules: false,
-    product_listing_policy: false,
-    cancellation_return_rules: false,
-    merchant_obligations_and_fees: false,
-  });
+  const [acceptAllTerms, setAcceptAllTerms] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -82,7 +81,15 @@ export default function VerificationClient({
   const returnTo = requestedReturnTo?.startsWith("/merchant/")
     ? requestedReturnTo
     : "/merchant/dashboard";
-  const allAgreementsAccepted = Object.values(agreementChecks).every(Boolean);
+  const completedSteps = [panVerified, gstinVerified, verification.agreement.accepted];
+  const availableSteps = [true, panVerified, panVerified && gstinVerified];
+
+  const openStep = (step: VerificationStep) => {
+    if (pending || !availableSteps[step]) return;
+    setActiveStep(step);
+    setError(null);
+    setSuccess(null);
+  };
 
   const showError = (err: unknown, fallback: string) => {
     setSuccess(null);
@@ -110,6 +117,7 @@ export default function VerificationClient({
         setVerification(result);
         setPan("");
         setDateOfBirth("");
+        setActiveStep(1);
         setSuccess("PAN verified. You can now verify this shop's GSTIN.");
         router.refresh();
       } catch (err) {
@@ -128,7 +136,8 @@ export default function VerificationClient({
           verifyMerchantGstinAction(merchant.id, { gstin: gstin.trim().toUpperCase() }),
         );
         setVerification(result);
-        setSuccess("Shop GSTIN verified. Review and accept the activation agreements below.");
+        setActiveStep(2);
+        setSuccess("Shop GSTIN verified. Read the PDF and accept the Terms and Conditions.");
         router.refresh();
       } catch (err) {
         showError(err, "GSTIN verification failed. Please try again.");
@@ -139,8 +148,8 @@ export default function VerificationClient({
   const activateMerchant = () => {
     setError(null);
     setSuccess(null);
-    if (!allAgreementsAccepted) {
-      setError("Accept every required agreement and policy before activation.");
+    if (!acceptAllTerms || !verification.can_activate) {
+      setError("Complete verification and accept all Terms and Conditions before activation.");
       return;
     }
     startTransition(async () => {
@@ -158,8 +167,8 @@ export default function VerificationClient({
         );
         setVerification(result);
         sessionStorage.removeItem("sf_pending_pan");
-        setSuccess("Merchant approved. Redirecting to your dashboard…");
-        setTimeout(() => router.push(returnTo), 900);
+        setSuccess("Terms accepted. Your merchant account is approved and ready to use.");
+        router.refresh();
       } catch (err) {
         showError(err, "Merchant activation failed. Please try again.");
       }
@@ -186,7 +195,7 @@ export default function VerificationClient({
               Complete shop verification
             </h2>
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Your onboarding details were submitted successfully. Verify the merchant PAN and this shop&apos;s GSTIN to unlock all merchant features.
+              Verify your PAN and shop GSTIN, then read and accept the PDF agreement to unlock all merchant features.
             </p>
             <button
               type="button"
@@ -209,8 +218,7 @@ export default function VerificationClient({
               Verify {merchant.display_name}
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              PAN verifies the merchant owner once. GSTIN verifies this individual shop and must
-              belong to the same PAN.
+              Complete PAN verification, shop GSTIN verification, and the PDF agreement in three steps.
             </p>
           </div>
           <span
@@ -223,6 +231,33 @@ export default function VerificationClient({
             {verification.approval_status === "approved" ? "Verified / approved" : "Verification pending"}
           </span>
         </div>
+
+        <nav aria-label="Verification steps" className="mb-6 rounded-3xl border border-[#E2E4E8] bg-white px-2 py-5 shadow-sm sm:p-6">
+          <ol className="grid grid-cols-3">
+            {steps.map((label, index) => (
+              <li key={label} className="relative min-w-0">
+                {index > 0 && (
+                  <span aria-hidden="true" className={`absolute right-1/2 top-5 h-0.5 w-full ${completedSteps[index - 1] ? "bg-[#0E9F88]" : "bg-gray-200"}`} />
+                )}
+                <button
+                  type="button"
+                  id={`verification-step-${index}`}
+                  aria-controls={`verification-panel-${index}`}
+                  aria-current={activeStep === index ? "step" : undefined}
+                  disabled={pending || !availableSteps[index]}
+                  onClick={() => openStep(index as VerificationStep)}
+                  className="relative z-10 flex w-full flex-col items-center gap-2 rounded-xl px-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-[#0E9F88] disabled:cursor-not-allowed"
+                >
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold ${completedSteps[index] ? "border-[#0E9F88] bg-[#0E9F88] text-white" : activeStep === index ? "border-[#0E9F88] bg-white text-[#0E9F88] ring-4 ring-emerald-50" : "border-gray-200 bg-white text-gray-400"}`}>
+                    {completedSteps[index] ? <CheckIcon /> : index + 1}
+                  </span>
+                  <span className={`text-[11px] font-bold sm:text-sm ${activeStep === index ? "text-[#0E9F88]" : availableSteps[index] ? "text-gray-700" : "text-gray-400"}`}>{label}</span>
+                  <span className="text-[10px] text-gray-400">{completedSteps[index] ? "Completed" : activeStep === index ? "In progress" : "Pending"}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
         <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-[12px] leading-relaxed text-blue-800">
           Details are checked securely through Sandbox.co.in. SimulaFly stores only a protected PAN
@@ -242,8 +277,8 @@ export default function VerificationClient({
           </div>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <section className="overflow-hidden rounded-3xl border border-[#E2E4E8] bg-white shadow-sm">
+        <div>
+          <section id="verification-panel-0" aria-labelledby="verification-step-0" hidden={activeStep !== 0} className="overflow-hidden rounded-3xl border border-[#E2E4E8] bg-white shadow-sm">
             <div className="h-1 bg-gradient-to-r from-[#111827] to-gray-500" />
             <div className="p-6">
               <div className="mb-6 flex items-start justify-between gap-3">
@@ -346,10 +381,15 @@ export default function VerificationClient({
                   </button>
                 </form>
               )}
+              {panVerified && (
+                <button type="button" onClick={() => openStep(1)} disabled={pending} className="mt-5 w-full rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:opacity-50">
+                  Continue to GSTIN
+                </button>
+              )}
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-3xl border border-[#E2E4E8] bg-white shadow-sm">
+          <section id="verification-panel-1" aria-labelledby="verification-step-1" hidden={activeStep !== 1} className="overflow-hidden rounded-3xl border border-[#E2E4E8] bg-white shadow-sm">
             <div className="h-1 bg-gradient-to-r from-[#0E9F88] to-emerald-400" />
             <div className="p-6">
               <div className="mb-6 flex items-start justify-between gap-3">
@@ -429,64 +469,84 @@ export default function VerificationClient({
                   </button>
                 </form>
               )}
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <button type="button" onClick={() => openStep(0)} disabled={pending} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50">Back to PAN</button>
+                {gstinVerified && (
+                  <button type="button" onClick={() => openStep(2)} disabled={pending} className="rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:opacity-50">Continue to Terms</button>
+                )}
+              </div>
             </div>
           </section>
         </div>
 
+        {activeStep === 2 && (
+          <section id="verification-panel-2" aria-labelledby="verification-step-2" className="rounded-3xl border border-[#E2E4E8] bg-white p-4 shadow-sm sm:p-6">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-[#111827]">Terms &amp; Conditions</h2>
+                <p className="mt-1 text-xs text-gray-500">Read the PDF and accept the agreement to complete verification.</p>
+              </div>
+              <a href="/terms-and-conditions.pdf" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-[#0E9F88] hover:bg-emerald-50">Open / download PDF</a>
+            </div>
+
+            <iframe src="/terms-and-conditions.pdf#view=FitH" title="SimulaFly Terms and Conditions PDF" className="h-[420px] w-full rounded-xl border border-gray-200 bg-gray-50 sm:h-[600px]" />
+            <p className="mt-2 text-xs text-gray-500">If the preview is unavailable on your phone, use Open / download PDF above.</p>
+
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+              <input
+                type="checkbox"
+                checked={verification.agreement.accepted || acceptAllTerms}
+                disabled={pending || verification.agreement.accepted}
+                onChange={(event) => setAcceptAllTerms(event.target.checked)}
+                className="mt-1 h-5 w-5 shrink-0 accent-[#0E9F88]"
+              />
+              <span>
+                I have read the PDF and accept all Terms and Conditions, the Merchant Agreement, Privacy Policy, marketplace and listing rules, cancellation and return rules, and merchant obligations and applicable fees.
+              </span>
+            </label>
+            <p className="mt-2 text-xs text-gray-500">
+              You can also review the <a href="https://simulafly.com/privacy-policy-for-website" target="_blank" rel="noopener noreferrer" className="text-[#0E9F88] underline">Privacy Policy</a>. Acceptance is saved with your merchant account.
+            </p>
+
+            {verification.agreement.accepted ? (
+              <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
+                All terms accepted{verification.agreement.accepted_at ? ` on ${formatVerifiedAt(verification.agreement.accepted_at)}` : ""}.
+              </div>
+            ) : (
+              <>
+                {!verification.can_activate && <p className="mt-4 text-sm text-amber-700">Complete the pending onboarding checks below before activation.</p>}
+                <button type="button" onClick={activateMerchant} disabled={pending || !acceptAllTerms || !verification.can_activate} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:cursor-not-allowed disabled:opacity-50">
+                  {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                  Accept &amp; complete verification
+                </button>
+              </>
+            )}
+            <button type="button" onClick={() => openStep(1)} disabled={pending} className="mt-4 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50">Back to GSTIN</button>
+          </section>
+        )}
+
         <section className="mt-6 rounded-3xl border border-[#E2E4E8] bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-[#111827]">Other mandatory checks</h2>
-            <p className="mt-1 text-[11px] text-gray-400">These checks are derived from the validated onboarding submission.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <h2 className="text-base font-bold text-[#111827]">Other mandatory checks</h2>
+          <p className="mt-1 text-[11px] text-gray-400">These checks are derived from the validated onboarding submission.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {([
               ["authorized_person", "Authorized person"],
               ["business_address", "Business address"],
               ["shop_location", "Shop / location"],
             ] as const).map(([key, label]) => {
               const verified = verification.other_checks[key].status === "verified";
-              return <div key={key} className={`rounded-2xl border p-4 ${verified ? "border-emerald-100 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}><div className="flex items-center gap-2"><span className={`flex h-6 w-6 items-center justify-center rounded-full ${verified ? "bg-emerald-600 text-white" : "bg-amber-200 text-amber-800"}`}>{verified ? <CheckIcon /> : "!"}</span><span className="text-xs font-bold text-gray-800">{label}</span></div><p className={`mt-2 text-[10px] font-bold uppercase tracking-wider ${verified ? "text-emerald-700" : "text-amber-700"}`}>{verified ? "Verified" : "Pending"}</p></div>;
+              return (
+                <div key={key} className={`rounded-2xl border p-4 ${verified ? "border-emerald-100 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${verified ? "bg-emerald-600 text-white" : "bg-amber-200 text-amber-800"}`}>{verified ? <CheckIcon /> : "!"}</span>
+                    <span className="text-xs font-bold text-gray-800">{label}</span>
+                  </div>
+                  <p className={`mt-2 text-[10px] font-bold uppercase tracking-wider ${verified ? "text-emerald-700" : "text-amber-700"}`}>{verified ? "Verified" : "Pending"}</p>
+                </div>
+              );
             })}
           </div>
         </section>
-
-        {(verification.can_activate || verification.approval_status === "approved") && (
-          <section className="mt-6 rounded-3xl border border-[#E2E4E8] bg-white p-6 shadow-sm">
-            <div className="mb-5">
-              <h2 className="text-base font-bold text-[#111827]">Merchant agreement &amp; activation</h2>
-              <p className="mt-1 text-[11px] text-gray-400">Acceptance is recorded with the current policy versions and your merchant account.</p>
-            </div>
-            {verification.approval_status === "approved" ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">All agreements accepted. Merchant status: Verified / Approved.</div>
-            ) : (
-              <div className="space-y-3">
-                {([
-                  ["merchant_agreement", "Merchant Agreement", null],
-                  ["terms_and_conditions", "Terms & Conditions", "https://simulafly.com/terms-and-conditions-for-website"],
-                  ["privacy_policy", "Privacy Policy", "https://simulafly.com/privacy-policy-for-website"],
-                  ["marketplace_rules", "Marketplace / Platform Rules", null],
-                  ["product_listing_policy", "Product & Listing Policies", null],
-                  ["cancellation_return_rules", "Cancellation / Return Rules", null],
-                  ["merchant_obligations_and_fees", "Merchant obligations and applicable platform fees", null],
-                ] as const).map(([key, label, link]) => (
-                  <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[12px] text-gray-700">
-                    <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0E9F88]" checked={agreementChecks[key]} onChange={(event) => setAgreementChecks((current) => ({ ...current, [key]: event.target.checked }))} />
-                    <span>
-                      I accept the {link ? (
-                        <a href={link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[#0E9F88] font-medium hover:underline">
-                          {label}
-                        </a>
-                      ) : (
-                        label
-                      )}.
-                    </span>
-                  </label>
-                ))}
-                <button type="button" onClick={activateMerchant} disabled={pending || !allAgreementsAccepted} className="mt-2 flex w-full items-center justify-center rounded-xl bg-[#0E9F88] py-3 text-sm font-bold text-white disabled:opacity-50">Approve &amp; activate merchant</button>
-              </div>
-            )}
-          </section>
-        )}
 
         {verification.approval_status === "approved" && (
           <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:flex-row">

@@ -12,6 +12,9 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // The legal PDF is a public asset, including when opened in a phone's PDF viewer.
+  if (pathname === '/terms-and-conditions.pdf') return NextResponse.next();
+
   // Password recovery must remain reachable without a session or with stale cookies.
   // This also allows the recovery page's Server Action POST requests through.
   if (pathname === '/merchant/forgot_password' || pathname === '/merchant/forgot_password/') {
