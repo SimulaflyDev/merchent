@@ -4,10 +4,20 @@ import type {
   AgreementAcceptancePayload,
   MerchantVerification,
   PanVerificationPayload,
+  MerchantOtpStartPayload,
+  MerchantOtpConfirmPayload,
 } from "@/lib/types/verification";
 
 export function getMerchantVerification(merchantId: string): Promise<MerchantVerification> {
   return api(`/merchants/${merchantId}/verification`);
+}
+
+export function sendMerchantOtp(merchantId: string, payload: MerchantOtpStartPayload): Promise<MerchantVerification> {
+  return api(`/merchants/${merchantId}/verification/gstin/otp`, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function confirmMerchantOtp(merchantId: string, payload: MerchantOtpConfirmPayload): Promise<MerchantVerification> {
+  return api(`/merchants/${merchantId}/verification/gstin/otp/verify`, { method: "POST", body: JSON.stringify(payload) });
 }
 
 export function acceptMerchantAgreements(

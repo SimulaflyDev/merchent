@@ -7,8 +7,11 @@ import { callAction } from "@/lib/api/action-utils";
 import { isApiError } from "@/lib/api/errors";
 import {
   acceptMerchantAgreementsAction,
+  refreshMerchantVerificationAction,
   verifyMerchantGstinAction,
   verifyMerchantPanAction,
+  sendMerchantOtpAction,
+  confirmMerchantOtpAction,
 } from "@/lib/auth/verification-actions";
 import type { MerchantOut } from "@/lib/types/merchant";
 import type { MerchantVerification } from "@/lib/types/verification";
@@ -21,7 +24,7 @@ interface Props {
 
 type VerificationStep = 0 | 1 | 2;
 
-const steps = ["PAN verification", "GSTIN verification", "Terms & Conditions"] as const;
+const steps = ["Business PAN", "GST & OTP", "Terms & Conditions"] as const;
 
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-[#F8FAFB] px-4 py-3 text-sm font-medium text-[#111827] outline-none transition focus:border-[#0E9F88] focus:ring-2 focus:ring-[#0E9F88]/15 disabled:cursor-not-allowed disabled:bg-gray-100";
@@ -52,13 +55,13 @@ export default function VerificationClient({
   const searchParams = useSearchParams();
   const [verification, setVerification] = useState(initialVerification);
   const [activeStep, setActiveStep] = useState<VerificationStep>(
-    initialVerification.pan.status !== "verified" ? 0 : initialVerification.gstin.status !== "verified" ? 1 : 2,
+    initialVerification.pan.status === "not_started" ? 0 : initialVerification.gstin.status !== "verified" ? 1 : 2,
   );
   const [pan, setPan] = useState("");
-  const [panName, setPanName] = useState("");
+  const [panName, setPanName] = useState(merchant.legal_name);
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [consent, setConsent] = useState(false);
-  const [gstin, setGstin] = useState(initialGstin.toUpperCase());
+  const [gstin, setGstin] = useState((initialVerification.gstin.gstin || initialGstin).toUpperCase());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [verificationPromptOpen, setVerificationPromptOpen] = useState(
@@ -66,23 +69,60 @@ export default function VerificationClient({
   );
   const [pending, startTransition] = useTransition();
   const [acceptAllTerms, setAcceptAllTerms] = useState(false);
+  const [gstUsername, setGstUsername] = useState("");
+  const [otpConsent, setOtpConsent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const [otpExpired, setOtpExpired] = useState(false);
+  const [editingOtpRequest, setEditingOtpRequest] = useState(false);
+
+  useEffect(() => {
+    function tick() {
+      const now = Date.now();
+      setResendIn(verification.otp?.resend_available_at ? Math.max(0, Math.ceil((Date.parse(verification.otp.resend_available_at) - now) / 1000)) : 0);
+      setOtpExpired(Boolean(verification.otp?.expires_at && Date.parse(verification.otp.expires_at) <= now));
+    }
+    const timer = window.setInterval(tick, 1000);
+    const initial = window.setTimeout(tick, 0);
+    return () => { window.clearInterval(timer); window.clearTimeout(initial); };
+  }, [verification.otp?.resend_available_at, verification.otp?.expires_at]);
+
+  function refreshStatus() {
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      try {
+        const result = await callAction(refreshMerchantVerificationAction(merchant.id));
+        setVerification(result);
+        setEditingOtpRequest(false);
+        setActiveStep(result.pan.status === "not_started" ? 0 : result.gstin.status !== "verified" ? 1 : 2);
+        setSuccess("Verification status updated.");
+        router.refresh();
+      } catch (err) {
+        showError(err, "Unable to refresh verification. Please try again.");
+      }
+    });
+  }
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       const enteredPan = sessionStorage.getItem("sf_pending_pan");
-      if (enteredPan && verification.pan.status !== "verified") setPan(enteredPan);
+      if (enteredPan && verification.pan.status === "not_started") setPan(enteredPan);
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [verification.pan.status]);
 
   const panVerified = verification.pan.status === "verified";
+  const panChecked = verification.pan.status !== "not_started";
   const gstinVerified = verification.gstin.status === "verified";
+  const challenge = verification.otp;
+  const otpPending = challenge?.status === "pending" && !otpExpired && !editingOtpRequest;
   const requestedReturnTo = searchParams.get("returnTo");
   const returnTo = requestedReturnTo?.startsWith("/merchant/")
     ? requestedReturnTo
     : "/merchant/dashboard";
   const completedSteps = [panVerified, gstinVerified, verification.agreement.accepted];
-  const availableSteps = [true, panVerified, panVerified && gstinVerified];
+  const availableSteps = [true, panChecked, panVerified && gstinVerified];
 
   const openStep = (step: VerificationStep) => {
     if (pending || !availableSteps[step]) return;
@@ -118,7 +158,8 @@ export default function VerificationClient({
         setPan("");
         setDateOfBirth("");
         setActiveStep(1);
-        setSuccess("PAN verified. You can now verify this shop's GSTIN.");
+        sessionStorage.removeItem("sf_pending_pan");
+        setSuccess("PAN details matched. Confirm your GST account and linked business PAN with OTP in the next step.");
         router.refresh();
       } catch (err) {
         showError(err, "PAN verification failed. Please try again.");
@@ -130,20 +171,56 @@ export default function VerificationClient({
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    if (!otpConsent || resendIn > 0) return;
     startTransition(async () => {
       try {
-        const result = await callAction(
+        const checked = await callAction(
           verifyMerchantGstinAction(merchant.id, { gstin: gstin.trim().toUpperCase() }),
         );
+        setVerification(checked);
+        const result = await callAction(sendMerchantOtpAction(merchant.id, {
+          gstin: gstin.trim().toUpperCase(), username: gstUsername.trim(), consent: true,
+        }));
         setVerification(result);
-        setActiveStep(2);
-        setSuccess("Shop GSTIN verified. Read the PDF and accept the Terms and Conditions.");
+        setOtpCode("");
+        setResendIn(result.is_kyc_completed ? 0 : 60);
+        setOtpExpired(false);
+        setEditingOtpRequest(false);
+        if (result.is_kyc_completed) {
+          setActiveStep(2);
+          setSuccess("Verification is complete. Read and accept the terms.");
+        } else {
+          setSuccess("OTP requested through GST. Check the contact details registered on your GST account.");
+        }
         router.refresh();
       } catch (err) {
-        showError(err, "GSTIN verification failed. Please try again.");
+        showError(err, "Could not send a GST OTP. Check your GST portal username and try again.");
+        try { setVerification(await callAction(refreshMerchantVerificationAction(merchant.id))); } catch { /* Keep the original send error. */ }
       }
     });
   };
+
+  function confirmOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!challenge?.challenge_id || !otpPending || pending) return;
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      try {
+        const result = await callAction(confirmMerchantOtpAction(merchant.id, { challenge_id: challenge.challenge_id!, otp: otpCode }));
+        setVerification(result);
+        setOtpCode("");
+        setGstUsername("");
+        setActiveStep(2);
+        setSuccess("OTP confirmed. Business PAN and GST verification is complete. Read and accept the terms.");
+        router.refresh();
+      } catch (err) {
+        showError(err, "OTP verification failed. Please try again.");
+        setOtpCode("");
+        try { setVerification(await callAction(refreshMerchantVerificationAction(merchant.id))); } catch { /* Keep the original verification error. */ }
+      }
+    });
+  }
 
   const activateMerchant = () => {
     setError(null);
@@ -195,7 +272,7 @@ export default function VerificationClient({
               Complete shop verification
             </h2>
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Verify your PAN and shop GSTIN, then read and accept the PDF agreement to unlock all merchant features.
+              Check your business PAN, confirm the linked GST account with OTP, then read and accept the PDF agreement.
             </p>
             <button
               type="button"
@@ -218,7 +295,7 @@ export default function VerificationClient({
               Verify {merchant.display_name}
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Complete PAN verification, shop GSTIN verification, and the PDF agreement in three steps.
+              Check your business PAN, confirm PAN and GST through the GST account OTP, then accept the PDF agreement.
             </p>
           </div>
           <span
@@ -230,6 +307,10 @@ export default function VerificationClient({
           >
             {verification.approval_status === "approved" ? "Verified / approved" : "Verification pending"}
           </span>
+        </div>
+
+        <div className="mb-4 flex justify-end">
+          <button type="button" onClick={refreshStatus} disabled={pending} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-[#0E9F88] disabled:opacity-50">Refresh status</button>
         </div>
 
         <nav aria-label="Verification steps" className="mb-6 rounded-3xl border border-[#E2E4E8] bg-white px-2 py-5 shadow-sm sm:p-6">
@@ -260,9 +341,16 @@ export default function VerificationClient({
         </nav>
 
         <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-[12px] leading-relaxed text-blue-800">
-          Details are checked securely through Sandbox.co.in. SimulaFly stores only a protected PAN
+          Automatic checks use Sandbox.co.in. SimulaFly stores only a protected PAN
           fingerprint and the last four characters; the full PAN and date of birth are not retained.
         </div>
+
+        {verification.manually_verified && (
+          <div role="status" className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            An admin has approved the PAN and GSTIN requirements for this shop.
+            {!verification.agreement.accepted && " Read and accept the Terms & Conditions to finish verification."}
+          </div>
+        )}
 
         {(error || success) && (
           <div
@@ -291,16 +379,21 @@ export default function VerificationClient({
                     {panVerified ? <CheckIcon /> : <span className="text-sm font-extrabold">1</span>}
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-[#111827]">Merchant PAN</h2>
-                    <p className="mt-0.5 text-[11px] text-gray-400">One-time owner verification</p>
+                    <h2 className="text-base font-bold text-[#111827]">Business PAN</h2>
+                    <p className="mt-0.5 text-[11px] text-gray-400">The PAN registered to your business</p>
                   </div>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  {panVerified ? "Verified" : "Required"}
+                  {panVerified ? "Verified" : panChecked ? "OTP pending" : "Required"}
                 </span>
               </div>
 
-              {panVerified ? (
+              {verification.pan.source === "admin" ? (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-800">
+                  <p className="font-semibold">PAN requirement approved by admin</p>
+                  <p className="mt-1 text-xs">Manually reviewed on {formatVerifiedAt(verification.pan.verified_at)}.</p>
+                </div>
+              ) : panChecked ? (
                 <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
                   <div className="flex justify-between gap-3">
                     <span className="text-gray-500">PAN</span>
@@ -315,13 +408,14 @@ export default function VerificationClient({
                     <span className="font-semibold capitalize text-[#111827]">{verification.pan.category}</span>
                   </div>
                   <p className="border-t border-emerald-100 pt-3 text-[10px] text-emerald-700">
-                    Verified {formatVerifiedAt(verification.pan.verified_at)}
+                    Details checked {formatVerifiedAt(verification.pan.verified_at)}
                   </p>
+                  {!panVerified && <p className="text-xs text-amber-700">Complete the GST account OTP in step 2 to confirm the linked business PAN and GSTIN.</p>}
                 </div>
               ) : (
                 <form onSubmit={submitPan} className="space-y-4">
                   <div>
-                    <label htmlFor="pan" className={labelClass}>PAN number</label>
+                    <label htmlFor="pan" className={labelClass}>Business PAN number</label>
                     <input
                       id="pan"
                       value={pan}
@@ -336,7 +430,7 @@ export default function VerificationClient({
                     />
                   </div>
                   <div>
-                    <label htmlFor="pan-name" className={labelClass}>Name exactly as on PAN</label>
+                    <label htmlFor="pan-name" className={labelClass}>Business name exactly as on PAN</label>
                     <input
                       id="pan-name"
                       value={panName}
@@ -359,6 +453,7 @@ export default function VerificationClient({
                       max={new Date().toISOString().slice(0, 10)}
                       required
                     />
+                    <p className="mt-1 text-xs text-gray-500">Companies: enter the incorporation date. Sole proprietors: use the proprietor&apos;s PAN and date of birth.</p>
                   </div>
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
                     <input
@@ -381,7 +476,7 @@ export default function VerificationClient({
                   </button>
                 </form>
               )}
-              {panVerified && (
+              {panChecked && (
                 <button type="button" onClick={() => openStep(1)} disabled={pending} className="mt-5 w-full rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:opacity-50">
                   Continue to GSTIN
                 </button>
@@ -402,16 +497,21 @@ export default function VerificationClient({
                     {gstinVerified ? <CheckIcon /> : <span className="text-sm font-extrabold">2</span>}
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-[#111827]">Shop GSTIN</h2>
+                    <h2 className="text-base font-bold text-[#111827]">Shop GSTIN &amp; OTP</h2>
                     <p className="mt-0.5 text-[11px] text-gray-400">Required separately for every shop</p>
                   </div>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  {gstinVerified ? "Verified" : panVerified ? "Ready" : "PAN first"}
+                  {gstinVerified ? "Verified" : panChecked ? "OTP required" : "PAN first"}
                 </span>
               </div>
 
-              {gstinVerified ? (
+              {verification.gstin.source === "admin" ? (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-800">
+                  <p className="font-semibold">GSTIN requirement approved by admin</p>
+                  <p className="mt-1 text-xs">Manually reviewed on {formatVerifiedAt(verification.gstin.verified_at)}.</p>
+                </div>
+              ) : gstinVerified ? (
                 <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
                   <div className="flex justify-between gap-3">
                     <span className="text-gray-500">GSTIN</span>
@@ -435,7 +535,7 @@ export default function VerificationClient({
                 </div>
               ) : (
                 <form onSubmit={submitGstin} className="space-y-4">
-                  {!panVerified && (
+                  {!panChecked && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-800">
                       Complete merchant PAN verification first. This lets us confirm the GSTIN belongs to the same account.
                     </div>
@@ -451,23 +551,46 @@ export default function VerificationClient({
                       maxLength={15}
                       pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]"
                       placeholder="27ABCDE1234F1Z5"
-                      disabled={!panVerified}
+                      disabled={!panChecked || pending || otpPending}
                       autoComplete="off"
                       required
                     />
                   </div>
+                  <div>
+                    <label htmlFor="gst-username" className={labelClass}>GST portal username</label>
+                    <input id="gst-username" value={gstUsername} onChange={(event) => setGstUsername(event.target.value)} className={inputClass} maxLength={100} autoComplete="off" disabled={pending || !panChecked || otpPending} required />
+                    <p className="mt-1 text-xs text-gray-500">Use the username for this GSTIN on the GST portal. Enable API access there if requested by GST. You do not need to enter your GST password.</p>
+                  </div>
+                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs leading-5 text-gray-600">
+                    <input type="checkbox" checked={otpConsent} onChange={(event) => setOtpConsent(event.target.checked)} disabled={pending || otpPending} className="mt-1 h-4 w-4 shrink-0 accent-[#0E9F88]" />
+                    I authorize GST account authentication to confirm this GSTIN and its linked business PAN.
+                  </label>
                   <p className="text-[10px] leading-relaxed text-gray-400">
-                    The GST registration must be Active, and its linked PAN must match the verified merchant PAN.
+                    GST sends the OTP to the contact details registered on your GST account. Its linked PAN must match the PAN checked in step 1.
                   </p>
                   <button
                     type="submit"
-                    disabled={pending || !panVerified}
+                    disabled={pending || !panChecked || !otpConsent || resendIn > 0 || otpPending}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0E9F88] py-3 text-sm font-bold text-white transition hover:bg-[#0B7A69] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-                    Verify GSTIN
+                    {resendIn > 0 ? `Request another OTP in ${resendIn}s` : challenge?.challenge_id ? "Resend GST OTP" : "Send GST OTP"}
                   </button>
                 </form>
+              )}
+              {!gstinVerified && challenge?.challenge_id && !editingOtpRequest && (
+                <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-sm font-semibold text-blue-900">Confirm OTP for {challenge.gstin}</p>
+                  {otpPending ? (
+                    <form onSubmit={confirmOtp} className="mt-3 space-y-3">
+                      <label htmlFor="gst-otp" className={labelClass}>6-digit GST OTP</label>
+                      <input id="gst-otp" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} value={otpCode} onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, ""))} disabled={pending} required className={`${inputClass} font-mono tracking-[0.3em]`} />
+                      <p className="text-xs text-blue-800">This request expires after 10 minutes. {challenge.attempts_remaining} attempts remaining.</p>
+                      <button type="submit" disabled={pending || otpCode.length !== 6} className="w-full rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{pending ? "Checking…" : "Confirm OTP & verify PAN + GST"}</button>
+                    </form>
+                  ) : <p role="status" className="mt-2 text-sm text-amber-800">{challenge.status === "locked" ? "Too many incorrect attempts." : "This OTP request has expired."} Request a new code above.</p>}
+                  {otpPending && <button type="button" disabled={pending || resendIn > 0} onClick={() => { setEditingOtpRequest(true); setOtpCode(""); }} className="mt-3 text-xs font-semibold text-blue-800 underline disabled:opacity-50">Change username or request another code</button>}
+                </div>
               )}
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <button type="button" onClick={() => openStep(0)} disabled={pending} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50">Back to PAN</button>

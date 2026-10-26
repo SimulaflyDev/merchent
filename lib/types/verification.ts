@@ -1,5 +1,6 @@
 export interface PanVerificationStatus {
-  status: "not_started" | "verified";
+  status: "not_started" | "details_checked" | "verified";
+  source?: "sandbox" | "admin" | null;
   masked_pan: string | null;
   verified_name: string | null;
   category: string | null;
@@ -7,7 +8,8 @@ export interface PanVerificationStatus {
 }
 
 export interface GstinVerificationStatus {
-  status: "not_started" | "verified";
+  status: "not_started" | "details_checked" | "verified";
+  source?: "sandbox" | "admin" | null;
   gstin: string | null;
   legal_name: string | null;
   business_nature: string | null;
@@ -32,6 +34,29 @@ export interface MerchantVerification {
   is_kyc_completed: boolean;
   approval_status: "draft" | "pending_verification" | "approved" | "rejected";
   can_activate: boolean;
+  manually_verified?: boolean;
+  otp?: MerchantOtpStatus;
+}
+
+export interface MerchantOtpStatus {
+  status: "not_started" | "pending" | "expired" | "locked" | "verified" | "not_required";
+  challenge_id: string | null;
+  gstin: string | null;
+  expires_at: string | null;
+  resend_available_at: string | null;
+  attempts_remaining: number | null;
+  verified_at: string | null;
+}
+
+export interface MerchantOtpStartPayload {
+  gstin: string;
+  username: string;
+  consent: true;
+}
+
+export interface MerchantOtpConfirmPayload {
+  challenge_id: string;
+  otp: string;
 }
 
 export interface PanVerificationPayload {
