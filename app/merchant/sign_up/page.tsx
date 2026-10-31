@@ -45,6 +45,7 @@ export default function SignUpPage() {
         registerAction(trimmedEmail, password, fullName.trim(), {
           terms: acceptTerms,
           privacy: acceptPrivacy,
+          merchant: true,
         }),
       );
     } catch (err) {

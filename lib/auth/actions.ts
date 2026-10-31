@@ -68,7 +68,7 @@ export async function registerAction(
       full_name: fullName,
       terms_accepted: agreements.terms,
       privacy_policy_accepted: agreements.privacy,
-      merchant_agreement_accepted: agreements.merchant ?? false,
+      merchant_agreement_accepted: agreements.merchant ?? true,
     });
     // Auto-login after register.
     const loginRes = await loginAction(email, password);
