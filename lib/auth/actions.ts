@@ -59,7 +59,7 @@ export async function registerAction(
   email: string,
   password: string,
   fullName: string,
-  agreements: { terms: boolean; privacy: boolean; merchant: boolean },
+  agreements: { terms: boolean; privacy: boolean; merchant?: boolean },
 ): Promise<ActionResult<void>> {
   return srvAction(async () => {
     await registerApi({
@@ -68,7 +68,7 @@ export async function registerAction(
       full_name: fullName,
       terms_accepted: agreements.terms,
       privacy_policy_accepted: agreements.privacy,
-      merchant_agreement_accepted: agreements.merchant,
+      merchant_agreement_accepted: agreements.merchant ?? false,
     });
     // Auto-login after register.
     const loginRes = await loginAction(email, password);
