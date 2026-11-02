@@ -15,6 +15,9 @@ import {
 } from "@/lib/auth/verification-actions";
 import type { MerchantOut } from "@/lib/types/merchant";
 import type { MerchantVerification } from "@/lib/types/verification";
+import type { TermsDocument } from "@/lib/types/terms";
+import { getCurrentTermsAction } from "@/lib/auth/terms-actions";
+import TermsViewer from "./TermsViewer";
 
 interface Props {
   merchant: MerchantOut;
@@ -69,12 +72,27 @@ export default function VerificationClient({
   );
   const [pending, startTransition] = useTransition();
   const [acceptAllTerms, setAcceptAllTerms] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
+  const [termsDocument, setTermsDocument] = useState<TermsDocument | null>(null);
+  const [termsError, setTermsError] = useState<string | null>(null);
+  const [termsReload, setTermsReload] = useState(0);
+  const [loadedTermsVersion, setLoadedTermsVersion] = useState("");
   const [gstUsername, setGstUsername] = useState("");
   const [otpConsent, setOtpConsent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const [otpExpired, setOtpExpired] = useState(false);
   const [editingOtpRequest, setEditingOtpRequest] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    callAction(getCurrentTermsAction(merchant.id)).then((document) => {
+      if (!cancelled) { setTermsDocument(document); setTermsError(null); }
+    }).catch((err) => {
+      if (!cancelled) setTermsError(err instanceof Error ? err.message : "Unable to load the terms document.");
+    });
+    return () => { cancelled = true; };
+  }, [merchant.id, termsReload]);
 
   useEffect(() => {
     function tick() {
@@ -121,7 +139,11 @@ export default function VerificationClient({
   const returnTo = requestedReturnTo?.startsWith("/merchant/")
     ? requestedReturnTo
     : "/merchant/dashboard";
-  const completedSteps = [panVerified, gstinVerified, verification.agreement.accepted];
+  const signedCurrentTerms = !!termsDocument && verification.agreement.accepted &&
+    !!verification.agreement.signature_name && verification.agreement.document_version === termsDocument.version;
+  const canSignTerms = verification.is_kyc_completed &&
+    Object.values(verification.other_checks).every((check) => check.status === "verified");
+  const completedSteps = [panVerified, gstinVerified, signedCurrentTerms];
   const availableSteps = [true, panChecked, panVerified && gstinVerified];
 
   const openStep = (step: VerificationStep) => {
@@ -225,14 +247,17 @@ export default function VerificationClient({
   const activateMerchant = () => {
     setError(null);
     setSuccess(null);
-    if (!acceptAllTerms || !verification.can_activate) {
-      setError("Complete verification and accept all Terms and Conditions before activation.");
+    if (!acceptAllTerms || !canSignTerms || !termsDocument || loadedTermsVersion !== termsDocument.version || signatureName.trim().length < 2) {
+      setError("Read the terms, tick acceptance, and type your full name to sign after verification.");
       return;
     }
     startTransition(async () => {
       try {
         const result = await callAction(
           acceptMerchantAgreementsAction(merchant.id, {
+            signature_name: signatureName.trim(),
+            document_version: termsDocument.version,
+            document_sha256: termsDocument.sha256,
             merchant_agreement: true,
             terms_and_conditions: true,
             privacy_policy: true,
@@ -242,12 +267,22 @@ export default function VerificationClient({
             merchant_obligations_and_fees: true,
           }),
         );
+        if (!result.agreement.signature_name || result.agreement.document_version !== termsDocument.version) {
+          throw new Error("The backend signature update is not installed yet. Please contact support.");
+        }
         setVerification(result);
         sessionStorage.removeItem("sf_pending_pan");
-        setSuccess("Terms accepted. Your merchant account is approved and ready to use.");
+        setSuccess("Terms signed and saved. Your merchant account is approved and ready to use.");
         router.refresh();
       } catch (err) {
         showError(err, "Merchant activation failed. Please try again.");
+        if (isApiError(err) && err.status === 409) {
+          setAcceptAllTerms(false);
+          setSignatureName("");
+          setLoadedTermsVersion("");
+          setTermsDocument(null);
+          setTermsReload((value) => value + 1);
+        }
       }
     });
   };
@@ -348,7 +383,7 @@ export default function VerificationClient({
         {verification.manually_verified && (
           <div role="status" className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             An admin has approved the PAN and GSTIN requirements for this shop.
-            {!verification.agreement.accepted && " Read and accept the Terms & Conditions to finish verification."}
+            {!signedCurrentTerms && " Read and sign the Terms & Conditions to finish verification."}
           </div>
         )}
 
@@ -604,46 +639,36 @@ export default function VerificationClient({
 
         {activeStep === 2 && (
           <section id="verification-panel-2" aria-labelledby="verification-step-2" className="rounded-3xl border border-[#E2E4E8] bg-white p-4 shadow-sm sm:p-6">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-[#111827]">Terms &amp; Conditions</h2>
-                <p className="mt-1 text-xs text-gray-500">Read the PDF and accept the agreement to complete verification.</p>
-              </div>
-              <a href="/terms-and-conditions.pdf" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-[#0E9F88] hover:bg-emerald-50">Open / download PDF</a>
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Terms &amp; Conditions</h2>
+              <p className="mt-1 text-xs text-gray-500">Read the document and type your full name to sign on behalf of your business.</p>
             </div>
-
-            <iframe src="/terms-and-conditions.pdf#view=FitH" title="SimulaFly Terms and Conditions PDF" className="h-[420px] w-full rounded-xl border border-gray-200 bg-gray-50 sm:h-[600px]" />
-            <p className="mt-2 text-xs text-gray-500">If the preview is unavailable on your phone, use Open / download PDF above.</p>
-
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
-              <input
-                type="checkbox"
-                checked={verification.agreement.accepted || acceptAllTerms}
-                disabled={pending || verification.agreement.accepted}
-                onChange={(event) => setAcceptAllTerms(event.target.checked)}
-                className="mt-1 h-5 w-5 shrink-0 accent-[#0E9F88]"
-              />
-              <span>
-                I have read the PDF and accept all Terms and Conditions, the Merchant Agreement, Privacy Policy, marketplace and listing rules, cancellation and return rules, and merchant obligations and applicable fees.
-              </span>
-            </label>
-            <p className="mt-2 text-xs text-gray-500">
-              You can also review the <a href="https://simulafly.com/privacy-policy-for-website" target="_blank" rel="noopener noreferrer" className="text-[#0E9F88] underline">Privacy Policy</a>. Acceptance is saved with your merchant account.
-            </p>
-
-            {verification.agreement.accepted ? (
-              <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                All terms accepted{verification.agreement.accepted_at ? ` on ${formatVerifiedAt(verification.agreement.accepted_at)}` : ""}.
-              </div>
-            ) : (
-              <>
-                {!verification.can_activate && <p className="mt-4 text-sm text-amber-700">Complete the pending onboarding checks below before activation.</p>}
-                <button type="button" onClick={activateMerchant} disabled={pending || !acceptAllTerms || !verification.can_activate} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:cursor-not-allowed disabled:opacity-50">
-                  {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-                  Accept &amp; complete verification
-                </button>
-              </>
-            )}
+            {termsError ? <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{termsError} <button type="button" onClick={() => setTermsReload((value) => value + 1)} className="underline">Reload terms</button></div>
+              : !termsDocument ? <p role="status" className="p-8 text-sm text-gray-500">Loading terms document...</p>
+              : <>
+                <p className="mb-3 text-sm font-semibold text-gray-700">{termsDocument.title} <span className="font-normal text-gray-500">· {termsDocument.page_count} pages</span></p>
+                <TermsViewer key={termsDocument.version} merchantId={merchant.id} document={termsDocument} onLoaded={setLoadedTermsVersion} />
+                {verification.agreement.accepted && !signedCurrentTerms && <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{verification.agreement.signature_name ? "A newer terms document is available. Your earlier signature is preserved." : "Your earlier checkbox acceptance is saved. Please add your typed signature for this document."}</p>}
+                {signedCurrentTerms ? <div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                  <p className="font-bold">Signed by {verification.agreement.signature_name}</p>
+                  <p className="mt-1">{verification.agreement.accepted_at ? `Accepted on ${formatVerifiedAt(verification.agreement.accepted_at)}.` : "Acceptance saved."}</p>
+                  <p className="mt-2 break-all text-xs">Document version: {verification.agreement.document_version}</p>
+                </div> : <>
+                  <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+                    <input type="checkbox" checked={acceptAllTerms} disabled={pending || loadedTermsVersion !== termsDocument.version} onChange={(event) => setAcceptAllTerms(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#0E9F88]" />
+                    <span>I have read the PDF and accept all Terms and Conditions, the Merchant Agreement, Privacy Policy, marketplace and listing rules, cancellation and return rules, and merchant obligations and applicable fees.</span>
+                  </label>
+                  <label htmlFor="terms-signature" className="mt-5 block text-sm font-semibold text-gray-800">Full name as your signature</label>
+                  <input id="terms-signature" name="signature_name" autoComplete="name" value={signatureName} onChange={(event) => setSignatureName(event.target.value)} minLength={2} maxLength={160} disabled={pending} placeholder="Type your full name" className={`${inputClass} mt-2`} />
+                  <p className="mt-2 text-xs leading-5 text-gray-500">By signing, I confirm I am authorized to accept these terms for this business. My typed name, account, document version, and acceptance date and time will be recorded.</p>
+                  {signatureName.trim() && <p aria-label="Signature preview" className="mt-3 break-words rounded-xl bg-gray-50 p-4 font-serif text-2xl italic text-gray-800">{signatureName.trim()}</p>}
+                  {!canSignTerms && <p className="mt-4 text-sm text-amber-700">Complete all mandatory verification checks before signing.</p>}
+                  <button type="button" onClick={activateMerchant} disabled={pending || !acceptAllTerms || !canSignTerms || signatureName.trim().length < 2 || loadedTermsVersion !== termsDocument.version} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0E9F88] px-4 py-3 text-sm font-bold text-white hover:bg-[#0B7A69] disabled:cursor-not-allowed disabled:opacity-50">
+                    {pending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                    Sign &amp; accept terms
+                  </button>
+                </>}
+              </>}
             <button type="button" onClick={() => openStep(1)} disabled={pending} className="mt-4 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50">Back to GSTIN</button>
           </section>
         )}

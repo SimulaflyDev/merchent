@@ -30,6 +30,10 @@ export interface MerchantVerification {
     accepted: boolean;
     accepted_at: string | null;
     versions: Record<string, string>;
+    signature_name?: string | null;
+    document_version?: string | null;
+    document_sha256?: string | null;
+    document_title?: string | null;
   };
   is_kyc_completed: boolean;
   approval_status: "draft" | "pending_verification" | "approved" | "rejected";
@@ -71,6 +75,9 @@ export interface GstinVerificationPayload {
 }
 
 export interface AgreementAcceptancePayload {
+  signature_name: string;
+  document_version: string;
+  document_sha256: string;
   merchant_agreement: true;
   terms_and_conditions: true;
   privacy_policy: true;
